@@ -43,13 +43,17 @@ export class TpPanel {
     }
     const head = h('header', { class: 'tp-top' }, h('div', null, h('b', null, `TP ${sc.number} — ${sc.title}`), exam ? h('span', { class: 'pill warn' }, 'Examen') : null),
       h('button', { title: 'Replier le panneau', 'aria-label': 'Replier le panneau', onclick: () => { this.collapsed = true; this.render(); } }, '›'));
-    const stepper = h('ol', { class: 'tp-steps', 'aria-label': 'Étapes' }, ...sc.stages.map((g, i) => {
-      const state = ev.stages[i]!.done && i < s.stage ? 'done' : i === s.stage ? 'now' : i < s.stage ? 'done' : 'todo'; const can = i <= s.stage;
-      return h('li', { class: `${state}${i === idx ? ' view' : ''}` }, h('button', { disabled: !can, 'aria-current': i === idx ? 'step' : null, title: g.title, onclick: () => { this.viewing = { id: s.scenarioId, stage: i }; this.render(); } }, h('span', { class: 'n' }, state === 'done' ? '✓' : String(i + 1)), h('span', { class: 'l' }, g.title)));
-    }));
+    const N = sc.stages.length; const next = sc.stages[idx + 1];
+    const stepper = h('nav', { class: 'tp-progress', 'aria-label': 'Progression du TP' },
+      h('ol', { class: 'tp-bar' }, ...sc.stages.map((g, i) => {
+        const can = i <= s.stage; const state = i < s.stage ? 'done' : i === s.stage ? 'now' : 'todo';
+        return h('li', { class: `${state}${i === idx ? ' view' : ''}` }, h('button', { disabled: !can, 'aria-current': i === idx ? 'step' : null, title: can ? `Étape ${i + 1} : ${g.title}` : `Étape ${i + 1} : ${g.title} (se débloque après la précédente)`, 'aria-label': `Étape ${i + 1} sur ${N} : ${g.title}${can ? '' : ', verrouillée'}`, onclick: () => { this.viewing = { id: s.scenarioId, stage: i }; this.render(); } }, h('span', { class: 'n' }, i < s.stage ? '✓' : can ? String(i + 1) : '🔒')));
+      })),
+      h('p', { class: 'tp-cap' }, h('b', null, `Étape ${idx + 1} sur ${N}`), ` — ${stage.title}`),
+      next ? h('p', { class: 'tp-next muted' }, idx < s.stage ? 'Vous revoyez une étape déjà validée.' : `Ensuite : « ${next.title} ». Les étapes suivantes s'ouvrent une à une, quand celle-ci est réussie.`) : h('p', { class: 'tp-next muted' }, 'Dernière étape du TP.'));
     const body = h('div', { class: 'tp-body' });
     if (idx === 0) body.append(h('section', { class: 'tp-ctx' }, h('h3', null, 'Mise en situation'), h('p', null, sc.context)));
-    body.append(h('section', { class: 'tp-lesson' }, h('div', { class: 'tp-sec' }, h('h3', null, `Étape ${idx + 1}/${sc.stages.length} — ${stage.title}`), h('button', { class: 'link', onclick: () => this.openReader(`TP ${sc.number} · ${stage.title}`, [h('h3', null, 'Mise en situation'), h('p', null, sc.context), h('h3', null, 'Cours'), ...rich(stage.lesson)]) }, 'Lire en grand')),
+    body.append(h('section', { class: 'tp-lesson' }, h('div', { class: 'tp-sec' }, h('h3', null, 'Cours'), h('button', { class: 'link', onclick: () => this.openReader(`TP ${sc.number} · ${stage.title}`, [h('h3', null, 'Mise en situation'), h('p', null, sc.context), h('h3', null, 'Cours'), ...rich(stage.lesson)]) }, 'Lire en grand')),
       ...rich(stage.lesson)));
     const status = new Map(ev.objectives.map(o => [o.id, o])); const byId = new Map(sc.objectives.map(o => [o.id, o]));
     body.append(h('section', { class: 'tp-todo' }, h('h3', null, 'À faire'), h('ol', { class: 'tp-obj' }, ...stage.objectives.map(id => {

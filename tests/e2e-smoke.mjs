@@ -92,7 +92,7 @@ await page.getByRole('tab', { name: 'Infrastructure' }).click();
 await page.getByRole('tab', { name: 'TP' }).click();
 ok(await page.locator('.tp-card').count() >= 11, 'catalogue : au moins 11 TP');
 await page.locator('.tp-card', { hasText: 'PC déconnecté' }).getByRole('button', { name: 'Démarrer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
-ok(await page.locator('.tp-dock:not([hidden])').count() === 1 && await page.locator('.tp-steps li').count() === 4, 'colonne de TP : 4 étapes');
+ok(await page.locator('.tp-dock:not([hidden])').count() === 1 && await page.locator('.tp-bar li').count() === 4, 'colonne de TP : 4 étapes');
 ok((await page.locator('.tp-dock .tp-ctx').textContent()).includes('service desk'), 'mise en situation : explique comment le ticket est arrivé');
 ok(await page.locator('.tp-lesson p').count() >= 2, 'cours affiché avant la pratique');
 const box0 = await page.locator('.canvas').boundingBox(); const dock0 = await page.locator('.tp-dock').boundingBox();
@@ -105,7 +105,7 @@ await run(() => { const { store } = window.infralab; const st = store.getState()
   store.dispatch({ type: 'itsm.linkAsset', payload: { id: t.id, asset: a.id } }); store.dispatch({ type: 'itsm.updateTicket', payload: { id: t.id, fields: { category: 'Réseau', subcategory: 'Poste sans réseau', impact: 'low', urgency: 'medium' } } }); });
 ok(await page.locator('.tp-debrief').count() === 1, 'étape 1 terminée : bilan affiché');
 await page.getByRole('button', { name: 'Étape suivante' }).click();
-ok((await page.locator('.tp-lesson h3').textContent()).includes('Étape 2/4'), 'étape suivante : nouveau cours');
+ok((await page.locator('.tp-cap').textContent()).includes('Étape 2 sur 4'), 'étape suivante : nouveau cours');
 await page.getByRole('button', { name: 'Lire en grand' }).click(); ok(await page.locator('dialog.reader[open]').count() === 1, 'lecture du cours en grand');
 await page.locator('dialog.reader').getByRole('button', { name: 'Fermer' }).click();
 await page.getByRole('button', { name: 'Replier le panneau' }).click(); ok(await page.locator('.tp-rail').count() === 1, 'panneau replié en rail');
