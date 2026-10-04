@@ -88,6 +88,24 @@ ok((await page.locator('.itsm-page .asset-head').textContent()).includes('Clos')
 await page.screenshot({ path: `${shots}/m3-ticket.png` });
 await page.getByRole('tab', { name: 'Infrastructure' }).click();
 
+// M4 : TP 16 jouable par l'interface
+await page.getByRole('tab', { name: 'TP' }).click();
+ok(await page.locator('.tp-card').count() >= 7, 'catalogue : au moins 7 TP');
+await page.locator('.tp-card', { hasText: 'PC déconnecté' }).getByRole('button', { name: 'Démarrer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+ok(await page.locator('.tp-panel:not([hidden])').count() === 1 && (await page.locator('.tp-head').textContent()).includes('0/6'), 'panneau de TP : 0/6 objectifs');
+ok(await page.locator('.node.down').count() >= 1, 'décor appliqué : le poste d\'Alice est hors ligne');
+await page.getByRole('button', { name: /Indice \(0\/3\)/ }).first().click();
+ok(await page.locator('.tp-hints li').count() === 1, 'un indice révélé');
+await page.evaluate(() => { const { store } = window.infralab; const st = store.getState(); const pc = Object.values(st.reality.devices).find(d => d.name === 'PC-COMPTA-01'); const sw = Object.values(st.reality.devices).find(d => d.name === 'SW-SIEGE-01'); store.dispatch({ type: 'infra.connect', payload: { aDevice: pc.id, aPort: 'eth0', bDevice: sw.id, bPort: 'port3' } }); });
+ok((await page.locator('.tp-head').textContent()).includes('2/6'), 'reconnecter : objectifs « poste en ligne » et « agent » atteints');
+await page.getByRole('button', { name: 'Voir la solution' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+ok(await page.locator('.tp-panel .callout').count() === 1, 'solution affichée sur demande');
+await page.screenshot({ path: `${shots}/m4-tp.png` });
+await page.getByRole('button', { name: 'Terminer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+ok((await page.locator('.tp-score').textContent()).includes('/ 100'), 'bilan avec score');
+await page.getByRole('button', { name: 'Quitter', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+ok(await page.locator('.tp-panel:not([hidden])').count() === 0, 'quitter le TP : retour au mode libre');
+
 // pose par glisser-déposer + câblage
 await page.getByRole('button', { name: 'Nouveau', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 const box = await page.locator('.canvas').boundingBox();

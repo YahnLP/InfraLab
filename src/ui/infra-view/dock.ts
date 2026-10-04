@@ -1,5 +1,6 @@
 import type { DomainEvent, Store, TicketStatus } from '../../core';
 import { STATUS_LABEL } from '../../itsm';
+import { getScenario } from '../../scenarios';
 import { clear, h } from '../kit/dom';
 import type { OfflineReason } from '../../infra';
 import { EVENT_LABEL, REASON_SHORT, fmtTime } from '../shell/labels';
@@ -11,7 +12,7 @@ export class Dock {
   constructor(private root: HTMLElement, private store: Store, private onFocus: (deviceId: string) => void) {
     store.subscribe(() => this.render()); this.render();
   }
-  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.tickets[id]?.ref ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
+  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.tickets[id]?.ref ?? (id.startsWith('tp-') ? `TP ${getScenario(id)?.number ?? ''}` : undefined) ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
   private describe(e: DomainEvent): string {
     const p = e.payload as Record<string, any>;
     switch (e.type) {

@@ -8,7 +8,9 @@ import { InfraCanvas, type Selection } from '../infra-view/canvas';
 import { Dock } from '../infra-view/dock';
 import { renderInspector } from '../infra-view/inspector';
 import { glyphSvg } from '../infra-view/icons';
-import { seedNovatech as seedExample } from '../../scenarios';
+import { getScenario as SCENARIOS_BY_ID, registerScenarioCommands, seedNovatech as seedExample, startScenario, type Scenario } from '../../scenarios';
+import { renderTpCatalog } from '../tp/catalog-page';
+import { TpPanel } from '../tp/panel';
 import { fmtTime } from './labels';
 
 const KEY = 'infralab.project.v0';
@@ -16,7 +18,7 @@ const KEY = 'infralab.project.v0';
 export function mountApp(root: HTMLElement): void {
   const sch = new Scheduler();
   const store = new Store({ clock: () => sch.now });
-  registerInfraCommands(store); registerInventoryCommands(store); registerItsmCommands(store);
+  registerInfraCommands(store); registerInventoryCommands(store); registerItsmCommands(store); registerScenarioCommands(store);
 
   /* ---- persistance locale (provisoire : IndexedDB et projets nommés arrivent avec le moteur de TP) ---- */
   try {
@@ -39,6 +41,8 @@ export function mountApp(root: HTMLElement): void {
   const dialog = h('dialog', { class: 'confirm' });
   const itsmEl = h('div', { class: 'itsm', hidden: true });
   const workEl = h('main', { class: 'work' });
+  const tpEl = h('div', { class: 'tpview', hidden: true });
+  const tpPanelEl = h('aside', { class: 'tp-panel', 'aria-label': 'Travail pratique en cours', hidden: true });
 
   const toast = (msg: string, kind: 'info' | 'err' = 'info') => {
     const t = h('div', { class: `toast ${kind}`, role: kind === 'err' ? 'alert' : 'status' }, msg); toastBox.append(t);
@@ -85,14 +89,26 @@ export function mountApp(root: HTMLElement): void {
   /* ---- vues ---- */
   const tabInfra = h('button', { role: 'tab', 'aria-selected': 'true', class: 'on', onclick: () => showInfra() }, 'Infrastructure');
   const tabItsm = h('button', { role: 'tab', 'aria-selected': 'false', onclick: () => showItsm() }, 'ITSM');
+  const tabTp = h('button', { role: 'tab', 'aria-selected': 'false', onclick: () => showTp() }, 'TP');
+  const tabs = () => [[tabInfra, workEl], [tabItsm, itsmEl], [tabTp, tpEl]] as const;
   const itsm = new ItsmView(itsmEl, { store, now: () => sch.now, dispatch, goInfra: id => { showInfra(); canvas.focusDevice(id); } });
-  function showInfra(): void { workEl.hidden = false; itsmEl.hidden = true; tabInfra.classList.add('on'); tabItsm.classList.remove('on'); tabInfra.setAttribute('aria-selected', 'true'); tabItsm.setAttribute('aria-selected', 'false'); }
-  function showItsm(r?: Parameters<ItsmView['go']>[0]): void { workEl.hidden = true; itsmEl.hidden = false; tabItsm.classList.add('on'); tabInfra.classList.remove('on'); tabItsm.setAttribute('aria-selected', 'true'); tabInfra.setAttribute('aria-selected', 'false'); itsm.go(r ?? itsm.route); }
+  function show(which: 0 | 1 | 2): void { tabs().forEach(([t, el], i) => { el.hidden = i !== which; t.classList.toggle('on', i === which); t.setAttribute('aria-selected', String(i === which)); }); }
+  function showInfra(): void { show(0); }
+  function showItsm(r?: Parameters<ItsmView['go']>[0]): void { show(1); itsm.go(r ?? itsm.route); }
+  const tpHost = {
+    current: () => store.getState().session?.scenarioId ?? null,
+    start: (sc: Scenario, mode: 'tp' | 'exam') => {
+      const go = () => { startScenario(store, sch, sc, mode); canvas.select(null); showInfra(); canvas.fit(); refresh(); };
+      confirm(`Démarrer « TP ${sc.number} — ${sc.title} »${mode === 'exam' ? ' en mode examen' : ''} ? Le projet actuel sera remplacé.`, go);
+    },
+  };
+  function showTp(): void { show(2); renderTpCatalog(tpEl, tpHost); }
+  new TpPanel(tpPanelEl, store, { dispatch, confirm, restart: () => { const id = store.getState().session; const sc = id && SCENARIOS_BY_ID(id.scenarioId); if (sc && id) { startScenario(store, sch, sc, id.mode); canvas.select(null); canvas.fit(); refresh(); } } });
 
   /* ---- en-tête ---- */
   const header = h('header', { class: 'top' },
     h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('span', null, 'InfraLab')),
-    h('div', { class: 'views', role: 'tablist', 'aria-label': 'Vues' }, tabInfra, tabItsm),
+    h('div', { class: 'views', role: 'tablist', 'aria-label': 'Vues' }, tabInfra, tabItsm, tabTp),
     h('div', { class: 'grow' }),
     h('div', { class: 'simtime' }, h('span', { class: 'muted' }, 'Heure simulée'), clock,
       h('button', { title: 'Avancer le temps simulé d\'une heure (remontées d\'agent planifiées)', onclick: () => { advance(store, sch, HOUR); refresh(); } }, '+1 h'),
@@ -102,7 +118,7 @@ export function mountApp(root: HTMLElement): void {
     h('button', { onclick: () => confirm('Effacer tout le schéma ?', () => { store.restore({ state: emptyState(), log: [] }); sch.now = 0; canvas.select(null); refresh(); }) }, 'Nouveau'));
 
   workEl.append(palette, h('div', { class: 'center' }, stage, hint, dockEl), inspector);
-  root.append(header, workEl, itsmEl, toastBox, dialog);
+  root.append(header, workEl, itsmEl, tpEl, tpPanelEl, toastBox, dialog);
 
   window.addEventListener('keydown', e => {
     const t = e.target as HTMLElement; if (t.closest('input, textarea, select, dialog')) return;

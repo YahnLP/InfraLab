@@ -11,6 +11,7 @@ export const EVENT_LABEL: Record<string, string> = {
   AgentOffline: 'Agent injoignable', AgentOnline: 'Agent de nouveau joignable', AgentInventoryCompleted: 'Inventaire remonté', AgentInventoryFailed: 'Inventaire en échec',
   ChangeDetected: 'Changement détecté', NetworkDiscoveryCompleted: 'Découverte réseau terminée', AssetCreated: 'Actif créé', AssetMatched: 'Actif rapproché',
   AssetUpdated: 'Actif modifié', UserAdded: 'Utilisateur ajouté', AssetAssigned: 'Actif affecté',
+  ScenarioStarted: 'TP démarré', HintUsed: 'Indice consulté', SolutionRevealed: 'Solution affichée', ScenarioFinished: 'TP terminé', ScenarioQuit: 'TP quitté',
   TicketCreated: 'Ticket créé', TicketUpdated: 'Ticket modifié', TicketStatusChanged: 'Statut du ticket modifié', TicketCommented: 'Ticket commenté',
   TicketAssetLinked: 'Actif lié au ticket', TicketAssetUnlinked: 'Actif délié du ticket',
 };
