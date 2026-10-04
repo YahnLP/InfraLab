@@ -37,7 +37,7 @@ const note = (title: string, ...kids: (string | Node)[]) => h('aside', { class: 
 export class ItsmView {
   route: Route = { page: 'dashboard' };
   private nav = h('nav', { class: 'itsm-nav', 'aria-label': 'Navigation ITSM' });
-  private page = h('div', { class: 'itsm-page' });
+  private page = h('div', { class: 'itsm-page', tabindex: '0', role: 'region', 'aria-label': 'Contenu' });
   private lastCidr = '';
 
   constructor(private root: HTMLElement, private host: ItsmHost) {

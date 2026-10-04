@@ -4,12 +4,14 @@ Laboratoire pédagogique **ITSM / ITAM** : un même système d'information vu à
 
 Créé par Yahn LE PRETTRE — Formaxion Landes. Application indépendante du simulateur réseau, dont elle réutilise certaines idées (planificateur à temps simulé, canvas SVG, moteur de TP auto-testés).
 
-> **État : M7 — administration, rôles et droits.** Après les tickets (M3), les TP guidés par étapes (M4), l'ITIL (M5) et l'ITAM + CMDB (M6) : contrôle d'accès par les rôles (RBAC) appliqué à toutes les actions (refus expliqués : droit manquant, rôles de la personne), « Agir en tant que » pour endosser un utilisateur, matrice des droits modifiable, création de rôles, comptes activables/désactivables, garde-fou « dernier administrateur », séparation des tâches (on n'approuve pas son propre changement), journal d'audit avec l'auteur de chaque action. 36 TP au catalogue (TP 33–36 : qui peut faire quoi, accueillir un technicien, séparation des tâches, départ d'un technicien). Prochain jalon : M8 (finitions : jeu de données NovaTech complet, export d'examen, TP restants, documentation d'architecture).
+> **État : M8 — finitions, version 1.0.** Après les tickets (M3), les TP guidés (M4), l'ITIL (M5), l'ITAM + CMDB (M6) et l'administration RBAC (M7) : **catalogue complet de 40 TP** (étapes cours → pratique → bilan, 61 questions de compréhension, auto-testés), mode examen, **compte rendu de TP exportable** (HTML imprimable ou JSON, avec empreinte), jeu de données **NovaTech complet** (4 sites, une quarantaine d'équipements, 45 utilisateurs), vue formateur (couverture des compétences), accessibilité auditée automatiquement (axe-core, 0 violation WCAG 2.1 AA, thèmes clair et sombre). Documents : `docs/ARCHITECTURE.md` (conception et état réel), `docs/GUIDE-FORMATEUR.md`, `docs/couverture-competences.md`. Reste à faire : essai en classe, audit manuel avec lecteur d'écran, export/import de projet.
 
-**M2 — inventaire.** Vues Infrastructure et ITSM (parc, agents, découverte, fiche d'actif, utilisateurs, journaux), agent d'inventaire, découverte réseau, rapprochement, écart réalité/observé. Rappel M1 : Noyau typé et testé, catalogue de 15 équipements, commandes physiques, joignabilité avec événements en cascade, canvas SVG, palette, inspecteur et journal « Pourquoi ? ». Prochain jalon : ITAM et CMDB (logiciels, licences, contrats, CI et relations).
+Historique : **M2 — inventaire.** Vues Infrastructure et ITSM (parc, agents, découverte, fiche d'actif, utilisateurs, journaux), agent d'inventaire, découverte réseau, rapprochement, écart réalité/observé. Rappel M1 : Noyau typé et testé, catalogue de 15 équipements, commandes physiques, joignabilité avec événements en cascade, canvas SVG, palette, inspecteur et journal « Pourquoi ? ». Prochain jalon : ITAM et CMDB (logiciels, licences, contrats, CI et relations).
 
 ## Documentation
 - [Architecture et plan de développement](docs/ARCHITECTURE.md)
+- [Guide du formateur](docs/GUIDE-FORMATEUR.md)
+- [Couverture des compétences](docs/couverture-competences.md) (générée : `npm run docs`)
 - [Décisions d'architecture (ADR)](docs/adr/)
 
 ## Développement
@@ -20,6 +22,8 @@ npm test            # Vitest
 npm run dev         # serveur de développement
 npm run build       # produit dist/index.html (fichier autonome, hors-ligne)
 node tests/e2e-smoke.mjs   # test de fumée navigateur (après npm run build)
+AXE=chemin/axe.min.js node tests/a11y-audit.mjs   # audit d'accessibilité axe-core (DARK=1 pour le thème sombre)
+npm run docs        # régénère le tableau des TP et la matrice de compétences
 ```
 
 ## Structure

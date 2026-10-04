@@ -16,7 +16,7 @@ export type Check =
   | { k: 'assetExists'; device: Ref }
   | { k: 'assetInventoried'; device: Ref }
   | { k: 'assetInSync'; device: Ref }
-  | { k: 'ticket'; ref: Ref; status?: TicketStatus; category?: string; impact?: Level; urgency?: Level; priority?: 1 | 2 | 3 | 4; linkedDevice?: Ref; hasSolution?: boolean; solutionMin?: number; minComments?: number; subcategory?: string; kind?: 'incident' | 'request'; qualified?: boolean; assignee?: Ref }
+  | { k: 'ticket'; ref: Ref; status?: TicketStatus; category?: string; impact?: Level; urgency?: Level; priority?: 1 | 2 | 3 | 4; linkedDevice?: Ref; hasSolution?: boolean; solutionMin?: number; minComments?: number; subcategory?: string; kind?: 'incident' | 'request'; qualified?: boolean; assignee?: Ref; reached?: TicketStatus; requester?: Ref; descMin?: number; linkedAsset?: Ref; noOtherAsset?: boolean }
   | { k: 'sla'; ticket: Ref; respond?: SlaState; resolve?: SlaState }
   | { k: 'problem'; ref: Ref; status?: ProblemStatus; reached?: ProblemStatus; minTickets?: number; hasRootCause?: boolean; hasWorkaround?: boolean; hasFix?: boolean }
   | { k: 'change'; ref: Ref; status?: ChangeStatus; reached?: ChangeStatus; type?: ChangeType; linkedDevice?: Ref; linkedAsset?: Ref; approver?: Ref }
@@ -31,6 +31,9 @@ export type Check =
   | { k: 'deviceUser'; device: Ref; user: Ref }
   | { k: 'ci'; name: Ref; ciKind?: 'service' | 'application' | 'infrastructure'; withAsset?: boolean }
   | { k: 'relation'; from: Ref; to: Ref; type?: 'depends_on' | 'uses' | 'hosted_on' }
+  | { k: 'newDevices'; kind?: string; min: number; unmanaged?: boolean }
+  | { k: 'cabled'; min: number }
+  | { k: 'assetData'; asset: Ref; has?: string[]; observed?: boolean; cost?: number }
   | { k: 'acting'; user: Ref | null }
   | { k: 'actedAs'; user: Ref }
   | { k: 'didAs'; user: Ref; type: string; payload?: Record<string, unknown> }

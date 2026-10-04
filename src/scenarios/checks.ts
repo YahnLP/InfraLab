@@ -26,6 +26,11 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
       if (c.solutionMin !== undefined && (t.solution?.trim().length ?? 0) < c.solutionMin) return false;
       if (c.minComments !== undefined && t.comments.length < c.minComments) return false;
       if (c.subcategory && t.subcategory !== c.subcategory) return false;
+      if (c.reached && !events.some(e => e.type === 'TicketStatusChanged' && e.subject.id === t.id && e.payload['to'] === c.reached)) return false;
+      if (c.requester && t.requester !== c.requester) return false;
+      if (c.descMin !== undefined && t.description.trim().length < c.descMin) return false;
+      if (c.linkedAsset && !t.assetIds.includes(c.linkedAsset)) return false;
+      if (c.noOtherAsset && c.linkedAsset && t.assetIds.some(a => a !== c.linkedAsset)) return false;
       if (c.kind && t.kind !== c.kind) return false;
       if (c.hasSolution !== undefined && !!t.solution?.trim() !== c.hasSolution) return false;
       if (c.linkedDevice) { const a = assetForDevice(st, c.linkedDevice); if (!a || !t.assetIds.includes(a.id)) return false; }
@@ -72,6 +77,17 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
       const x = st.management.articles[c.ref]; if (!x) return false;
       if (c.status && x.status !== c.status) return false; if (c.category && x.category !== c.category) return false; if (c.sourceTicket && x.sourceTicketId !== c.sourceTicket) return false;
       return c.minTickets === undefined || Object.values(st.management.tickets).filter(t => t.articleIds?.includes(x.id)).length >= c.minTickets;
+    }
+    case 'newDevices': {
+      const ids = events.filter(e => e.type === 'DeviceAdded' && (!c.kind || e.payload['kind'] === c.kind)).map(e => e.subject.id).filter(id => st.reality.devices[id]);
+      return ids.filter(id => !c.unmanaged || !Object.values(st.management.assets).some(a => a.deviceId === id)).length >= c.min;
+    }
+    case 'cabled': return events.filter(e => e.type === 'CableConnected').length >= c.min;
+    case 'assetData': {
+      const a = st.management.assets[c.asset]; if (!a) return false;
+      if ((c.has ?? []).some(k => { const v = (a as unknown as Record<string, unknown>)[k]; return v === undefined || v === '' || v === null; })) return false;
+      if (c.observed !== undefined && !!a.observed !== c.observed) return false;
+      return c.cost === undefined || a.cost === c.cost;
     }
     case 'acting': return st.actingAs === c.user;
     case 'actedAs': return events.some(e => e.type === 'ActorChanged' && e.payload['user'] === c.user);

@@ -115,6 +115,9 @@ await page.getByRole('button', { name: 'Solution', exact: true }).click(); await
 ok(await page.locator('.tp-dock .callout').count() === 1, 'solution affichée sur demande');
 await page.getByRole('button', { name: 'Terminer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 ok((await page.locator('.tp-score').textContent()).includes('/ 100'), 'bilan avec score');
+await page.locator('input[aria-label="Nom pour le compte rendu"]').fill('Élève Test');
+const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Compte rendu (HTML)' }).click()]);
+ok(dl.suggestedFilename().startsWith('infralab-tp16') && dl.suggestedFilename().endsWith('.html'), 'compte rendu HTML téléchargé');
 await page.getByRole('button', { name: 'Quitter', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 ok(await page.locator('.tp-dock:not([hidden])').count() === 0, 'quitter le TP : retour au mode libre');
 
@@ -182,5 +185,10 @@ await page.screenshot({ path: `${shots}/m1-3-cable.png` });
 // persistance
 await page.reload(); await page.waitForSelector('.node');
 ok(await page.locator('.node').count() === 2, 'projet restauré après rechargement');
+
+// NovaTech complet
+await page.getByRole('button', { name: 'NovaTech complet' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+ok(await page.locator('.node').count() >= 40, 'NovaTech complet : au moins 40 équipements sur le schéma');
+await page.screenshot({ path: `${shots}/m8-novatech-complet.png` });
 ok(errors.length === 0, 'aucune erreur console : ' + errors.join(' | '));
 await browser.close();

@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "docs": "vite-node tools/gen-docs.ts"
   },
   "devDependencies": {
     "playwright-core": "^1.63.0",

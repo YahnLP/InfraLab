@@ -1,7 +1,40 @@
 # InfraLab — Architecture et plan de développement
 
 > Laboratoire pédagogique ITSM / ITAM : un même système d'information vu par l'infrastructure et par l'outil de gestion.
-> Document de cadrage (v0.1) — aucun code n'a encore été écrit. Auteur du projet : Yahn LE PRETTRE — Formaxion Landes.
+> Document d'architecture (v1.0). Conçu au cadrage (v0.1), mis à jour à l'issue du jalon M8 : les sections 1 à 12 décrivent la **conception**, la section 0 dit ce qui a **réellement été livré** et en quoi la réalisation s'en écarte. Auteur du projet : Yahn LE PRETTRE — Formaxion Landes.
+
+---
+
+## 0. État réel à l'issue de M8
+
+**Livré** : application web autonome (un seul fichier HTML, sans serveur), publiée sur GitHub Pages (`https://yahnlp.github.io/InfraLab/`), intégralement en français.
+
+| Domaine | Livré |
+|---|---|
+| Core | Un état JSON unique (`reality` + `management` + `session` + identité courante), écrit uniquement par `store.dispatch(commande)` avec retour arrière si la commande est refusée ; événements chaînés par `causedBy` ; réacteurs ; snapshot et restauration (avec normalisation des anciennes sauvegardes) ; temps simulé déterministe |
+| Infrastructure | Schéma SVG (palette, glisser-déposer, câbles, alimentation, adresse IP, matériel, logiciels, session), joignabilité de chaque équipement jusqu'au serveur ITSM avec la **raison** de l'état hors ligne |
+| Inventaire | Agent (installer, démarrer, arrêter, configurer, forcer l'inventaire, journal), collecteur, rapprochement MAC → nom → IP, découverte d'une plage CIDR, écart réalité/observé, provenance par champ |
+| ITSM | Tickets (workflow à prérequis expliqués, priorité impact × urgence, SLA dérivé du temps simulé), problèmes, changements (standard / normal / urgent), base de connaissances, logiciels et politique, licences (conformité), contrats et fournisseurs (échéances), cycle de vie du matériel, CMDB (CI, relations manuelles et déduites du câblage, simulation de panne, analyse d'impact), tableau de bord |
+| Administration | RBAC (4 rôles, 18 droits modifiables, rôles créables), « Agir en tant que », comptes activables/désactivables, garde-fou « dernier administrateur », séparation des tâches, journal d'audit avec auteur |
+| TP | **40 TP** en 8 niveaux, **182 objectifs** vérifiés automatiquement dont **61 questions de compréhension**, chacun découpé en étapes (cours → travaux pratiques → bilan), indices progressifs, solution rejouable testée en CI, mode examen, score (objectifs, qualité, autonomie), compte rendu exportable (HTML imprimable ou JSON, avec empreinte SHA-256), vue formateur « couverture des compétences » |
+| Données | SI d'exemple (siège) et **NovaTech complet** (4 sites, une quarantaine d'équipements, 45 utilisateurs, 5 fournisseurs, 3 contrats, licence Office volontairement non conforme, installations interdites, CMDB de 3 services) |
+| Qualité | Tests unitaires et d'intégration (Vitest), auto-test de **chaque** TP (état initial sans objectif atteint ; solution = 100 / 100 ; démarrage déterministe ; intégrité des étapes), test de bout en bout navigateur (Playwright), CI GitHub Actions, TypeScript strict |
+
+### Écarts entre la conception et la réalisation
+
+1. **Format des scénarios** : des données TypeScript typées (et non du YAML). Même structure, mais le compilateur vérifie les références et les vérifications sont des unions typées.
+2. **Pédagogie des TP** : après essai, les TP ont été refondus en **étapes** (cours court, tâches, bilan) avec **questions de compréhension** intercalées, un objectif étant soit un état vérifié, soit une question. Panneau de TP ancré à droite du schéma, repliable, avec barre de progression.
+3. **Numérotation des TP** : les niveaux 7 et 8 ont été remodelés. Les analyses d'impact et les dépendances sont réparties entre les TP 32 et 38 ; l'administration est couverte par les TP 33 à 37 et 39 (rôles et droits, accueil d'un technicien, séparation des tâches, départ d'un technicien, audit, revue des habilitations). Le TP 40 est le TP final.
+4. **Groupes** de techniciens non modélisés : l'administration repose sur les rôles seulement (les droits se donnent à un rôle, un rôle à une personne).
+5. **Vérifications « a atteint »** : certains objectifs se lisent dans l'historique des événements plutôt que dans l'état final (un actif qui passe en réparation puis revient en service a bien « atteint » l'état de réparation).
+6. **SLA** : calendrier continu (24 h / 24, 7 j / 7) ; pas de calendrier ouvré. L'état « en attente » suspend l'horloge.
+7. **NovaTech complet** : une quarantaine d'équipements (et non soixante), un seul réseau pour tous les sites (liaisons inter-sites en couche 2) afin de garder la notion de « joignable par l'outil » lisible ; Office est dépassé de 3 installations (et non 7). Les machines virtuelles sont câblées comme des équipements ordinaires : le lien machine virtuelle ↔ hyperviseur n'est pas modélisé.
+8. **Sauvegarde** : locale au navigateur (`localStorage`), versionnée par la forme de l'état avec normalisation à la restauration. L'export/import d'un projet complet au format JSON n'est pas livré ; ce qui s'exporte, c'est le compte rendu de TP.
+9. **Accessibilité** : étiquettes ARIA, navigation au clavier, thème clair et sombre. Un audit automatisé (axe-core, règles WCAG 2.1 A et AA, `tests/a11y-audit.mjs`) sur 15 vues dans les deux thèmes ne relève plus aucune violation. **Pas d'audit manuel** avec un lecteur d'écran (voir « Reste à faire »).
+10. **Chronologie scénarisée** : un TP prépare un état initial, mais ne déclenche pas d'événements en cours de route (pas de ticket qui arrive à l'étape 3).
+
+### Reste à faire (hors périmètre livré)
+Essai en classe et retours d'élèves ; audit d'accessibilité manuel (lecteur d'écran, navigation clavier de bout en bout) ; export/import de projet ; groupes et délégation ; calendrier ouvré pour les SLA ; événements scénarisés dans le temps ; liaison machine virtuelle ↔ hyperviseur.
 
 ---
 
@@ -480,85 +513,83 @@ La page d'aide ajoute à chaque fois : *« pourquoi cette information existe, co
 
 ---
 
-## 13. Les 40 TP
+## 13. Les TP du catalogue
 
-> Chaque TP indique : ce qu'on **comprend**, le scénario, et la compétence **travaillée** (pistes de BTS SIO SISR ; « preuve possible » = ce que l'élève peut conserver dans son portfolio). Chaque module se ferme par « Dans les outils réels ».
+> Tableau généré à partir du catalogue réel (`npm run docs`). Pour chaque TP : le contexte, les étapes pédagogiques et la compétence **travaillée** (T) ou l'**élément de preuve possible** (P), jamais « validée ». La matrice complète se trouve dans `docs/couverture-competences.md`.
 
+<!-- tp-table:start -->
 ### Niveau 1 — Découverte
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 1 | Découvrir le SI | Parcourir NovaTech : sites, équipements, utilisateurs ; distinguer *schéma* et *base de gestion*. | Gérer le patrimoine informatique |
-| 2 | Ajouter du matériel | Poser un PC et un switch, les câbler ; constater qu'ils existent dans le Core mais **pas encore** dans l'ITSM. | Gérer le patrimoine informatique |
-| 3 | Comprendre les vues | Même équipement, deux représentations ; sélection partagée, « Voir dans l'infrastructure ». | Gérer le patrimoine informatique |
-| 4 | Identifier un actif | Lire une fiche : n° d'inventaire, série, garantie, localisation ; retrouver un actif à partir d'un symptôme. | Gérer le patrimoine informatique |
-| 5 | Affecter un utilisateur | Lier PC ↔ utilisateur ↔ service ↔ site ; effet dans les deux vues. | Gérer le patrimoine · Gérer les habilitations |
+| 1 | Découvrir le SI de NovaTech | Deux représentations d'un même SI → Faire connaître le réseau à l'outil | Gérer le patrimoine informatique (T) |
+| 2 | Ajouter du matériel | Poser et câbler → Ce que l'outil en sait | Gérer le patrimoine informatique (T) |
+| 3 | Comprendre les deux vues | Qui montre quoi ? → Relier un incident à un équipement | Gérer le patrimoine informatique (T) |
+| 4 | Identifier un actif | Comment l'outil reconnaît un équipement → Compléter la fiche | Gérer le patrimoine informatique (T) |
+| 5 | Affecter un utilisateur | Affecter → Affecté n'est pas connecté | Gérer le patrimoine informatique (T) · Gérer les habilitations (T) |
 
 ### Niveau 2 — Inventaire
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 6 | Installer un agent | Installer/démarrer l'agent sur un poste ; lire ses logs. | Gérer le patrimoine · Exploiter et dépanner |
-| 7 | Première remontée | Forcer l'inventaire ; les données **viennent de l'agent**, pas d'une saisie ; provenance par champ. | Gérer le patrimoine informatique |
-| 8 | Découverte réseau | Scanner `192.168.10.0/24` ; équipements « découverts » à informations partielles ; découverte ≠ inventaire. | Gérer le patrimoine · Administrer une infrastructure |
-| 9 | Équipement sans agent | Imprimante/NAS/switch : ce qu'on ne sait pas ; compléter manuellement vs autres protocoles. | Gérer le patrimoine informatique |
-| 10 | Agent en erreur | Agent obsolète, mal configuré (mauvaise URL), arrêté, injoignable : diagnostiquer chaque cas. | Exploiter et dépanner · Assurer la traçabilité |
+| 6 | Installer un agent | Ce que l'outil sait déjà → Installer l'agent et obtenir l'inventaire | Gérer le patrimoine informatique (T) · Exploiter et dépanner (T) |
+| 7 | Première remontée d'inventaire | Avant la remontée → Forcer l'inventaire | Gérer le patrimoine informatique (T) |
+| 8 | Découverte réseau | Lancer une découverte → Ce que la découverte ne voit pas | Gérer le patrimoine informatique (T) · Administrer une infrastructure (T) |
+| 9 | Équipement sans agent | Pourquoi pas d'agent ? → Compléter à la main, en connaissance de cause | Gérer le patrimoine informatique (T) |
+| 10 | Agent en erreur | Lire l'état d'un agent → Remettre les trois agents en service | Exploiter et dépanner (T) · Assurer la traçabilité (P) |
 
 ### Niveau 3 — Service Desk
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 11 | Créer un ticket | Saisie demandeur/description/catégorie ; ce qu'est un ticket *bien rédigé*. | Répondre aux incidents et aux demandes |
-| 12 | Qualifier un incident | Catégorie, sous-catégorie, type ; pourquoi qualifier. | Répondre aux incidents |
-| 13 | Associer un équipement | Lier ticket ↔ actif ; naviguer vers l'infrastructure ; historique de l'actif. | Répondre aux incidents · Gérer le patrimoine |
-| 14 | Priorité impact/urgence | Matrice impact×urgence ; deux tickets « identiques » de priorités différentes. | Répondre aux incidents |
-| 15 | Résoudre un incident | Workflow Nouveau→Clos ; solution documentée ; pourquoi ne pas clore sans solution. | Répondre aux incidents · Assurer la traçabilité |
+| 11 | Créer un ticket | Ce qu'est un bon ticket → Saisir | Répondre aux incidents et aux demandes (T) |
+| 12 | Qualifier un incident | Pourquoi qualifier → Qualifier INC-0001 | Répondre aux incidents et aux demandes (T) |
+| 13 | Associer le bon équipement | Choisir l'actif concerné → Retrouver l'historique | Répondre aux incidents et aux demandes (T) · Gérer le patrimoine informatique (T) |
+| 14 | Priorité : impact et urgence | Impact, urgence, priorité → Traiter dans le bon ordre | Répondre aux incidents et aux demandes (T) |
+| 15 | Résoudre et clore un incident | Documenter la solution → Résoudre puis clore | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
 
 ### Niveau 4 — Incidents techniques
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 16 | PC déconnecté | Câble débranché → agent injoignable → ticket d'Alice → reconnecter → vérifier. | Exploiter et dépanner · Répondre aux incidents |
-| 17 | Serveur arrêté | Serveur applicatif éteint ; services impactés (aperçu CMDB) ; remise en ligne. | Exploiter et dépanner |
-| 18 | Switch en panne | SW02 DOWN ; observer la **cascade** de `DeviceOffline`. | Exploiter et dépanner · Administrer une infrastructure |
-| 19 | Plusieurs utilisateurs impactés | Trois tickets distincts, **une** cause ; corréler avant d'agir. | Répondre aux incidents |
-| 20 | Incident majeur | Panne du datacenter ; priorisation, communication, ordre d'intervention. | Répondre aux incidents · Travailler en mode projet |
+| 16 | PC déconnecté | Prendre le ticket en charge → Diagnostiquer dans l'infrastructure → Corriger et vérifier → Documenter, vérifier avec l'utilisateur, clore | Exploiter et dépanner (T) · Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
+| 17 | Serveur arrêté | Du symptôme à la cause → Rétablir et conclure | Exploiter, dépanner et superviser une infrastructure (T) · Répondre aux incidents et aux demandes (T) |
+| 18 | Switch en panne | Chercher la cause commune → Rétablir et constater l'effet | Exploiter et dépanner (T) · Administrer une infrastructure (T) |
+| 19 | Plusieurs utilisateurs impactés | Prendre les appels en compte → Qualifier et trier → Diagnostiquer et rétablir → Résoudre, vérifier avec l'utilisateur, clore | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
+| 20 | Incident majeur | Prioriser → Rétablir et informer | Répondre aux incidents et aux demandes (T) · Travailler en mode projet (T) |
 
 ### Niveau 5 — ITIL
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 21 | Incident vs demande | Trier des tickets : « plus d'accès » vs « installer un logiciel » ; circuits différents. | Répondre aux incidents / aux demandes |
-| 22 | SLA | Délais P1/P2/P3, compte à rebours en temps simulé, dépassement ; calendrier ouvré. | Répondre aux incidents · Assurer la traçabilité |
-| 23 | Problem Management | PRB-001 « Défaillance du switch SW02 » ; regroupement, cause racine, contournement, correction. | Répondre aux incidents (au-delà du curatif) |
-| 24 | Change Management | CHG-001 « Remplacement SW02 » : proposer→analyser→approuver→planifier→**réaliser dans l'infra**→vérifier→clore. | Travailler en mode projet · Administrer une infrastructure |
-| 25 | Knowledge Management | Rédiger un article depuis une résolution ; le lier à la catégorie ; réutilisation sur un 2ᵉ ticket. | Assurer la traçabilité · Répondre aux demandes |
+| 21 | Incident ou demande ? | Deux circuits → Classer les deux tickets | Répondre aux incidents et aux demandes (T) |
+| 22 | SLA : tenir les délais | Qualifier pour déclencher le bon SLA → Tenir les délais, suspendre l'horloge | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
+| 23 | Problem Management | Constater la récurrence, ouvrir un problème → Analyser : cause racine et contournement → Corriger définitivement | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
+| 24 | Change Management | Préparer le dossier de changement → Obtenir l'autorisation → Réaliser et vérifier | Travailler en mode projet (T) · Administrer une infrastructure (T) · Assurer la traçabilité (P) |
+| 25 | Knowledge Management | Capitaliser une résolution → Réutiliser pour résoudre plus vite | Assurer la traçabilité (T) · Répondre aux incidents et aux demandes (T) |
 
 ### Niveau 6 — ITAM
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 26 | Logiciels | Logiciels détectés par l'agent ; versions ; installations non autorisées. | Gérer le patrimoine · Sécuriser les équipements |
-| 27 | Licences | Office : 50 droits / 57 installations → non-conformité ; comment la résorber. | Gérer le patrimoine informatique |
-| 28 | Contrats | Contrats, fournisseurs, garanties, alertes d'échéance simulées. | Gérer le patrimoine informatique |
-| 29 | Cycle de vie matériel | Commandé → stock → déployé → en réparation → retiré ; effets dans les deux vues. | Gérer le patrimoine informatique |
-| 30 | Réaffectation | Rendre un poste, l'effacer, le réaffecter ; traçabilité des changements de propriétaire. | Gérer le patrimoine · Gérer les habilitations |
+| 26 | Logiciels et installations non autorisées | Lire l'inventaire logiciel → Définir la politique et la faire respecter | Gérer le patrimoine informatique (T) · Sécuriser les équipements et les données (T) |
+| 27 | Licences et conformité | Déclarer les droits → Constater et régulariser | Gérer le patrimoine informatique (T) · Assurer la traçabilité (P) |
+| 28 | Contrats, fournisseurs et échéances | Repérer les échéances → Renouveler et rattacher | Gérer le patrimoine informatique (T) |
+| 29 | Cycle de vie d'un équipement | Réceptionner → Affecter à un utilisateur → Panne et réparation → Fin de vie | Gérer le patrimoine informatique (T) · Assurer la traçabilité (P) |
+| 30 | Réaffectation d'un poste | Restituer le poste → Préparer et réaffecter | Gérer le patrimoine informatique (T) · Gérer les habilitations (T) · Assurer la traçabilité (P) |
 
 ### Niveau 7 — CMDB
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 31 | Créer des CI | Du poste/serveur au **service** ; qu'est-ce qui mérite d'être un CI. | Gérer le patrimoine informatique |
-| 32 | Relations | `connected_to` (auto, issu du schéma) vs `depends_on`/`uses` (manuelles). | Gérer le patrimoine · Administrer une infrastructure |
-| 33 | Dépendances | Chaîne Service RH → Application RH → SRV-RH01 → VM01 → HV01 → SW-DC01 ; lecture du graphe. | Administrer une infrastructure |
-| 34 | Analyse d'impact | « Si SW-DC01 tombe ? » ; préparer un changement avec l'impact attendu. | Travailler en mode projet · Exploiter et dépanner |
+| 31 | Créer des éléments de configuration | Actif ou élément de configuration ? → Créer les CI | Gérer le patrimoine informatique (T) |
+| 32 | Relations et analyse d'impact | Déclarer les dépendances → Mesurer l'impact d'une panne | Gérer le patrimoine informatique (T) · Administrer une infrastructure (T) |
+| 38 | Dépendances et lecture du graphe | Compléter la chaîne → Lire l'impact | Exploiter, dépanner et superviser une infrastructure (T) · Travailler en mode projet (T) |
 
 ### Niveau 8 — Administration
-| # | TP | Ce qu'on comprend / scénario | Compétence travaillée |
+| # | TP | Étapes | Compétences |
 |---|---|---|---|
-| 35 | Utilisateurs | Créer/désactiver ; cycle arrivée-départ ; services et sites. | Gérer les habilitations |
-| 36 | Groupes | Groupes de techniciens, droits par groupe, affectation des tickets. | Gérer les habilitations |
-| 37 | Profils | Utilisateur, technicien, superviseur, gestionnaire de parc, administrateur ; RBAC. | Gérer les habilitations · Sécuriser les équipements |
-| 38 | Permissions | Moindre privilège ; essayer d'agir hors droits et lire le refus ; séparation des rôles (qui approuve ≠ qui réalise). | Gérer les habilitations · Participer à la cybersécurité |
-| 39 | Audit | Retrouver *qui a fait quoi, quand* dans les journaux ; détecter une modification suspecte d'actif. | Assurer la traçabilité · Participer à la cybersécurité |
-
-### TP final
-| # | TP | Scénario | Compétences travaillées |
-|---|---|---|---|
-| 40 | **Administrateur ITSM de NovaTech** | Comprendre l'infrastructure → inventorier le parc → déployer les agents → affecter les utilisateurs → traiter des incidents → identifier un problème → gérer un changement → vérifier les SLA → corriger l'inventaire → maintenir la CMDB → gérer logiciels et licences → sécuriser les droits → produire un **bilan**. | Ensemble ; bilan exportable = **élément de preuve possible** |
+| 33 | Qui peut faire quoi ? | Se mettre à la place d'un utilisateur → Le bon rôle pour le bon travail → Lire la matrice des droits | Gérer les habilitations (T) · Assurer la traçabilité (P) |
+| 34 | Accueillir un nouveau technicien | Créer le compte et attribuer le rôle → Vérifier en conditions réelles | Gérer les habilitations (T) · Assurer la traçabilité (P) |
+| 35 | Séparation des tâches | Constater le blocage → Faire approuver par le bon rôle | Gérer les habilitations (T) · Assurer la traçabilité (P) |
+| 36 | Le départ d'un technicien | Sécuriser le service → Couper l'accès | Gérer les habilitations (T) · Assurer la traçabilité (P) |
+| 37 | Audit : qui a fait quoi ? | Enquêter dans le journal → Corriger et conclure | Assurer la traçabilité (P) · Participer à la vie de la cybersécurité (T) |
+| 39 | Revue des habilitations | Repérer l'excès → Corriger la matrice | Gérer les habilitations (T) · Participer à la vie de la cybersécurité (T) |
+| 40 | Administrateur ITSM de NovaTech | Rétablir le service → Compléter l'inventaire → Parc, licences et habilitations → Traiter, comprendre, prévenir | Gérer le patrimoine informatique (T) · Répondre aux incidents et aux demandes (T) · Gérer les habilitations (T) · Travailler en mode projet (T) · Assurer la traçabilité (P) |
+<!-- tp-table:end -->
 
 ---
 
@@ -576,17 +607,17 @@ Objectif : un élève réalise **TP 3, 6, 7, 8, 11-13 et 16** de bout en bout, d
 
 ### 14.2 Roadmap
 
-| Jalon | Contenu | Critère de sortie |
-|---|---|---|
-| **M0 — Fondations** | Dépôt, TS/Vite/Vitest/CI, `core` (store, commandes, événements, scheduler, IP/MAC/CIDR), ADR | Tests unitaires du Core verts ; build autonome produit |
-| **M1 — Infra** | Canvas, palette, câbles, actions physiques, `computeReachability`, événements dérivés | Débrancher un câble produit la cascade d'événements attendue |
-| **M2 — Inventaire** | Agent, collecteur, rapprochement, découverte, vue Parc minimale | « Découvert » → « inventorié » observable ; provenance affichée |
-| **M3 — Service Desk** | Tickets + workflow + priorité + liens actif ↔ infra | **TP 16 jouable de bout en bout** |
-| **M4 — Moteur de TP** | Schéma YAML, validateurs, indices, score, reset, progression, CI « solution » | 5 TP auto-testés ; reset = snapshot identique |
-| **M5 — ITIL** | SLA, problèmes, changements, KB, incident collectif | TP 18-25 |
-| **M6 — ITAM + CMDB** | Logiciels, licences, contrats, cycle de vie, relations, graphe, impact | TP 26-34 |
-| **M7 — Administration** | RBAC, groupes, profils, audit | TP 35-39 |
-| **M8 — Finition pédagogique** | NovaTech complet, TP final, mode examen, « Dans les outils réels », accessibilité, guide formateur | TP 40 + essai en classe |
+| Jalon | Contenu | Critère de sortie | État |
+|---|---|---|---|
+| **M0 — Fondations** | Dépôt, TS/Vite/Vitest/CI, `core` (store, commandes, événements, scheduler, IP/MAC/CIDR), ADR | Tests unitaires du Core verts ; build autonome produit | Livré |
+| **M1 — Infra** | Canvas, palette, câbles, actions physiques, `computeReachability`, événements dérivés | Débrancher un câble produit la cascade d'événements attendue | Livré |
+| **M2 — Inventaire** | Agent, collecteur, rapprochement, découverte, vue Parc minimale | « Découvert » → « inventorié » observable ; provenance affichée | Livré |
+| **M3 — Service Desk** | Tickets + workflow + priorité + liens actif ↔ infra | **TP 16 jouable de bout en bout** | Livré |
+| **M4 — Moteur de TP** | Schéma YAML, validateurs, indices, score, reset, progression, CI « solution » | 5 TP auto-testés ; reset = snapshot identique | Livré |
+| **M5 — ITIL** | SLA, problèmes, changements, KB, incident collectif | TP 18-25 | Livré |
+| **M6 — ITAM + CMDB** | Logiciels, licences, contrats, cycle de vie, relations, graphe, impact | TP 26-32 | Livré (renumérotation, cf. §0) |
+| **M7 — Administration** | RBAC, groupes, profils, audit | TP 33-37, 39 | Livré (renumérotation, cf. §0) |
+| **M8 — Finition pédagogique** | NovaTech complet, TP final, mode examen, « Dans les outils réels », accessibilité, guide formateur | TP 40 + essai en classe | Livré, sauf l'essai en classe et l'audit d'accessibilité manuel |
 
 ### 14.3 Risques
 
@@ -613,13 +644,11 @@ Objectif : un élève réalise **TP 3, 6, 7, 8, 11-13 et 16** de bout en bout, d
 
 ---
 
-## 15. Décisions à valider avant M0
+## 15. Décisions prises au cadrage
 
-1. **TypeScript + Vite** (recommandé) ou rester en JavaScript pur comme le simulateur réseau (typage via JSDoc) ?
-2. **Serveur ITSM sur le schéma** : représenté comme un équipement (`SRV-ITSM`, recommandé : la joignabilité agent→serveur devient visible et pannable) ou implicite ?
-3. **Granularité du temps** : remontée d'agent « toutes les 24 h simulées » avec boutons +1 h / +1 jour (recommandé), ou intervalles courts réels ?
-4. **Langue** : interface et TP en français uniquement (recommandé pour le MVP), vocabulaire anglais en regard dans « Dans les outils réels ».
-5. **Hébergement** : GitHub Pages du dépôt `YahnLP/InfraLab` (recommandé).
-6. **Premier livrable de code** : M0 + M1 (Core + Infrastructure) ?
-
-*Prochaine étape proposée : valider ces six points, puis initialiser le dépôt InfraLab (actuellement vide) avec M0.*
+1. **TypeScript + Vite** : retenu (ADR 0001).
+2. **Serveur ITSM sur le schéma** : un équipement (`SRV-ITSM`) : la joignabilité agent → serveur est visible et pannable.
+3. **Temps** : horloge simulée avec boutons +1 h / +1 jour ; remontée d'agent planifiée sur le temps simulé.
+4. **Langue** : français uniquement ; vocabulaire anglais en regard dans « Dans les outils réels ».
+5. **Hébergement** : GitHub Pages du dépôt `YahnLP/InfraLab`, déployé par GitHub Actions.
+6. **Premier livrable** : M0 + M1, puis un jalon à la fois jusqu'à M8.

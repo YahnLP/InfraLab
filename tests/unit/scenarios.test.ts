@@ -103,3 +103,31 @@ describe('Session de TP', () => {
     store.dispatch({ type: 'scenario.quit' }); expect(store.getState().session).toBeNull();
   });
 });
+
+describe('Catalogue complet', () => {
+  it('contient les 40 TP numérotés de 1 à 40, dans l\'ordre', () => {
+    expect(SCENARIOS.map(s => s.number)).toEqual(Array.from({ length: 40 }, (_, i) => i + 1));
+  });
+  it('TP 38 : l\'impact d\'un arrêt de SRV-ITSM remonte jusqu\'au service (propriété sur laquelle repose la question)', async () => {
+    const { impactOf } = await import('../../src/itsm');
+    const { sch, store } = lab(); const sc = SCENARIOS.find(s => s.number === 38)!; startScenario(store, sch, sc); runSteps(store, sch, sc.solution.filter(x => x.do !== 'scenario.answer'));
+    const st = store.getState(); const srv = Object.values(st.management.cis).find(c => c.name === 'SRV-ITSM')!;
+    const paie = Object.values(st.management.cis).find(c => c.name === 'Paie')!;
+    expect(impactOf(st, srv.id).services).toContain(paie.id);
+  });
+});
+
+describe('Compte rendu de TP', () => {
+  it('reflète le score, les objectifs et un journal sans événements de TP, de façon déterministe', async () => {
+    const { buildReport, fingerprint } = await import('../../src/scenarios');
+    const sc = SCENARIOS.find(s => s.number === 37)!; const mk = () => {
+      const { sch, store } = lab(); startScenario(store, sch, sc); runSteps(store, sch, sc.solution); store.dispatch({ type: 'scenario.finish' });
+      return buildReport(sc, store.getState(), store.getLog(), sch.now, '  Alice  ')!;
+    };
+    const a = mk(); const b = mk();
+    expect(a.score.total).toBe(100); expect(a.student).toBe('Alice'); expect(a.finished).toBe(true);
+    expect(a.objectives.every(o => o.done)).toBe(true);
+    expect(a.journal.some(j => j.type.startsWith('Scenario'))).toBe(false); expect(a.journal.some(j => j.type === 'AssetUpdatedFinance')).toBe(true);
+    expect(await fingerprint(a)).toBe(await fingerprint(b));
+  });
+});

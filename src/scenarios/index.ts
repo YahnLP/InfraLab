@@ -5,3 +5,5 @@ export * from './commands';
 export * from './novatech';
 export { runCheck } from './checks';
 export { resolveRefs } from './resolve';
+export * from './report';
+export * from './novatech-full';

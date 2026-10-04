@@ -1,4 +1,4 @@
-import { DAY, type Level } from '../core';
+import { DAY, HOUR, type Level } from '../core';
 import type { Hint, Scenario, Step } from './types';
 
 const MIN = 60_000;
@@ -19,6 +19,8 @@ function resolveSteps(ref: string, fields: { category: string; subcategory?: str
     { do: 'itsm.updateTicket', args: { id: ref, fields: { solution } } }, to('resolved'), to('closed'),
   ];
 }
+const stage = (id: string, title: string, objectives: string[], lesson: string[], debrief: string[]) => ({ id, title, objectives, lesson, debrief });
+const Q = (prompt: string, choices: string[], correct: number, explain: string) => ({ prompt, choices, correct, explain });
 const level = (n: number) => ['', 'Découverte', 'Inventaire', 'Service Desk', 'Incidents techniques', 'ITIL', 'ITAM', 'CMDB', 'Administration'][n] ?? '';
 const NOREPLACE = [{ event: 'DeviceReplaced', message: 'Un équipement a été remplacé alors que la cause était ailleurs.' }, { event: 'DeviceRemoved', message: 'Un équipement a été supprimé du schéma.' }];
 
@@ -850,7 +852,448 @@ export const SCENARIOS: Scenario[] = [
     solution: [answer('why', 1), { do: 'itsm.updateTicket', args: { id: T(1), fields: { assignee: '@usr:Karim' } } }, { do: 'itsm.setUserActive', args: { id: '@usr:David', active: false } }, answer('trace', 1)],
     realWorld: 'L\'offboarding (départ) désactive le compte dans l\'annuaire, révoque les accès, récupère le matériel (voir TP 30) et transfère le travail en cours. Les outils conservent les comptes désactivés pour l\'historique.',
   },
+  /* ============================ TP 1 ============================ */
+  {
+    id: 'tp-01-decouvrir-le-si', number: 1, title: 'Découvrir le SI de NovaTech', level: 1, levelLabel: level(1), difficulty: 1, duration: '25 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'Premier jour chez NovaTech, une PME de 45 personnes. Le schéma montre les équipements du siège, mais le Parc de l\'outil ITSM est vide. Comprenez pourquoi, et faites en sorte que l\'outil connaisse le réseau.',
+    stages: [
+      stage('s1', 'Deux représentations d\'un même SI', ['q1'], ['Le **schéma** (vue Infrastructure) montre ce qui **existe** : équipements, câbles, adresses IP. Le **Parc** (vue ITSM) montre ce que **l\'outil en sait**. Ce sont deux choses différentes, qui ne se rejoignent que par la collecte.', 'Au départ, rien n\'a été collecté : les équipements existent mais l\'outil les ignore.'], ['Retenez cette idée : *ce qui existe* et *ce que l\'outil en sait* ne sont pas synchronisés par magie.']),
+      stage('s2', 'Faire connaître le réseau à l\'outil', ['discover', 'q2'], ['La **découverte réseau** scanne une plage d\'adresses (ici `192.168.10.0/24`) et crée un actif pour chaque équipement qui répond. Elle ne voit que ce qui est visible depuis le réseau : un nom, une adresse IP, une adresse MAC, un constructeur.', 'Menu ITSM → Inventaire → Découverte réseau.'], ['Un actif « découvert » est un début, pas un inventaire complet : l\'utilisateur, le numéro de série ou les logiciels restent inconnus.']),
+    ],
+    setup: [],
+    objectives: [
+      { id: 'q1', label: 'Expliquer pourquoi le Parc est vide', question: Q('Le schéma montre PC21, PC22 et PC23, mais le Parc ITSM est vide. Pourquoi ?', ['Les PC sont éteints', 'Personne n\'a encore collecté ces équipements : l\'outil ne connaît que ce qu\'on lui remonte', 'Le Parc ne montre que les serveurs', 'Les PC n\'appartiennent pas à NovaTech'], 1, 'Un équipement qui existe n\'apparaît dans l\'outil qu\'après une découverte, un agent ou une saisie.') },
+      { id: 'discover', label: 'PC21, PC22 et PC23 apparaissent dans le Parc', check: { k: 'all', of: ['PC21', 'PC22', 'PC23'].map(n => ({ k: 'assetExists' as const, device: `@dev:${n}` })) }, requires: ['q1'] },
+      { id: 'q2', label: 'Dire ce que la découverte ne sait pas', requires: ['discover'], question: Q('Après la découverte, que ne connaît toujours pas l\'outil à propos de PC21 ?', ['Son adresse IP', 'Son adresse MAC', 'Les logiciels installés et l\'utilisateur', 'Son nom d\'hôte'], 2, 'La découverte voit le réseau (IP, MAC, nom). Logiciels et utilisateur demandent un agent installé sur le poste.') },
+    ],
+    hints: [{ for: 'discover', levels: ['Menu ITSM → Inventaire → Découverte réseau : saisissez la plage et lancez le scan.'] }],
+    solutionText: ['Lancer la découverte réseau sur 192.168.10.0/24.', 'Constater les informations partielles : nom, IP, MAC, constructeur.'],
+    solution: [answer('q1', 1), DISCOVER, answer('q2', 2)],
+    realWorld: 'La découverte (network discovery) est le premier mode d\'alimentation d\'une base de gestion de parc : OCS Inventory, GLPI Network Discovery, ServiceNow Discovery. Elle est complétée par des agents pour obtenir le détail.',
+  },
+
+  /* ============================ TP 2 ============================ */
+  {
+    id: 'tp-02-ajouter-du-materiel', number: 2, title: 'Ajouter du matériel', level: 1, levelLabel: level(1), difficulty: 1, duration: '25 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'NovaTech reçoit un nouveau poste et un nouveau switch pour l\'agence. Posez-les sur le schéma et câblez-les. Observez ensuite ce que l\'outil ITSM en sait.',
+    stages: [
+      stage('s1', 'Poser et câbler', ['pc', 'sw', 'cable'], ['Dans la vue Infrastructure, glissez un **PC fixe** et un **switch** depuis la palette, puis utilisez l\'outil **Câble** : un clic sur chaque équipement, avec le choix du port.', 'Un équipement qu\'on pose existe immédiatement dans la réalité simulée.'], ['Poser un équipement, c\'est créer de la réalité. L\'outil de gestion n\'en est pas informé pour autant.']),
+      stage('s2', 'Ce que l\'outil en sait', ['q'], ['Ouvrez ITSM → Parc : vos deux équipements n\'y figurent pas. Le Dashboard les signale comme « inconnus de l\'outil ». C\'est exactement la situation d\'un matériel branché sans être enregistré.'], ['Un équipement non enregistré échappe à la maintenance, aux licences, à la sécurité : c\'est le premier risque d\'un parc mal tenu.']),
+    ],
+    setup: [],
+    objectives: [
+      { id: 'pc', label: 'Un nouveau PC fixe est posé sur le schéma', check: { k: 'newDevices', kind: 'workstation', min: 1 } },
+      { id: 'sw', label: 'Un nouveau switch est posé sur le schéma', check: { k: 'newDevices', kind: 'switch', min: 1 } },
+      { id: 'cable', label: 'Un câble relie les nouveaux équipements', check: { k: 'cabled', min: 1 }, requires: ['pc', 'sw'] },
+      { id: 'q', label: 'Expliquer pourquoi l\'outil ignore ces équipements', requires: ['cable'], question: Q('Le PC et le switch sont câblés mais absents du Parc. Pourquoi ?', ['L\'outil est en panne', 'Un équipement posé existe dans la réalité, mais l\'outil ne le connaît qu\'après découverte, agent ou saisie', 'Les équipements neufs sont masqués 24 heures', 'Il faut redémarrer l\'application'], 1, 'Réalité et connaissance de gestion sont deux couches distinctes : seule la collecte les rapproche.') },
+    ],
+    hints: [{ for: 'pc', levels: ['Glissez « PC fixe » depuis la palette de gauche sur le schéma.'] }, { for: 'cable', levels: ['Outil « Câble » (touche C) : cliquez sur le PC, choisissez le port, puis cliquez sur le switch.'] }],
+    solutionText: ['Poser un PC fixe et un switch, les relier par un câble.', 'Constater qu\'ils sont absents du Parc : ils existent, l\'outil ne le sait pas.'],
+    solution: [{ do: 'infra.addDevice', args: { kind: 'workstation', name: 'PC-NEW', x: 200, y: 600 } }, { do: 'infra.addDevice', args: { kind: 'switch', name: 'SW-NEW', x: 400, y: 600 } }, { do: 'infra.connect', args: { aDevice: '@dev:PC-NEW', aPort: 'eth0', bDevice: '@dev:SW-NEW', bPort: 'port1' } }, answer('q', 1)],
+    realWorld: 'Les « shadow IT » et équipements non déclarés sont un risque classique : la découverte réseau et le rapprochement avec le parc déclaré servent à les détecter.',
+  },
+
+  /* ============================ TP 3 ============================ */
+  {
+    id: 'tp-03-comprendre-les-vues', number: 3, title: 'Comprendre les deux vues', level: 1, levelLabel: level(1), difficulty: 1, duration: '25 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'Chloé signale que son poste PC22 ne répond plus. Pour comprendre ce qui se passe, il faut passer de la vue Infrastructure (la réalité) à la vue ITSM (la gestion) et inversement.',
+    stages: [
+      stage('s1', 'Qui montre quoi ?', ['q1'], ['**Infrastructure** : câbles, alimentation, adresse IP, état réel. **ITSM** : numéro d\'inventaire, utilisateur, tickets, historique. Le même PC22 existe dans les deux vues, sous deux angles.', 'Dans la fiche d\'un actif, le lien **Voir dans l\'infrastructure** ouvre l\'équipement correspondant sur le schéma, et inversement.'], ['Une panne se comprend sur le schéma ; ses conséquences pour l\'utilisateur se suivent dans l\'outil.']),
+      stage('s2', 'Relier un incident à un équipement', ['ticket', 'q2'], ['Créez un ticket pour Chloé depuis la fiche de PC22 (ITSM → Parc → PC22 → « Créer un ticket »). Le ticket garde un **lien** avec l\'actif : on peut alors passer du ticket à l\'équipement.'], ['Le lien ticket ↔ actif est la clé de tout le diagnostic : sans lui, un ticket est une simple phrase.']),
+    ],
+    setup: [DISCOVER, { do: 'itsm.assignAsset', args: { id: '@ast:PC22', user: '@usr:Chloé' } }],
+    objectives: [
+      { id: 'q1', label: 'Repérer dans quelle vue se trouve chaque information', question: Q('Où voit-on si le câble du PC22 est branché ?', ['Dans la fiche d\'actif ITSM', 'Dans la vue Infrastructure, sur le schéma', 'Dans la base de connaissances', 'Dans le journal des tickets'], 1, 'Le câblage appartient à la réalité : il se voit sur le schéma. L\'outil le déduit à travers la joignabilité.') },
+      { id: 'ticket', label: 'Un ticket de Chloé désigne le poste PC22', check: { k: 'ticket', ref: T(1), requester: '@usr:Chloé', linkedDevice: '@dev:PC22' }, requires: ['q1'] },
+      { id: 'q2', label: 'Dire à quoi sert le lien ticket ↔ actif', requires: ['ticket'], question: Q('À quoi sert le lien entre un ticket et un actif ?', ['À décorer la fiche', 'À retrouver l\'équipement concerné, son état réel et l\'historique de ses incidents', 'À calculer la garantie', 'À envoyer un courriel'], 1, 'Le lien permet d\'aller du ticket à l\'équipement réel et de regrouper les incidents d\'un même actif.') },
+    ],
+    hints: [{ for: 'ticket', levels: ['ITSM → Parc → PC22 → « Créer un ticket » : l\'actif est déjà lié.'] }],
+    solutionText: ['Créer un ticket au nom de Chloé en liant PC22.', 'Le lien relie le ticket à l\'équipement réel et à son historique.'],
+    solution: [answer('q1', 1), { do: 'itsm.createTicket', args: { title: 'PC22 ne répond plus', description: 'Chloé signale que son poste ne répond plus depuis ce matin.', requester: '@usr:Chloé', kind: 'incident', assetIds: ['@ast:PC22'] } }, answer('q2', 1)],
+    realWorld: 'Dans tous les outils ITSM, un ticket peut référencer un ou plusieurs CI/actifs (champ « Configuration item » dans ServiceNow, « Éléments associés » dans GLPI).',
+  },
+
+  /* ============================ TP 4 ============================ */
+  {
+    id: 'tp-04-identifier-un-actif', number: 4, title: 'Identifier un actif', level: 1, levelLabel: level(1), difficulty: 2, duration: '30 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'Le poste PC-COMPTA-01 est dans le Parc, mais sa fiche est quasi vide : ni numéro d\'inventaire, ni numéro de série, ni garantie. Si le disque tombe en panne demain, personne ne saura s\'il est couvert.',
+    stages: [
+      stage('s1', 'Comment l\'outil reconnaît un équipement', ['q'], ['Pour ne pas créer de doublons, l\'outil rapproche chaque remontée d\'un actif par une **identité** : d\'abord l\'**adresse MAC**, puis le nom d\'hôte, puis l\'adresse IP. La MAC est unique par carte réseau : c\'est la clé la plus fiable.'], ['Un nom peut changer, une adresse IP aussi : l\'adresse MAC reste.']),
+      stage('s2', 'Compléter la fiche', ['data'], ['Les informations qu\'aucun agent ne peut lire se **saisissent** : numéro d\'inventaire (étiquette collée sur le poste), numéro de série, date de fin de garantie. Elles sont **déclaratives** : leur justesse dépend de celui qui les saisit.', 'Renseignez dans la fiche de PC-COMPTA-01 : n° d\'inventaire `NT-0042`, série `SN-48213`, et une fin de garantie (section Cycle de vie).'], ['Une fiche complète répond à « de quoi s\'agit-il, où est-il, est-il couvert ? » sans se déplacer.']),
+    ],
+    setup: [DISCOVER],
+    objectives: [
+      { id: 'q', label: 'Dire quelle clé identifie un équipement', question: Q('Quelle information l\'outil utilise-t-il en priorité pour reconnaître un équipement déjà connu ?', ['Son nom', 'Son adresse MAC', 'Son utilisateur', 'Sa couleur sur le schéma'], 1, 'La MAC identifie la carte réseau : elle évite les doublons quand un nom ou une IP change.') },
+      { id: 'data', label: 'PC-COMPTA-01 a un numéro d\'inventaire, un numéro de série et une fin de garantie', check: { k: 'assetData', asset: '@ast:PC-COMPTA-01', has: ['inventoryNo', 'serial', 'warrantyEnd'] }, requires: ['q'] },
+    ],
+    hints: [{ for: 'data', levels: ['Fiche de l\'actif : section « Données déclarées » et « Cycle de vie » (garantie).'] }],
+    solutionText: ['Saisir numéro d\'inventaire et numéro de série dans la fiche.', 'Renseigner la fin de garantie dans les données financières.'],
+    solution: [answer('q', 1), { do: 'itsm.updateAsset', args: { id: '@ast:PC-COMPTA-01', fields: { inventoryNo: 'NT-0042', serial: 'SN-48213' } } }, { do: 'itsm.updateAssetFinance', args: { id: '@ast:PC-COMPTA-01', fields: { warrantyEnd: 1095 * DAY } } }],
+    realWorld: 'Le numéro d\'inventaire (étiquette) et le numéro de série constructeur sont la base de la gestion de garantie et des déclarations de sinistre.',
+  },
+
+  /* ============================ TP 5 ============================ */
+  {
+    id: 'tp-05-affecter-un-utilisateur', number: 5, title: 'Affecter un utilisateur', level: 1, levelLabel: level(1), difficulty: 1, duration: '25 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Gérer les habilitations', kind: 'worked' }],
+    context: 'Le poste PC-COMPTA-01 est utilisé par Alice Martin. Dans l\'outil, il n\'a pas de propriétaire. Affectez-le, et comprenez la différence entre la personne à qui le poste est affecté et celle qui y est connectée.',
+    stages: [
+      stage('s1', 'Affecter', ['assign'], ['Une **affectation** relie un actif à un utilisateur (et, par lui, à un service). C\'est une donnée de gestion : elle dit *qui est responsable* du matériel. Dans la fiche de l\'actif : champ « Affecté à ».'], ['L\'affectation sert à joindre la bonne personne, à calculer le coût par service et à faire une restitution au départ.']),
+      stage('s2', 'Affecté n\'est pas connecté', ['q'], ['L\'**utilisateur connecté** vient de l\'agent (réalité) ; l\'**utilisateur affecté** vient de la saisie (gestion). Ils peuvent différer : un poste partagé, un prêt, un oubli de mise à jour.'], ['Quand les deux divergent, c\'est un signal à vérifier : le poste a peut-être changé de mains sans être enregistré.']),
+    ],
+    setup: [{ do: 'agent.install', args: { id: '@dev:PC-COMPTA-01' } }, { advance: 10 * MIN }, DISCOVER],
+    objectives: [
+      { id: 'assign', label: 'PC-COMPTA-01 est affecté à Alice Martin (Comptabilité)', check: { k: 'asset', asset: '@ast:PC-COMPTA-01', assignedTo: '@usr:Alice' } },
+      { id: 'q', label: 'Distinguer utilisateur affecté et utilisateur connecté', requires: ['assign'], question: Q('Quelle est la différence entre « affecté à » et « utilisateur connecté » ?', ['Aucune, ce sont deux noms du même champ', 'L\'affectation est saisie dans l\'outil ; l\'utilisateur connecté est remonté par l\'agent depuis le poste', 'L\'affectation vient de l\'agent', 'L\'utilisateur connecté vient du contrat'], 1, 'Affectation = déclaré (gestion). Utilisateur connecté = observé (réalité). Leur écart est un indice.') },
+    ],
+    hints: [{ for: 'assign', levels: ['ITSM → Parc → PC-COMPTA-01 : champ « Affecté à ».'] }],
+    solutionText: ['Affecter PC-COMPTA-01 à Alice Martin dans sa fiche.', 'Comparer avec l\'utilisateur connecté remonté par l\'agent.'],
+    solution: [{ do: 'itsm.assignAsset', args: { id: '@ast:PC-COMPTA-01', user: '@usr:Alice' } }, answer('q', 1)],
+    realWorld: 'L\'affectation (assignment) alimente les rapports par service et les procédures d\'arrivée/départ ; la dernière session ouverte, remontée par l\'agent, sert de contrôle de cohérence.',
+  },
+
+  /* ============================ TP 7 ============================ */
+  {
+    id: 'tp-07-premiere-remontee', number: 7, title: 'Première remontée d\'inventaire', level: 2, levelLabel: level(2), difficulty: 1, duration: '25 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'L\'agent est installé sur PC21 mais n\'a pas encore remonté d\'informations. Forcez une remontée et observez ce qui change dans la fiche de l\'actif.',
+    stages: [
+      stage('s1', 'Avant la remontée', ['before'], ['Tant que l\'agent n\'a rien remonté, la fiche ne contient que ce que la découverte a vu : nom, IP, MAC. Pas de système d\'exploitation, pas de logiciels, pas d\'utilisateur.'], ['Une fiche partielle n\'est pas fausse, elle est incomplète : savoir ce qu\'on ne sait pas est déjà de l\'inventaire.']),
+      stage('s2', 'Forcer l\'inventaire', ['run', 'source'], ['L\'agent lit la machine (système, matériel, logiciels, session) et l\'envoie à l\'outil. Dans la fiche de l\'actif, chaque information porte sa **provenance** : « agent » ou « manuel ». Une donnée remontée par l\'agent n\'est jamais saisie à la main.', 'Fiche de PC21 → « Forcer l\'inventaire », ou vue Infrastructure → PC21 → Agent.'], ['L\'agent remplace la saisie manuelle par une lecture directe : c\'est plus rapide et surtout plus fiable.']),
+    ],
+    setup: [{ do: 'agent.install', args: { id: '@dev:PC21' } }, DISCOVER],
+    objectives: [
+      { id: 'before', label: 'Dire ce que contient la fiche avant la première remontée', question: Q('Avant l\'inventaire, que sait l\'outil de PC21 ?', ['Tout : logiciels, utilisateur, matériel', 'Seulement ce que la découverte réseau a vu (nom, IP, MAC)', 'Rien du tout', 'Uniquement son numéro de série'], 1, 'La découverte ne voit que le réseau. L\'agent apporte le reste.') },
+      { id: 'run', label: 'L\'inventaire de PC21 est remonté', check: { k: 'assetInventoried', device: '@dev:PC21' }, requires: ['before'] },
+      { id: 'source', label: 'Identifier d\'où viennent les nouvelles informations', requires: ['run'], question: Q('D\'où viennent le système d\'exploitation et la liste des logiciels de PC21 ?', ['D\'une saisie manuelle', 'De l\'agent, qui les lit sur le poste', 'Du contrat de maintenance', 'De la découverte réseau'], 1, 'L\'agent lit directement la machine : la provenance « agent » est affichée dans la fiche.') },
+    ],
+    hints: [{ for: 'run', levels: ['Fiche de PC21 : bouton « Forcer l\'inventaire ».'] }],
+    solutionText: ['Forcer l\'inventaire de PC21.', 'Constater la provenance « agent » des nouvelles informations.'],
+    solution: [answer('before', 1), { do: 'agent.runInventory', args: { id: '@dev:PC21' } }, answer('source', 1)],
+    realWorld: 'Les agents d\'inventaire (GLPI Agent, OCS, Intune, SCCM) remontent périodiquement le matériel, le système, les logiciels et la session ; chaque champ a une source et une date.',
+  },
+
+  /* ============================ TP 9 ============================ */
+  {
+    id: 'tp-09-equipement-sans-agent', number: 9, title: 'Équipement sans agent', level: 2, levelLabel: level(2), difficulty: 2, duration: '30 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'L\'imprimante IMP-COMPTA est dans le Parc grâce à la découverte, mais aucun agent ne peut y tourner. Sa fiche doit pourtant être exploitable : numéro d\'inventaire, série, modèle.',
+    stages: [
+      stage('s1', 'Pourquoi pas d\'agent ?', ['q1'], ['Un agent est un programme : il faut un système d\'exploitation capable de l\'exécuter. Un **switch**, une **imprimante**, un **NAS** ou un téléphone IP n\'en accueillent pas. L\'outil ne les connaît que par la **découverte réseau** (ou d\'autres protocoles, comme SNMP, hors du périmètre de ce simulateur).'], ['Pour ces équipements, tout ce qui dépasse l\'identité réseau est **saisi à la main**.']),
+      stage('s2', 'Compléter à la main, en connaissance de cause', ['manual', 'q2'], ['Renseignez dans la fiche d\'IMP-COMPTA : numéro d\'inventaire `NT-0077`, série `SN-70512`. Remarquez l\'absence d\'indication « remonté par l\'agent » : ces données sont déclaratives.'], ['Une donnée saisie vieillit : si l\'imprimante est remplacée, personne ne mettra la fiche à jour automatiquement.']),
+    ],
+    setup: [DISCOVER],
+    objectives: [
+      { id: 'q1', label: 'Expliquer l\'absence d\'agent sur une imprimante', question: Q('Pourquoi ne peut-on pas installer d\'agent sur IMP-COMPTA ?', ['L\'agent est payant', 'L\'équipement n\'a pas de système capable d\'exécuter un agent', 'L\'imprimante est éteinte', 'Les imprimantes sont interdites sur le réseau'], 1, 'L\'agent est un logiciel : sans système hôte adapté, il n\'y a rien à installer.') },
+      { id: 'manual', label: 'IMP-COMPTA a un numéro d\'inventaire et un numéro de série, sans données d\'agent', check: { k: 'assetData', asset: '@ast:IMP-COMPTA', has: ['inventoryNo', 'serial'], observed: false }, requires: ['q1'] },
+      { id: 'q2', label: 'Mesurer le risque d\'une donnée saisie', requires: ['manual'], question: Q('Quel est le principal risque des données saisies à la main ?', ['Elles sont illisibles', 'Elles deviennent fausses sans que personne ne s\'en aperçoive', 'Elles sont supprimées chaque nuit', 'Elles coûtent une licence'], 1, 'Sans mise à jour automatique, une fiche manuelle se périme : il faut une procédure de vérification.') },
+    ],
+    hints: [{ for: 'manual', levels: ['Fiche de l\'actif IMP-COMPTA : « Données déclarées ».'] }],
+    solutionText: ['Constater qu\'aucun agent n\'est possible sur une imprimante.', 'Saisir numéro d\'inventaire et série dans la fiche.'],
+    solution: [answer('q1', 1), { do: 'itsm.updateAsset', args: { id: '@ast:IMP-COMPTA', fields: { inventoryNo: 'NT-0077', serial: 'SN-70512' } } }, answer('q2', 1)],
+    realWorld: 'Pour les équipements réseau et les imprimantes, les outils réels interrogent par SNMP ; à défaut, la saisie manuelle est complétée par des campagnes de récolement (vérification physique).',
+  },
+  /* ============================ TP 11 ============================ */
+  {
+    id: 'tp-11-creer-un-ticket', number: 11, title: 'Créer un ticket', level: 3, levelLabel: level(3), difficulty: 1, duration: '25 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }],
+    context: 'Chloé Dubois appelle : « Excel se ferme tout seul quand j\'ouvre le fichier des ventes, depuis ce matin. » Vous êtes au service desk et devez saisir le ticket à sa place.',
+    stages: [
+      stage('s1', 'Ce qu\'est un bon ticket', ['good'], ['Un ticket est un **dossier** : celui qui le reprendra n\'était pas au téléphone. Il doit dire **qui** demande, **quoi** (symptôme observé, pas supposition), **depuis quand**, **sur quel équipement**. « Ça marche pas » est inexploitable ; « Excel se ferme à l\'ouverture du fichier ventes.xlsx depuis ce matin sur PC22 » l\'est.'], ['Un ticket bien rédigé évite un rappel au demandeur : c\'est du temps gagné pour tout le monde.']),
+      stage('s2', 'Saisir', ['create'], ['ITSM → Tickets → « Nouveau ticket » : demandeur Chloé Dubois, un titre court, une description d\'au moins quelques phrases, et l\'équipement concerné (PC22).'], ['Le ticket est créé « Nouveau » : il reste à le qualifier (TP 12).']),
+    ],
+    setup: [DISCOVER, { do: 'itsm.assignAsset', args: { id: '@ast:PC22', user: '@usr:Chloé' } }],
+    objectives: [
+      { id: 'good', label: 'Reconnaître une description exploitable', question: Q('Quelle description est la plus utile au technicien ?', ['« Ça marche pas, urgent »', '« Excel se ferme à l\'ouverture de ventes.xlsx depuis ce matin, sur PC22 »', '« Chloé est de mauvaise humeur »', '« À voir »'], 1, 'Un bon ticket nomme le symptôme, le moment et l\'équipement, sans interprétation.') },
+      { id: 'create', label: 'Un incident de Chloé est saisi, décrit et lié à PC22', check: { k: 'ticket', ref: T(1), kind: 'incident', requester: '@usr:Chloé', descMin: 40, linkedAsset: '@ast:PC22' }, requires: ['good'] },
+    ],
+    hints: [{ for: 'create', levels: ['Choisissez Chloé comme demandeur et liez l\'actif PC22. Décrivez le symptôme en une ou deux phrases complètes.'] }],
+    solutionText: ['Nouveau ticket au nom de Chloé : titre court, description du symptôme avec le contexte, actif PC22 lié.'],
+    solution: [answer('good', 1), { do: 'itsm.createTicket', args: { title: 'Excel se ferme à l\'ouverture du fichier ventes', description: 'Excel se ferme tout seul à l\'ouverture de ventes.xlsx, depuis ce matin, sur le poste PC22 de Chloé.', requester: '@usr:Chloé', kind: 'incident', assetIds: ['@ast:PC22'] } }],
+    realWorld: 'La qualité de la saisie initiale (« capture ») est le premier facteur de rapidité de résolution : les outils proposent des modèles de ticket et des champs obligatoires.',
+  },
+
+  /* ============================ TP 12 ============================ */
+  {
+    id: 'tp-12-qualifier-un-incident', number: 12, title: 'Qualifier un incident', level: 3, levelLabel: level(3), difficulty: 2, duration: '25 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }],
+    context: 'Le ticket INC-0001 de Chloé est arrivé : « Excel se ferme tout seul ». Il est « Nouveau », sans catégorie. Le service desk doit le qualifier avant que quiconque le traite.',
+    stages: [
+      stage('s1', 'Pourquoi qualifier', ['why'], ['Qualifier, c\'est **classer** (catégorie, sous-catégorie) et **mesurer** (impact, urgence). La catégorie oriente vers la bonne équipe et permet des statistiques (« combien d\'incidents logiciels ce mois-ci ? ») ; impact et urgence donnent la priorité.'], ['Un ticket non qualifié reste invisible dans les files de travail : personne ne sait à qui il revient ni s\'il est urgent.']),
+      stage('s2', 'Qualifier INC-0001', ['qual'], ['Ouvrez INC-0001. Catégorie « Logiciel », sous-catégorie « Dysfonctionnement » : il s\'agit d\'un programme qui se comporte mal. Choisissez l\'impact (une seule personne : faible) et l\'urgence (elle peut travailler autrement : moyenne), puis « Qualifier ».'], ['Le ticket est maintenant prêt à être attribué à un technicien.']),
+    ],
+    setup: [DISCOVER, newIncident('Excel se ferme tout seul', 'Appel de Chloé à 9 h 10 : Excel se ferme à l\'ouverture du fichier des ventes, depuis ce matin.', 'Chloé')],
+    objectives: [
+      { id: 'why', label: 'Justifier la qualification', question: Q('Pourquoi qualifie-t-on un ticket avant de le traiter ?', ['Pour que le ticket paraisse plus long', 'Pour l\'orienter vers la bonne équipe et fixer sa priorité', 'Parce que le demandeur l\'exige', 'Pour le clore plus vite'], 1, 'Catégorie, impact et urgence orientent le ticket et déterminent sa priorité.') },
+      { id: 'qual', label: 'INC-0001 est qualifié : Logiciel / Dysfonctionnement, impact et urgence renseignés', check: { k: 'ticket', ref: T(1), category: 'Logiciel', subcategory: 'Dysfonctionnement', qualified: true, status: 'qualified' }, requires: ['why'] },
+    ],
+    hints: [{ for: 'qual', levels: ['Fiche du ticket : catégorie, sous-catégorie, impact, urgence, puis « Qualifier ».'] }],
+    solutionText: ['Catégorie Logiciel, sous-catégorie Dysfonctionnement, impact faible, urgence moyenne, puis passer le ticket à « Qualifié ».'],
+    solution: [answer('why', 1), { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Logiciel', subcategory: 'Dysfonctionnement', impact: 'low', urgency: 'medium' } } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' } }],
+    realWorld: 'La catégorisation (taxonomie) est un chantier à part entière : trop fine, elle n\'est pas utilisée ; trop grossière, elle ne sert à rien. Les outils la rendent configurable.',
+  },
+
+  /* ============================ TP 13 ============================ */
+  {
+    id: 'tp-13-associer-un-equipement', number: 13, title: 'Associer le bon équipement', level: 3, levelLabel: level(3), difficulty: 2, duration: '30 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'Alice appelle : « Je n\'arrive plus à imprimer les factures. » Le ticket est ouvert, mais aucun équipement n\'est lié. Quel équipement faut-il lier : le poste d\'Alice ou l\'imprimante ?',
+    stages: [
+      stage('s1', 'Choisir l\'actif concerné', ['which', 'link'], ['L\'actif à lier est celui qui **est en cause**, pas celui de la personne qui appelle. Alice utilise son PC pour imprimer, mais la panne vient (ou semble venir) de l\'**imprimante**. Lier le mauvais équipement fausse l\'historique et envoie le technicien au mauvais endroit.', 'Fiche du ticket → « Lier un actif ».'], ['Le ticket est maintenant rattaché au bon équipement : le technicien peut passer au schéma en un clic.']),
+      stage('s2', 'Retrouver l\'historique', ['hist'], ['Chaque actif garde la liste des tickets qui le concernent. Si l\'imprimante tombe en panne souvent, cela se voit : c\'est la base d\'un **problème** (TP 23) ou d\'un remplacement.'], ['Le lien ticket ↔ actif fabrique l\'historique de chaque équipement.']),
+    ],
+    setup: [DISCOVER, newIncident('Impossible d\'imprimer les factures', 'Appel d\'Alice à 9 h 20 : plus rien ne sort de l\'imprimante de la comptabilité depuis ce matin.', 'Alice')],
+    objectives: [
+      { id: 'which', label: 'Choisir l\'équipement en cause', question: Q('Alice ne peut plus imprimer. Quel actif lie-t-on au ticket ?', ['Le PC d\'Alice, parce que c\'est elle qui appelle', 'L\'imprimante IMP-COMPTA, qui est en cause', 'Le serveur ITSM', 'Aucun : on ne lie jamais d\'actif'], 1, 'On lie l\'équipement concerné par la panne. Le PC d\'Alice peut être ajouté si l\'on a un doute, mais l\'imprimante est le sujet.') },
+      { id: 'link', label: 'INC-0001 désigne l\'imprimante IMP-COMPTA', check: { k: 'ticket', ref: T(1), linkedAsset: '@ast:IMP-COMPTA' }, requires: ['which'] },
+      { id: 'hist', label: 'Savoir où lire l\'historique d\'un actif', requires: ['link'], question: Q('Où retrouve-t-on tous les tickets passés d\'IMP-COMPTA ?', ['Dans le journal des agents', 'Dans la fiche de l\'actif, section tickets', 'Dans la base de connaissances', 'Nulle part'], 1, 'La fiche d\'actif liste ses tickets : historique de pannes et de réparations.') },
+    ],
+    hints: [{ for: 'link', levels: ['Ouvrez INC-0001, section « Actifs concernés » : « Lier un actif ».'] }],
+    solutionText: ['Lier IMP-COMPTA (et non le PC d\'Alice) au ticket.', 'Consulter la fiche d\'IMP-COMPTA pour voir ses tickets.'],
+    solution: [answer('which', 1), { do: 'itsm.linkAsset', args: { id: T(1), asset: '@ast:IMP-COMPTA' } }, answer('hist', 1)],
+    realWorld: 'Le lien ticket ↔ CI est ce qui permet les statistiques par équipement (« les 5 imprimantes qui causent 40 % des incidents ») et l\'analyse d\'impact.',
+  },
+
+  /* ============================ TP 15 ============================ */
+  {
+    id: 'tp-15-resoudre-un-incident', number: 15, title: 'Résoudre et clore un incident', level: 3, levelLabel: level(3), difficulty: 2, duration: '30 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'David a pris en charge le ticket d\'Alice : un mot de passe expiré, qu\'il vient de réinitialiser. Le ticket est « En cours ». À vous de le mener jusqu\'à la clôture, proprement.',
+    stages: [
+      stage('s1', 'Documenter la solution', ['why', 'solution'], ['On ne **résout** pas un ticket sans en dire la **solution** : l\'outil le refuse. Le texte sert de trace (que s\'est-il passé ?), de preuve (c\'est bien réglé) et de base de connaissances (la prochaine fois, on ira plus vite).'], ['Une solution écrite, c\'est la mémoire du service.']),
+      stage('s2', 'Résoudre puis clore', ['resolved', 'closed'], ['**Résolu** : le technicien estime que c\'est réglé ; le demandeur peut encore le contester (le ticket peut être rouvert). **Clos** : plus aucune modification, le ticket est archivé.'], ['Résolu ≠ clos : la clôture est l\'accord final, et souvent automatique après quelques jours.']),
+    ],
+    setup: [DISCOVER, newIncident('Impossible de me connecter à ma session', 'Appel d\'Alice à 8 h 45 : son mot de passe est refusé ce matin.', 'Alice'),
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Compte et accès', subcategory: 'Mot de passe', impact: 'low', urgency: 'medium', assignee: '@usr:David' } } },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'in_progress' } }],
+    objectives: [
+      { id: 'why', label: 'Justifier l\'obligation de documenter la solution', question: Q('Pourquoi l\'outil refuse-t-il de résoudre un ticket sans solution ?', ['Pour compliquer le travail', 'Pour garder la trace de ce qui a été fait et pouvoir le réutiliser', 'Parce que la solution est obligatoire pour l\'utilisateur', 'Pour augmenter le nombre de tickets'], 1, 'La solution est la mémoire du service : sans elle, le même incident se retraitera à l\'aveugle.') },
+      { id: 'solution', label: 'La solution est documentée (au moins une phrase complète)', check: { k: 'ticket', ref: T(1), solutionMin: 30 }, requires: ['why'] },
+      { id: 'resolved', label: 'INC-0001 est résolu', check: { k: 'ticket', ref: T(1), reached: 'resolved', solutionMin: 30 }, requires: ['solution'] },
+      { id: 'closed', label: 'INC-0001 est clos', check: { k: 'ticket', ref: T(1), status: 'closed' }, requires: ['resolved'] },
+    ],
+    hints: [{ for: 'resolved', levels: ['Le bouton « Résoudre » se débloque quand la solution est renseignée.'] }],
+    solutionText: ['Rédiger la solution (mot de passe réinitialisé, changement demandé à la prochaine connexion).', 'Passer le ticket à Résolu puis Clos.'],
+    solution: [answer('why', 1), { do: 'itsm.updateTicket', args: { id: T(1), fields: { solution: 'Mot de passe expiré : réinitialisé, changement demandé à la prochaine connexion.' } } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'resolved' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'closed' } }],
+    realWorld: 'Dans les outils réels, on distingue « Resolved » et « Closed » : la clôture se fait après confirmation du demandeur ou automatiquement après un délai.',
+  },
+
+  /* ============================ TP 17 ============================ */
+  {
+    id: 'tp-17-serveur-arrete', number: 17, title: 'Serveur arrêté', level: 4, levelLabel: level(4), difficulty: 2, duration: '40 min',
+    skills: [{ ref: 'Exploiter, dépanner et superviser une infrastructure', kind: 'worked' }, { ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }],
+    context: 'Alice appelle : « Le logiciel de facturation ne répond plus. » Il tourne sur le serveur SRV-FACT. La CMDB sait que le service « Facturation comptable » en dépend. Retrouvez la cause, remettez le serveur en service et documentez.',
+    stages: [
+      stage('s1', 'Du symptôme à la cause', ['diag', 'link'], ['Un symptôme (« la facturation ne répond plus ») renvoie à un **service**, qui dépend d\'un **équipement**. La CMDB fait ce lien. Observez SRV-FACT sur le schéma : est-il en ligne ? allumé ?', 'Liez le ticket à SRV-FACT, l\'équipement en cause.'], ['Remonter de la plainte à l\'équipement est le cœur du diagnostic.']),
+      stage('s2', 'Rétablir et conclure', ['on', 'resolve'], ['Rallumez le serveur dans la vue Infrastructure, attendez qu\'il repasse en ligne, puis documentez et résolvez le ticket.'], ['Rétablir le service n\'est pas finir : la solution doit être écrite.']),
+    ],
+    setup: [
+      { do: 'infra.addDevice', args: { kind: 'server', name: 'SRV-FACT', x: 96, y: 160 } }, { do: 'infra.connect', args: { aDevice: '@dev:SRV-FACT', aPort: 'eth0', bDevice: '@dev:SW-SIEGE-01', bPort: 'port5' } },
+      { do: 'infra.setIp', args: { id: '@dev:SRV-FACT', ip: '192.168.10.30', mask: 24 } }, { do: 'agent.install', args: { id: '@dev:SRV-FACT' } }, { advance: 10 * MIN }, DISCOVER,
+      { do: 'itsm.createCi', args: { name: 'SRV-FACT', kind: 'infrastructure', asset: '@ast:SRV-FACT' } }, { do: 'itsm.createCi', args: { name: 'Facturation comptable', kind: 'service' } },
+      { do: 'itsm.addRelation', args: { from: '@ci:Facturation comptable', to: '@ci:SRV-FACT', type: 'depends_on' } },
+      { do: 'infra.powerOff', args: { id: '@dev:SRV-FACT' } },
+      newIncident('Le logiciel de facturation ne répond plus', 'Appel d\'Alice à 9 h 30 : impossible d\'ouvrir le logiciel de facturation, message « serveur introuvable ».', 'Alice'),
+    ],
+    objectives: [
+      { id: 'diag', label: 'Identifier la cause probable', question: Q('Le logiciel de facturation ne répond plus et SRV-FACT est hors ligne. Quelle est la cause la plus probable ?', ['Le poste d\'Alice est cassé', 'Le serveur SRV-FACT est éteint ou injoignable', 'Le logiciel est périmé', 'La CMDB est vide'], 1, 'Le service dépend du serveur : un serveur hors ligne explique à lui seul la panne du service.') },
+      { id: 'link', label: 'INC-0001 désigne SRV-FACT', check: { k: 'ticket', ref: T(1), linkedAsset: '@ast:SRV-FACT' }, requires: ['diag'] },
+      { id: 'on', label: 'SRV-FACT est de nouveau en ligne', check: { k: 'deviceOnline', device: '@dev:SRV-FACT' }, requires: ['link'] },
+      { id: 'resolve', label: 'INC-0001 est résolu avec une solution documentée', check: { k: 'ticket', ref: T(1), status: 'resolved', solutionMin: 30 }, requires: ['on'] },
+    ],
+    hints: [{ for: 'on', levels: ['Vue Infrastructure : sélectionnez SRV-FACT, l\'inspecteur vous donne la raison de l\'état hors ligne et l\'action.'] }, { for: 'resolve', levels: ['Qualifiez (catégorie, impact, urgence), attribuez, prenez en charge, écrivez la solution, résolvez.'] }],
+    solutionText: ['Lier le ticket à SRV-FACT.', 'Rallumer le serveur ; attendre qu\'il repasse en ligne.', 'Qualifier, attribuer, documenter la solution et résoudre.'],
+    solution: [answer('diag', 1), { do: 'itsm.linkAsset', args: { id: T(1), asset: '@ast:SRV-FACT' } }, { do: 'infra.powerOn', args: { id: '@dev:SRV-FACT' } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Matériel', subcategory: 'Poste de travail', impact: 'high', urgency: 'high', assignee: '@usr:David' } } },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'in_progress' } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { solution: 'Serveur SRV-FACT éteint : rallumé, service de facturation de nouveau accessible.' } } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'resolved' } }],
+    realWorld: 'La supervision (Nagios, Zabbix, PRTG) détecte l\'arrêt d\'un serveur avant l\'appel utilisateur ; la CMDB indique alors quels services sont touchés.',
+  },
+
+  /* ============================ TP 20 ============================ */
+  {
+    id: 'tp-20-incident-majeur', number: 20, title: 'Incident majeur', level: 4, levelLabel: level(4), difficulty: 3, duration: '50 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Travailler en mode projet', kind: 'worked' }],
+    context: 'Le switch cœur du siège, SW-SIEGE-01, est éteint : tout le siège est coupé. Trois tickets arrivent : la comptabilité bloquée en pleine clôture, un partage de fichiers inaccessible, et une imprimante de couloir qui bloque. Priorisez, rétablissez, communiquez.',
+    stages: [
+      stage('s1', 'Prioriser', ['order', 'prio'], ['Un **incident majeur** est une panne à fort impact : on coordonne au lieu de traiter les tickets un par un. Principe : traiter d\'abord **la cause commune**, et classer les tickets par priorité (impact × urgence), pas par ordre d\'arrivée.', 'Ici : comptabilité bloquée un jour de clôture = impact fort, urgence forte (P1). L\'imprimante du couloir = impact et urgence faibles (P4).'], ['Une bonne priorité guide l\'ordre d\'intervention et le niveau de communication.']),
+      stage('s2', 'Rétablir et informer', ['fix', 'comm', 'resolved'], ['Rallumez le switch dans la vue Infrastructure. Pendant la panne, **informez** : un commentaire clair sur le ticket principal (ce qui se passe, ce qu\'on fait, quand on revient). Puis résolvez le ticket principal avec une solution documentée.'], ['Un incident majeur se clôt par une cause, une solution et un message aux utilisateurs.']),
+    ],
+    setup: [
+      { do: 'infra.setIp', args: { id: '@dev:SW-SIEGE-01', ip: '192.168.10.1', mask: 24 } }, DISCOVER, { do: 'infra.powerOff', args: { id: '@dev:SW-SIEGE-01' } },
+      newIncident('Plus rien ne fonctionne à la comptabilité', 'Appel d\'Alice à 9 h 00 : toute la comptabilité est coupée, la clôture mensuelle est ce soir. Huit personnes bloquées.', 'Alice'),
+      newIncident('Imprimante du couloir bloquée', 'Appel de Chloé à 9 h 05 : l\'imprimante du couloir ne répond plus. Rien de pressé.', 'Chloé'),
+      newIncident('Dossiers partagés inaccessibles', 'Appel de Bruno à 9 h 08 : plus d\'accès aux dossiers partagés.', 'Bruno'),
+    ],
+    objectives: [
+      { id: 'order', label: 'Choisir par quoi commencer', question: Q('Trois tickets arrivent, dont deux liés à la même panne. Par quoi commencer ?', ['Par le premier arrivé', 'Par la cause commune : rétablir le switch résout la plupart des tickets', 'Par l\'imprimante, c\'est le plus simple', 'Par aucun : attendre'], 1, 'Un incident majeur se traite à la source : une seule intervention efficace vaut mieux que trois dépannages locaux.') },
+      { id: 'prio', label: 'La comptabilité est en P1 et l\'imprimante en P4', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), priority: 1 }, { k: 'ticket', ref: T(2), priority: 4 }] }, requires: ['order'] },
+      { id: 'fix', label: 'SW-SIEGE-01 est rallumé et le siège est de nouveau en ligne', check: { k: 'all', of: [{ k: 'devicePowered', device: '@dev:SW-SIEGE-01' }, { k: 'deviceOnline', device: '@dev:PC-COMPTA-01' }] }, requires: ['prio'] },
+      { id: 'comm', label: 'Les utilisateurs sont informés sur le ticket principal', check: { k: 'ticket', ref: T(1), minComments: 1 }, requires: ['prio'] },
+      { id: 'resolved', label: 'Le ticket de la comptabilité est résolu et documenté', check: { k: 'ticket', ref: T(1), status: 'resolved', solutionMin: 30 }, requires: ['fix', 'comm'] },
+    ],
+    hints: [{ for: 'prio', levels: ['Impact : combien de personnes, quelle activité. Urgence : y a-t-il un délai ?'] }, { for: 'comm', levels: ['Un commentaire sur INC-0001 : cause connue, action en cours, retour estimé.'] }],
+    solutionText: ['Qualifier INC-0001 en P1 (impact fort, urgence forte) et INC-0002 en P4.', 'Rallumer SW-SIEGE-01 ; commenter pour informer.', 'Résoudre INC-0001 avec la solution documentée.'],
+    solution: [answer('order', 1),
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Réseau', subcategory: 'Switch / routeur', impact: 'high', urgency: 'high', assignee: '@usr:David' } } },
+      { do: 'itsm.updateTicket', args: { id: T(2), fields: { category: 'Matériel', subcategory: 'Imprimante', impact: 'low', urgency: 'low' } } },
+      { do: 'infra.powerOn', args: { id: '@dev:SW-SIEGE-01' } }, comment(T(1), 'Cause identifiée : le switch cœur du siège était éteint. Rallumé, retour à la normale en cours de vérification.'),
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'in_progress' } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { solution: 'Switch cœur SW-SIEGE-01 éteint : rallumé, tout le siège est de nouveau en ligne.' } } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'resolved' } }],
+    realWorld: 'ITIL 4 prévoit une procédure d\'incident majeur : coordinateur désigné, communication régulière, revue post-incident. Les outils proposent un ticket « parent » auquel les tickets liés se rattachent.',
+  },
+
+  /* ============================ TP 21 ============================ */
+  {
+    id: 'tp-21-incident-ou-demande', number: 21, title: 'Incident ou demande ?', level: 5, levelLabel: level(5), difficulty: 2, duration: '30 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }],
+    context: 'Deux tickets attendent dans la file : « Je n\'ai plus accès à ma messagerie » (Bruno) et « Pouvez-vous installer Visio sur mon poste ? » (Chloé). Ils n\'ont pas le même circuit de traitement.',
+    stages: [
+      stage('s1', 'Deux circuits', ['why'], ['Un **incident** est une interruption ou une dégradation d\'un service qui marchait : on vise le **rétablissement** le plus vite possible. Une **demande de service** est une demande de quelque chose de prévu au catalogue (un logiciel, un accès, du matériel) : on vise la **fourniture**, avec éventuellement une validation.'], ['Mélanger les deux fausse les statistiques et les délais : un incident se mesure en heures, une demande suit un processus.']),
+      stage('s2', 'Classer les deux tickets', ['inc', 'req'], ['INC-0001 : incident, catégorie « Compte et accès ». REQ-0001 : demande de service, catégorie « Demande de service », sous-catégorie « Nouveau matériel » (c\'est la plus proche de la liste de départ). Qualifiez les deux.'], ['Chaque ticket est maintenant dans le bon circuit.']),
+    ],
+    setup: [newIncident('Plus d\'accès à ma messagerie', 'Appel de Bruno à 9 h 10 : sa messagerie affiche « connexion impossible » depuis 8 h 30.', 'Bruno'), newRequest('Installer Visio sur mon poste', 'Courriel de Chloé : elle a besoin de Visio pour un schéma, à installer cette semaine.', 'Chloé')],
+    objectives: [
+      { id: 'why', label: 'Distinguer incident et demande', question: Q('« Installer Visio sur mon poste » est…', ['Un incident : quelque chose est cassé', 'Une demande de service : on fournit quelque chose de prévu', 'Un problème', 'Un changement d\'urgence'], 1, 'Rien n\'est cassé : on fournit un logiciel. C\'est une demande de service.') },
+      { id: 'inc', label: 'INC-0001 est qualifié comme incident « Compte et accès »', check: { k: 'ticket', ref: T(1), kind: 'incident', category: 'Compte et accès', qualified: true }, requires: ['why'] },
+      { id: 'req', label: 'REQ-0001 est qualifié comme demande de service', check: { k: 'ticket', ref: '@tkt:REQ-0001', kind: 'request', category: 'Demande de service', qualified: true }, requires: ['why'] },
+    ],
+    hints: [{ for: 'req', levels: ['Catégorie « Demande de service » pour une demande ; l\'impact et l\'urgence se renseignent comme pour un incident.'] }],
+    solutionText: ['INC-0001 : catégorie Compte et accès. REQ-0001 : catégorie Demande de service.'],
+    solution: [answer('why', 1), { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Compte et accès', subcategory: 'Mot de passe', impact: 'low', urgency: 'medium' } } }, { do: 'itsm.updateTicket', args: { id: '@tkt:REQ-0001', fields: { category: 'Demande de service', subcategory: 'Nouveau matériel', impact: 'low', urgency: 'low' } } }],
+    realWorld: 'ITIL sépare Incident Management et Service Request Fulfilment ; les outils proposent un catalogue de demandes avec formulaires et circuits de validation dédiés.',
+  },
+  /* ============================ TP 37 ============================ */
+  {
+    id: 'tp-37-audit', number: 37, title: 'Audit : qui a fait quoi ?', level: 8, levelLabel: level(8), difficulty: 3, duration: '40 min',
+    skills: [{ ref: 'Assurer la traçabilité', kind: 'evidence_possible' }, { ref: 'Participer à la vie de la cybersécurité', kind: 'worked' }],
+    context: 'Le coût d\'achat de PC21 est passé de 1 200 € à 1 €. Le comptable s\'en inquiète : l\'amortissement du poste est faussé. Remontez la piste dans le journal d\'audit, identifiez l\'auteur, et rétablissez la valeur.',
+    stages: [
+      stage('s1', 'Enquêter dans le journal', ['who', 'why'], ['Chaque action est enregistrée avec **l\'heure**, **l\'objet** et **l\'auteur**. Le journal d\'audit (ITSM → Administration → Journal d\'audit) est la mémoire du système : c\'est lui qui permet de répondre à « qui a modifié quoi, et quand ? ». Cherchez les événements « Données financières modifiées » sur PC21.', 'Pour consulter le journal, il faut le droit d\'audit : restez en mode formateur, ou agissez en tant qu\'administrateur ou responsable.'], ['Sans journal, la question « qui a fait ça ? » n\'a pas de réponse : tout le monde nie, personne ne peut prouver.']),
+      stage('s2', 'Corriger et conclure', ['fix', 'lesson'], ['Une fois l\'auteur identifié, on **corrige** la donnée (la valeur d\'origine figure dans la facture d\'achat) et on **tire la leçon** : pourquoi cette personne a-t-elle pu modifier cette valeur ?'], ['Corriger sans comprendre, c\'est attendre la prochaine fois : l\'audit mène à un renforcement des droits.']),
+    ],
+    setup: [
+      DISCOVER,
+      { do: 'itsm.updateAssetFinance', args: { id: '@ast:PC21', fields: { cost: 1200, purchasedAt: 0 } }, as: '@usr:David' },
+      { do: 'itsm.updateAsset', args: { id: '@ast:PC21', fields: { inventoryNo: 'NT-0021' } }, as: '@usr:David' },
+      { advance: 3 * HOUR },
+      { do: 'itsm.updateAssetFinance', args: { id: '@ast:PC21', fields: { cost: 1 } }, as: '@usr:Bruno' },
+    ],
+    objectives: [
+      { id: 'who', label: 'Identifier l\'auteur de la modification du coût', question: Q('Dans le journal d\'audit, qui a ramené le coût de PC21 à 1 € ?', ['David Petit', 'Bruno Leroy', 'Alice Martin', 'Léa Garnier'], 1, 'L\'événement « Données financières modifiées » sur PC21, le plus récent, est signé Bruno Leroy.') },
+      { id: 'why', label: 'Relever ce qui rend la modification suspecte', requires: ['who'], question: Q('Pourquoi cette modification est-elle anormale ?', ['Parce qu\'elle a été faite le matin', 'Parce que Bruno a le rôle Utilisateur : il n\'a normalement pas le droit de modifier les données d\'un actif', 'Parce que le coût a augmenté', 'Parce que PC21 est un portable'], 1, 'Un utilisateur simple n\'a pas le droit « Modifier le parc ». Une telle écriture montre un contournement des contrôles à investiguer.') },
+      { id: 'fix', label: 'Le coût de PC21 est rétabli à 1 200 €', check: { k: 'assetData', asset: '@ast:PC21', cost: 1200 }, requires: ['why'] },
+      { id: 'lesson', label: 'Choisir la mesure qui évite la récidive', requires: ['fix'], question: Q('Quelle mesure empêche le renouvellement ?', ['Effacer le journal', 'Vérifier les droits des rôles et tenir le journal d\'audit à jour', 'Interdire à Bruno de venir au bureau', 'Ne plus saisir de coût'], 1, 'On agit sur la cause : revue des habilitations (TP 39) et supervision du journal.') },
+    ],
+    hints: [{ for: 'who', levels: ['Journal d\'audit : colonne « Auteur ». Repérez l\'événement le plus récent sur PC21.'] }, { for: 'fix', levels: ['Fiche de PC21 → Cycle de vie : coût d\'achat.'] }],
+    solutionText: ['Journal d\'audit : le dernier événement financier sur PC21 est signé Bruno Leroy.', 'Rétablir le coût d\'origine (1 200 €), puis revoir les droits.'],
+    solution: [answer('who', 1), answer('why', 1), { do: 'itsm.updateAssetFinance', args: { id: '@ast:PC21', fields: { cost: 1200 } } }, answer('lesson', 1)],
+    realWorld: 'Un journal d\'audit se conserve, se protège (on ne le modifie pas) et se relit : c\'est une exigence de l\'ISO 27001, du RGPD (traçabilité des accès) et des commissaires aux comptes.',
+  },
+
+  /* ============================ TP 38 ============================ */
+  {
+    id: 'tp-38-dependances', number: 38, title: 'Dépendances et lecture du graphe', level: 7, levelLabel: level(7), difficulty: 3, duration: '40 min',
+    skills: [{ ref: 'Exploiter, dépanner et superviser une infrastructure', kind: 'worked' }, { ref: 'Travailler en mode projet', kind: 'worked' }],
+    context: 'La paie de NovaTech repose sur un logiciel hébergé sur SRV-ITSM. La CMDB connaît le logiciel et son serveur, mais personne n\'a relié le service « Paie » au logiciel. Complétez la chaîne, puis lisez-la pour mesurer l\'impact d\'une panne.',
+    stages: [
+      stage('s1', 'Compléter la chaîne', ['chain'], ['Une CMDB se lit en **couches** : un **service** (ce que les gens utilisent) **utilise** une **application**, qui est **hébergée sur** un équipement. Une relation manquante coupe la chaîne : une panne en bas ne remonte plus jusqu\'au service.', 'Ouvrez la fiche du CI « Paie » (ITSM → Gestion → CMDB) et ajoutez la relation « utilise » vers « Logiciel de paie ».'], ['La chaîne Service → Application → Équipement est maintenant continue.']),
+      stage('s2', 'Lire l\'impact', ['impact'], ['L\'**analyse d\'impact** parcourt la chaîne à l\'envers : d\'un équipement vers ce qui en dépend, de proche en proche. Ouvrez la fiche du CI SRV-ITSM : l\'encadré d\'impact liste tout ce qui serait touché, y compris les éléments indirects.'], ['Un impact indirect est le plus dangereux : personne n\'y pense quand la panne arrive.']),
+    ],
+    setup: [DISCOVER,
+      { do: 'itsm.createCi', args: { name: 'SRV-ITSM', kind: 'infrastructure', asset: '@ast:SRV-ITSM' } }, { do: 'itsm.createCi', args: { name: 'Logiciel de paie', kind: 'application' } }, { do: 'itsm.createCi', args: { name: 'Paie', kind: 'service' } },
+      { do: 'itsm.addRelation', args: { from: '@ci:Logiciel de paie', to: '@ci:SRV-ITSM', type: 'hosted_on' } }],
+    objectives: [
+      { id: 'chain', label: 'Le service Paie utilise le Logiciel de paie', check: { k: 'relation', from: '@ci:Paie', to: '@ci:Logiciel de paie', type: 'uses' } },
+      { id: 'impact', label: 'Prévoir l\'effet d\'un arrêt de SRV-ITSM', requires: ['chain'], question: Q('Si SRV-ITSM s\'arrête, quels éléments de la CMDB sont touchés ?', ['Seulement SRV-ITSM', 'Seulement le Logiciel de paie', 'Le Logiciel de paie et, par rebond, le service Paie', 'Aucun : la CMDB ne sert qu\'à lister'], 2, 'L\'application est hébergée sur le serveur ; le service utilise l\'application : la panne remonte de proche en proche.') },
+    ],
+    hints: [{ for: 'chain', levels: ['Fiche du CI « Paie » → ajouter une relation : type « utilise », cible « Logiciel de paie ».'] }],
+    solutionText: ['Ajouter la relation Paie « utilise » Logiciel de paie.', 'Lire l\'impact de SRV-ITSM : application puis service.'],
+    solution: [{ do: 'itsm.addRelation', args: { from: '@ci:Paie', to: '@ci:Logiciel de paie', type: 'uses' } }, answer('impact', 2)],
+    realWorld: 'La carte des dépendances (service mapping) est la fonction la plus valorisée d\'une CMDB : elle sert aux analyses d\'impact des changements et au diagnostic des incidents.',
+  },
+
+  /* ============================ TP 39 ============================ */
+  {
+    id: 'tp-39-revue-des-habilitations', number: 39, title: 'Revue des habilitations', level: 8, levelLabel: level(8), difficulty: 3, duration: '40 min',
+    skills: [{ ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Participer à la vie de la cybersécurité', kind: 'worked' }],
+    context: 'Un audit interne a relevé que des utilisateurs ordinaires peuvent modifier le cycle de vie des actifs, gérer les contrats et approuver des changements. Retrouvez ces droits excessifs dans la matrice et retirez-les, sans empêcher les utilisateurs d\'ouvrir des tickets.',
+    stages: [
+      stage('s1', 'Repérer l\'excès', ['why'], ['Une **revue des habilitations** compare, rôle par rôle, les droits accordés et les droits nécessaires. Le rôle « Utilisateur » doit pouvoir **ouvrir un ticket**, c\'est tout. Tout droit supplémentaire est un excès : c\'est une surface d\'attaque et un risque d\'erreur.', 'ITSM → Administration → Rôles et droits.'], ['Le principe du **moindre privilège** : chacun a les droits nécessaires à sa fonction, et pas un de plus.']),
+      stage('s2', 'Corriger la matrice', ['fix', 'keep'], ['Décochez les droits excessifs du rôle Utilisateur. Vérifiez que « Ouvrir un ticket » reste coché : un retrait trop large aurait empêché les utilisateurs de signaler leurs pannes.'], ['La correction est efficace sans bloquer le travail : c\'est tout l\'art de la revue.']),
+    ],
+    setup: [{ do: 'itsm.setRolePermission', args: { role: 'user', permission: 'itam.manage', granted: true } }, { do: 'itsm.setRolePermission', args: { role: 'user', permission: 'change.approve', granted: true } }, { do: 'itsm.setRolePermission', args: { role: 'user', permission: 'asset.lifecycle', granted: true } }],
+    objectives: [
+      { id: 'why', label: 'Justifier le retrait de droits à un rôle', question: Q('Pourquoi retirer ces droits au rôle Utilisateur ?', ['Pour que les utilisateurs travaillent moins', 'Pour appliquer le moindre privilège : aucun droit au-delà de la fonction', 'Parce que l\'outil le demande', 'Pour réduire le nombre de tickets'], 1, 'Chaque droit inutile est un risque (erreur, malveillance, compte compromis) sans aucun bénéfice.') },
+      { id: 'fix', label: 'Le rôle Utilisateur ne gère plus contrats, cycle de vie ni approbations', check: { k: 'all', of: [{ k: 'rolePerm', role: 'user', permission: 'itam.manage', value: false }, { k: 'rolePerm', role: 'user', permission: 'change.approve', value: false }, { k: 'rolePerm', role: 'user', permission: 'asset.lifecycle', value: false }] }, requires: ['why'] },
+      { id: 'keep', label: 'Les utilisateurs peuvent toujours ouvrir un ticket', check: { k: 'rolePerm', role: 'user', permission: 'ticket.create', value: true }, requires: ['fix'] },
+    ],
+    hints: [{ for: 'fix', levels: ['Colonne « Utilisateur » de la matrice : trois droits en trop (Parc et Itil).'] }],
+    solutionText: ['Décocher, pour le rôle Utilisateur : gérer licences et contrats, état d\'un actif, approuver un changement.', 'Garder « Ouvrir un ticket ».'],
+    solution: [answer('why', 1), { do: 'itsm.setRolePermission', args: { role: 'user', permission: 'itam.manage', granted: false } }, { do: 'itsm.setRolePermission', args: { role: 'user', permission: 'change.approve', granted: false } }, { do: 'itsm.setRolePermission', args: { role: 'user', permission: 'asset.lifecycle', granted: false } }],
+    realWorld: 'La recertification périodique des accès (access review) est un contrôle exigé par les référentiels de sécurité : chaque responsable confirme que les droits de son équipe sont toujours justifiés.',
+  },
+
+  /* ============================ TP 40 ============================ */
+  {
+    id: 'tp-40-administrateur-novatech', number: 40, title: 'Administrateur ITSM de NovaTech', level: 8, levelLabel: level(8), difficulty: 3, duration: '2 h',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Travailler en mode projet', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'Vous prenez la main sur l\'outil ITSM de NovaTech un lundi matin. Trois collègues n\'ont plus de réseau, l\'inventaire est incomplet, la licence Office n\'est pas déclarée et un nouveau technicien arrive. Menez l\'ensemble, dans l\'ordre qui a du sens : d\'abord le service, ensuite la propreté de l\'outil.',
+    stages: [
+      stage('s1', 'Rétablir le service', ['order', 'link', 'power'], ['Trois utilisateurs (Bruno, Chloé, David) signalent un poste sans réseau, chacun par un ticket distinct. Avant d\'agir, **corrélez** : trois symptômes, une cause probable. Liez chaque ticket à son poste, puis cherchez ce qui est en commun sur le schéma.'], ['Rétablir le service passe avant tout : on nettoie l\'outil ensuite.']),
+      stage('s2', 'Compléter l\'inventaire', ['agents'], ['Maintenant que les postes sont de nouveau joignables, installez l\'agent sur PC-COMPTA-01, PC21, PC22 et PC23 et forcez l\'inventaire : l\'outil connaîtra enfin leurs logiciels et leurs utilisateurs.'], ['Un inventaire complet est la condition de la conformité des licences et de la fiabilité des analyses.']),
+      stage('s3', 'Parc, licences et habilitations', ['assign', 'office', 'karim'], ['Affectez PC22 à Chloé Dubois. Office est installé sur quatre postes : déclarez les droits correspondants pour être conforme. Enfin, créez le compte de **Karim Benali** (service Informatique), technicien : rôles « Utilisateur » et « Technicien » seulement.'], ['Parc, licences, comptes : les trois piliers de la gestion du patrimoine.']),
+      stage('s4', 'Traiter, comprendre, prévenir', ['resolved', 'problem', 'change', 'final'], ['Documentez et résolvez les trois tickets en respectant le SLA. Ouvrez un **problème** qui les regroupe, avec la cause racine. Puis préparez un **changement** (remplacement du switch SW02) : risque, plan, retour arrière, approbation par le responsable.'], ['Incident, problème, changement : trois temps d\'une même histoire. Chacun laisse sa trace, et c\'est ce qui fait la qualité d\'un service.']),
+    ],
+    setup: [
+      { do: 'infra.setIp', args: { id: '@dev:SW02', ip: '192.168.10.2', mask: 24 } }, DISCOVER, { do: 'infra.powerOff', args: { id: '@dev:SW02' } },
+      newIncident('Plus de réseau sur mon poste', 'Appel de Bruno à 9 h 05 : plus aucun accès réseau.', 'Bruno'), newIncident('Internet ne marche plus', 'Appel de Chloé à 9 h 07 : impossible d\'ouvrir ses applications.', 'Chloé'), newIncident('Mon PC est coupé du réseau', 'Appel de David à 9 h 12 : il ne voit plus les dossiers partagés.', 'David'),
+    ],
+    objectives: [
+      { id: 'order', label: 'Identifier la cause commune probable', question: Q('Trois tickets « plus de réseau » arrivent en dix minutes. Que suspecte-t-on ?', ['Trois pannes de poste indépendantes', 'Un équipement commun à ces trois postes (un switch)', 'Une erreur de saisie du service desk', 'Un virus'], 1, 'Trois symptômes simultanés qui partagent un point commun : cherchez l\'équipement qu\'ils partagent.') },
+      { id: 'link', label: 'Chaque ticket désigne le poste de son demandeur', check: { k: 'all', of: [[1, 'PC21'], [2, 'PC22'], [3, 'PC23']].map(([n, d]) => ({ k: 'ticket' as const, ref: T(n as number), linkedDevice: `@dev:${d}` })) }, requires: ['order'] },
+      { id: 'power', label: 'Le réseau est rétabli : les trois postes sont en ligne', check: allOnline, requires: ['link'] },
+      { id: 'agents', label: 'Les quatre postes sont inventoriés par un agent', check: { k: 'all', of: ['PC-COMPTA-01', 'PC21', 'PC22', 'PC23'].map(n => ({ k: 'assetInventoried' as const, device: `@dev:${n}` })) }, requires: ['power'] },
+      { id: 'assign', label: 'PC22 est affecté à Chloé Dubois', check: { k: 'asset', asset: '@ast:PC22', assignedTo: '@usr:Chloé' }, requires: ['agents'] },
+      { id: 'office', label: 'Les licences Office couvrent les installations (conformité)', check: { k: 'license', software: 'sw-office', state: 'compliant' }, requires: ['agents'] },
+      { id: 'karim', label: 'Karim Benali est technicien, sans droit d\'administration', check: { k: 'userRoles', user: '@usr:Karim', has: ['user', 'technician'], lacks: ['admin', 'manager'] }, requires: ['agents'] },
+      { id: 'resolved', label: 'Les trois tickets sont résolus, documentés, dans les délais', check: { k: 'all', of: [1, 2, 3].map(n => ({ k: 'ticket' as const, ref: T(n), reached: 'resolved' as const, solutionMin: 30 })).concat([]) }, requires: ['power'] },
+      { id: 'problem', label: 'Un problème regroupe les trois tickets avec sa cause racine', check: { k: 'problem', ref: '@prb:PRB-0001', minTickets: 3, hasRootCause: true }, requires: ['resolved'] },
+      { id: 'change', label: 'Le remplacement de SW02 est approuvé par Éric Moreau', check: { k: 'change', ref: '@chg:CHG-0001', reached: 'approved', approver: '@usr:Éric', linkedAsset: '@ast:SW02' }, requires: ['problem'] },
+      { id: 'final', label: 'Résumer la logique incident / problème / changement', requires: ['change'], question: Q('Quel enchaînement résume ce que vous venez de faire ?', ['Changement → incident → problème', 'Incident (rétablir) → problème (comprendre la cause) → changement (corriger durablement)', 'Problème → changement → incident', 'Un seul ticket suffisait pour tout'], 1, 'On rétablit d\'abord (incident), on cherche la cause (problème), puis on corrige durablement par un changement maîtrisé.') },
+    ],
+    hints: [
+      { for: 'power', levels: ['Vue Infrastructure : quel équipement relie PC21, PC22 et PC23 ? Est-il allumé ?'] },
+      { for: 'office', levels: ['ITSM → Parc → Licences : combien de postes ont Office d\'après l\'inventaire ?'] },
+      { for: 'change', levels: ['Changement normal : risque, plan, retour arrière et approbateur sont obligatoires avant la soumission.'] },
+    ],
+    solutionText: ['Lier les trois tickets à leurs postes ; rallumer SW02.', 'Installer l\'agent sur les quatre postes et forcer l\'inventaire.', 'Affecter PC22, déclarer 4 licences Office, créer Karim (technicien).', 'Résoudre les tickets, créer le problème avec sa cause racine, préparer et faire approuver le changement.'],
+    solution: [
+      answer('order', 1),
+      { do: 'itsm.linkAsset', args: { id: T(1), asset: '@ast:PC21' } }, { do: 'itsm.linkAsset', args: { id: T(2), asset: '@ast:PC22' } }, { do: 'itsm.linkAsset', args: { id: T(3), asset: '@ast:PC23' } },
+      { do: 'infra.powerOn', args: { id: '@dev:SW02' } },
+      ...['PC-COMPTA-01', 'PC21', 'PC22', 'PC23'].flatMap((n): Step[] => [{ do: 'agent.install', args: { id: `@dev:${n}` } }, { do: 'agent.runInventory', args: { id: `@dev:${n}` } }]),
+      { do: 'itsm.assignAsset', args: { id: '@ast:PC22', user: '@usr:Chloé' } },
+      { do: 'itsm.addLicense', args: { softwareId: 'sw-office', quantity: 4 } },
+      { do: 'itsm.addUser', args: { name: 'Karim Benali', service: 'Informatique', roles: ['user', 'technician'] } },
+      ...[1, 2, 3].flatMap(n => resolveSteps(T(n), { category: 'Réseau', subcategory: 'Poste sans réseau', impact: 'medium', urgency: 'high' }, 'Switch SW02 éteint : rallumé, poste de nouveau en ligne.').slice(0, -1)),
+      { do: 'itsm.createProblem', args: { title: 'Défaillance du switch SW02', tickets: [T(1), T(2), T(3)] } },
+      { do: 'itsm.transitionProblem', args: { id: '@prb:PRB-0001', to: 'analysis' } },
+      { do: 'itsm.updateProblem', args: { id: '@prb:PRB-0001', fields: { rootCause: 'Alimentation défaillante du switch SW02.', workaround: 'Rallumer SW02.' } } },
+      { do: 'itsm.createChange', args: { title: 'Remplacement de SW02', type: 'normal', assetIds: ['@ast:SW02'] } },
+      { do: 'itsm.updateChange', args: { id: '@chg:CHG-0001', fields: { risk: 'medium', plan: 'Remplacer SW02, rebrancher, vérifier les postes.', rollback: 'Remettre l\'ancien switch.', approver: '@usr:Éric' } } },
+      { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'proposed' } }, { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'approved' } },
+      answer('final', 1),
+    ],
+    realWorld: 'Un administrateur ITSM fait précisément cela au quotidien : arbitrer entre l\'urgence (rétablir), l\'hygiène (inventaire, licences, comptes) et le long terme (problèmes, changements), en laissant une trace à chaque étape.',
+  },
 ];
+
+SCENARIOS.sort((a, b) => a.number - b.number);
 
 export const getScenario = (id: string): Scenario | undefined => SCENARIOS.find(s => s.id === id);
 export type { Hint };

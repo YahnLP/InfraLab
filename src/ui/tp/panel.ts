@@ -1,5 +1,6 @@
 import type { Store } from '../../core';
-import { evaluate, getScenario, type Scenario } from '../../scenarios';
+import { buildReport, evaluate, fingerprint, getScenario, type Scenario } from '../../scenarios';
+import { reportHtml } from './report-html';
 import { clear, h } from '../kit/dom';
 
 export interface PanelHost { dispatch(c: { type: string; payload?: Record<string, unknown> }): boolean; confirm(msg: string, run: () => void): void; restart(): void }
@@ -18,6 +19,7 @@ export function rich(lines: string[]): HTMLElement[] {
 /** Colonne de TP : étapes, cours, tâches, questions, bilan. Fixe (elle ne recouvre rien) et repliable en rail. */
 export class TpPanel {
   private collapsed = false;
+  private student = '';
   private viewing: { id: string; stage: number } | null = null;
   private reader = h('dialog', { class: 'reader' });
   constructor(private root: HTMLElement, private store: Store, private host: PanelHost, private now: () => number) { store.subscribe(() => this.render()); this.render(); }
@@ -82,6 +84,16 @@ export class TpPanel {
       body.append(h('div', { class: 'tp-score' }, h('b', null, `${sc2.total} / 100`), h('span', { class: 'muted' }, `objectifs ${sc2.objectives}/70 · qualité ${sc2.quality}/20 · autonomie ${sc2.autonomy}/10`)));
       if (done) body.append(h('div', { class: 'callout' }, h('strong', null, 'Éléments de preuve possibles : '), 'journal des événements, fiche d\'actif, tickets documentés (captures à joindre à votre portfolio). ',
         h('em', null, 'Ce score n\'est pas une validation de compétence : celle-ci revient à votre formateur.'), h('p', { class: 'realw' }, sc.realWorld)));
+    }
+    if (done) {
+      const nm = h('input', { type: 'text', placeholder: 'Votre nom (facultatif)', 'aria-label': 'Nom pour le compte rendu', value: this.student, oninput: (e: Event) => { this.student = (e.target as HTMLInputElement).value; } });
+      const save = async (kind: 'html' | 'json') => {
+        const r = buildReport(sc, st, this.store.getLog(), this.now(), this.student); if (!r) return; const fp = await fingerprint(r);
+        const blob = kind === 'json' ? new Blob([JSON.stringify({ ...r, fingerprint: fp }, null, 2)], { type: 'application/json' }) : new Blob([reportHtml(r, fp)], { type: 'text/html' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `infralab-tp${sc.number}${this.student ? '-' + this.student.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_') : ''}.${kind}`; document.body.append(a); a.click(); a.remove(); window.setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      };
+      body.append(h('section', { class: 'tp-export' }, h('h3', null, 'Garder une trace'), h('p', { class: 'muted' }, 'Le compte rendu regroupe score, objectifs et journal de vos actions : à joindre à votre portfolio ou à remettre à votre formateur.'), nm,
+        h('div', { class: 'actions' }, h('button', { onclick: () => void save('html') }, 'Compte rendu (HTML)'), h('button', { onclick: () => void save('json') }, 'Données (JSON)'))));
     }
     const acts = h('footer', { class: 'tp-acts' });
     if (!done) acts.append(h('button', { class: ev.complete ? 'primary' : '', onclick: () => this.host.confirm(ev.complete ? 'Terminer le TP et afficher le bilan ?' : `Il reste ${sc.objectives.length - ev.doneCount} objectif(s). Terminer quand même ?`, () => this.host.dispatch({ type: 'scenario.finish' })) }, 'Terminer'));

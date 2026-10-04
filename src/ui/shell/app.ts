@@ -8,7 +8,7 @@ import { InfraCanvas, type Selection } from '../infra-view/canvas';
 import { Dock } from '../infra-view/dock';
 import { renderInspector } from '../infra-view/inspector';
 import { glyphSvg } from '../infra-view/icons';
-import { getScenario as SCENARIOS_BY_ID, registerScenarioCommands, seedNovatech as seedExample, startScenario, type Scenario } from '../../scenarios';
+import { getScenario as SCENARIOS_BY_ID, registerScenarioCommands, seedNovatech as seedExample, seedNovatechFull, startScenario, type Scenario } from '../../scenarios';
 import { renderTpCatalog } from '../tp/catalog-page';
 import { TpPanel } from '../tp/panel';
 import { fmtTime } from './labels';
@@ -123,6 +123,7 @@ export function mountApp(root: HTMLElement): void {
       h('button', { title: 'Avancer le temps simulé d\'un jour', onclick: () => { advance(store, sch, DAY); refresh(); } }, '+1 jour')),
     h('button', { onclick: () => { showInfra(); canvas.fit(); } }, 'Recentrer'),
     h('button', { onclick: () => { const go = () => { seedExample(store, dispatch); sch.now = 0; canvas.fit(); refresh(); }; if (Object.keys(store.getState().reality.devices).length) confirm('Remplacer le schéma actuel par le SI d\'exemple ?', () => { store.restore({ state: emptyState(), log: [] }); go(); }); else go(); } }, 'SI d\'exemple'),
+    h('button', { title: '4 sites, ≈ 45 équipements, 45 utilisateurs, contrats, licences, CMDB', onclick: () => confirm('Remplacer le projet actuel par NovaTech complet (4 sites, ≈ 45 équipements, 45 utilisateurs) ?', () => { store.restore({ state: emptyState(), log: [] }); sch.now = 0; seedNovatechFull(store, dispatch); advance(store, sch, 10 * 60000); canvas.select(null); canvas.fit(); showInfra(); refresh(); }) }, 'NovaTech complet'),
     h('button', { onclick: () => confirm('Effacer tout le schéma ?', () => { store.restore({ state: emptyState(), log: [] }); sch.now = 0; canvas.select(null); refresh(); }) }, 'Nouveau'));
 
   workEl.append(palette, h('div', { class: 'center' }, stage, hint, dockEl), inspector);
