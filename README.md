@@ -43,3 +43,7 @@ Ouvrir `dist/index.html` après `npm run build`, puis **SI d'exemple**.
 - Onglet ITSM → Découverte réseau → Scanner : l'outil apprend l'existence de 6 équipements, sans rien savoir d'eux. Installez un agent sur un poste et forcez l'inventaire : l'actif devient « inventorié ». Ajoutez de la RAM : l'outil affiche un écart jusqu'à la prochaine remontée (+1 jour).
 
 Règles du noyau : données pures (JSON), mutation uniquement par commandes, aucun `Math.random()` ni `Date.now()` (déterminisme), `core` ne dépend de rien.
+
+## Licence
+
+© 2026 Yahn LE PRETTRE - Formaxion Landes. Distribué sous licence **EUPL 1.2** (fichier `LICENSE`). Le nom et l'identité visuelle ne sont pas couverts par cette licence. Contributions : voir `CONTRIBUTING.md`.

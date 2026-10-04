@@ -1,6 +1,8 @@
 {
   "name": "infralab",
   "version": "0.0.1",
+  "license": "EUPL-1.2",
+  "author": "Yahn LE PRETTRE - Formaxion Landes",
   "private": true,
   "description": "Laboratoire pédagogique ITSM / ITAM — Yahn LE PRETTRE, Formaxion Landes",
   "type": "module",

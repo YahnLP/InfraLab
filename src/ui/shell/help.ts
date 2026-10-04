@@ -1,5 +1,5 @@
 import { clear, h } from '../kit/dom';
-import { APP_AUTHOR, APP_NAME, APP_TAGLINE, APP_VERSION, AUTHOR_URL, OTHER_TOOLS, REPO_URL } from '../../version';
+import { APP_AUTHOR, APP_NAME, APP_TAGLINE, APP_VERSION, AUTHOR_URL, LICENSE_NAME, LICENSE_URL, OTHER_TOOLS, REPO_URL } from '../../version';
 
 const link = (href: string, text: string) => h('a', { href, target: '_blank', rel: 'noopener noreferrer' }, text);
 const sec = (title: string, ...kids: (HTMLElement | string)[]) => h('section', { class: 'help-sec' }, h('h3', null, title), ...kids.map(k => typeof k === 'string' ? h('p', null, k) : k));
@@ -62,7 +62,12 @@ function about(): HTMLElement[] {
   return [
     h('p', null, `${APP_NAME} est développé par `, link(AUTHOR_URL, APP_AUTHOR), '.'),
     h('p', null, `© 2026 ${APP_AUTHOR}`),
-    ul([link(REPO_URL, 'Consulter le code source'), ' (GitHub)'], [link(AUTHOR_URL, 'Formaxion Landes'), ' : formations et ressources']),
+    h('p', null, `Le logiciel est distribué sous licence libre ${LICENSE_NAME} (European Union Public Licence). Vous pouvez l'utiliser, l'étudier, le modifier et le redistribuer dans le respect des conditions de cette licence, notamment le maintien de l'accès au code source des versions redistribuées.`),
+    ul([link(AUTHOR_URL, 'Formaxion Landes'), ' : formations et ressources'], [link(REPO_URL, 'Consulter le code source'), ' (GitHub)'], [link(LICENSE_URL, `Consulter la licence ${LICENSE_NAME}`)]),
+    h('details', { class: 'legal' }, h('summary', null, 'Nom, identité visuelle et évolutions futures'),
+      h('h3', null, 'Nom et identité du projet'), h('p', null, `Le nom « ${APP_NAME} », les logos et éléments d'identité visuelle associés restent la propriété de ${APP_AUTHOR}. Leur utilisation n'est pas automatiquement accordée par la licence ${LICENSE_NAME} applicable au code source.`),
+      h('h3', null, 'Évolution du projet'), h('p', null, `La version actuelle de ${APP_NAME} est distribuée sous licence ${LICENSE_NAME}. Les versions diffusées sous cette licence continueront à bénéficier des droits accordés par l'EUPL. Le titulaire des droits se réserve cependant la possibilité de développer et proposer ultérieurement d'autres éditions ou services, notamment des versions professionnelles ou commerciales, sous des conditions de licence distinctes.`),
+      h('h3', null, 'Contributions'), h('p', null, 'Les contributions externes sont les bienvenues et doivent respecter la licence du projet : voir CONTRIBUTING.md sur le dépôt GitHub.')),
     sec('Indépendance', `${APP_NAME} est un outil pédagogique indépendant, non affilié à ITIL®, GLPI ou à tout éditeur. Les marques citées appartiennent à leurs propriétaires. NovaTech et ses personnes sont fictives.`),
     sec('Compétences', 'Un TP « travaille » une compétence ou peut fournir un élément de preuve possible : il ne valide jamais une compétence du référentiel, seule l\'équipe pédagogique évalue.'),
     sec('Vos données', 'Aucune donnée ne quitte votre navigateur : tout reste sur votre ordinateur, sauf les fichiers que vous enregistrez ou exportez vous-même.'),
