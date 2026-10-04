@@ -5,4 +5,7 @@ export const TEV = {
   TicketLinkedToProblem: 'TicketLinkedToProblem', TicketUnlinkedFromProblem: 'TicketUnlinkedFromProblem',
   ChangeCreated: 'ChangeCreated', ChangeUpdated: 'ChangeUpdated', ChangeStatusChanged: 'ChangeStatusChanged',
   ArticleCreated: 'ArticleCreated', ArticleUpdated: 'ArticleUpdated', ArticlePublished: 'ArticlePublished', ArticleLinked: 'ArticleLinked',
+  SupplierAdded: 'SupplierAdded', ContractAdded: 'ContractAdded', ContractUpdated: 'ContractUpdated', LicenseAdded: 'LicenseAdded', LicenseUpdated: 'LicenseUpdated', SoftwarePolicyChanged: 'SoftwarePolicyChanged',
+  AssetCreatedManual: 'AssetCreatedManual', AssetStatusChanged: 'AssetStatusChanged', AssetUpdatedFinance: 'AssetUpdatedFinance',
+  CiCreated: 'CiCreated', CiRemoved: 'CiRemoved', RelationAdded: 'RelationAdded', RelationRemoved: 'RelationRemoved',
 } as const;

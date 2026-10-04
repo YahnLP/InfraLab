@@ -3,7 +3,7 @@
  * Deux couches : `reality` (ce qui est vrai) et `management` (ce que l'outil en sait).
  * Les entités sont enrichies jalon par jalon (M1 Infra, M2 Inventaire, M3 Tickets…).
  */
-export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'article' | 'ci' | 'site' | 'scenario';
+export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'article' | 'contract' | 'license' | 'supplier' | 'relation' | 'ci' | 'site' | 'scenario';
 export interface EntityRef { kind: EntityKind; id: string }
 
 /* ---------------- Réalité ---------------- */
@@ -55,7 +55,7 @@ export interface Asset {
   id: string; name: string;
   /** Jointure interne du simulateur avec l'équipement réel (l'outil, lui, ne connaît que l'identité ci-dessous). */
   deviceId?: string;
-  status: 'discovered' | 'in_use' | 'stock' | 'repair' | 'retired';
+  status: 'ordered' | 'discovered' | 'in_use' | 'stock' | 'repair' | 'retired';
   createdAt: number;
   /** Identité utilisée pour le rapprochement : MAC d'abord, puis nom d'hôte, puis IP. */
   identity: { macs: string[]; hostname?: string; ips: string[] };
@@ -65,8 +65,21 @@ export interface Asset {
   observed?: { t: number; source: Provenance; data: InventoryReport };
   /** Données déclarées (saisie manuelle). */
   inventoryNo?: string; serial?: string; vendor?: string; model?: string; assignedTo?: string; service?: string;
+  /** Cycle de vie financier (ITAM). */
+  purchasedAt?: number; warrantyEnd?: number; cost?: number;
 }
 export interface User { id: string; name: string; roles: string[]; service?: string; site?: string }
+
+/* ---- ITAM et CMDB (M6) ---- */
+export interface Supplier { id: string; name: string; contact?: string }
+export type ContractKind = 'maintenance' | 'licence' | 'warranty' | 'leasing';
+export interface Contract { id: string; ref: string; title: string; supplierId: string; kind: ContractKind; startAt: number; endAt: number; assetIds: string[] }
+export interface License { id: string; ref: string; softwareId: string; quantity: number; contractId?: string; expiresAt?: number }
+export type SoftwarePolicy = 'authorized' | 'forbidden';
+export type CiKind = 'service' | 'application' | 'infrastructure';
+export interface Ci { id: string; ref: string; name: string; kind: CiKind; assetId?: string; description?: string }
+export type RelationType = 'depends_on' | 'uses' | 'hosted_on';
+export interface Relation { id: string; from: string; to: string; type: RelationType }
 
 /* ---- Tickets (M3) ---- */
 export type TicketKind = 'incident' | 'request';
@@ -127,7 +140,7 @@ export interface State {
   schemaVersion: 1;
   counters: Record<string, number>;
   reality: { devices: Record<string, Device>; links: Record<string, Link>; itsmServerId: string | null };
-  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket>; problems: Record<string, Problem>; changes: Record<string, Change>; articles: Record<string, Article> };
+  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket>; problems: Record<string, Problem>; changes: Record<string, Change>; articles: Record<string, Article>; suppliers: Record<string, Supplier>; contracts: Record<string, Contract>; licenses: Record<string, License>; softwarePolicy: Record<string, SoftwarePolicy>; cis: Record<string, Ci>; relations: Record<string, Relation> };
   /** Sélection partagée entre les deux vues (« Voir dans l'infrastructure »). */
   focus: EntityRef | null;
   /** Scénario en cours, ou null en mode libre. */
@@ -138,7 +151,7 @@ export function emptyState(): State {
   return {
     schemaVersion: 1, counters: {},
     reality: { devices: {}, links: {}, itsmServerId: null },
-    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {} },
+    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {}, suppliers: {}, contracts: {}, licenses: {}, softwarePolicy: {}, cis: {}, relations: {} },
     focus: null, session: null,
   };
 }

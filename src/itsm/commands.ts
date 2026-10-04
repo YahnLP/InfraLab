@@ -2,6 +2,7 @@ import { CommandError, nextId, type Level, type Store, type Ticket } from '../co
 import { IEV } from '../inventory/events';
 import { TEV } from './events';
 import { registerItilCommands } from './itil-commands';
+import { registerItamCommands } from './itam-commands';
 import { TAXONOMY } from './taxonomy';
 import { TRANSITIONS, blocker } from './workflow';
 
@@ -9,7 +10,7 @@ const LEVELS: Level[] = ['low', 'medium', 'high'];
 
 /** Commandes de gestion (couche `management`). M2 : utilisateurs et saisie des données déclarées. */
 export function registerItsmCommands(store: Store): void {
-  registerItilCommands(store);
+  registerItilCommands(store); registerItamCommands(store);
   store.registerCommand('itsm.addUser', (ctx, p) => {
     const name = String(p['name'] ?? '').trim(); if (!name) throw new CommandError('bad_name', 'Le nom est obligatoire');
     const id = nextId(ctx.state.counters, 'usr');
@@ -20,7 +21,6 @@ export function registerItsmCommands(store: Store): void {
     const a = ctx.state.management.assets[String(p['id'])]; if (!a) throw new CommandError('asset_not_found', 'Actif inconnu');
     const f = (p['fields'] ?? {}) as Record<string, unknown>; const changed: string[] = [];
     for (const k of ['inventoryNo', 'serial', 'vendor', 'model', 'service', 'name'] as const) if (f[k] !== undefined && f[k] !== a[k]) { (a as unknown as Record<string, unknown>)[k] = String(f[k]); changed.push(k); }
-    if (f['status'] !== undefined && f['status'] !== a.status) { a.status = f['status'] as typeof a.status; changed.push('status'); }
     if (!changed.length) throw new CommandError('nothing_changed', 'Aucune modification');
     ctx.emit(IEV.AssetUpdated, { kind: 'asset', id: a.id }, { fields: changed, source: 'manual' });
   });

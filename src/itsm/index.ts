@@ -6,3 +6,6 @@ export * from './selectors';
 export * from './sla';
 export * from './itil';
 export * from './itil-commands';
+export * from './itam';
+export * from './cmdb';
+export * from './itam-commands';
