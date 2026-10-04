@@ -1,5 +1,6 @@
 import type { Device, State } from '../../core';
 import { CATALOG, computeReachability, linksOf } from '../../infra';
+import { STATUS_LABEL, ticketsForAsset } from '../../itsm';
 import { clear, h } from '../kit/dom';
 import { REASON_TEXT } from '../shell/labels';
 import { glyphSvg } from './icons';
@@ -11,6 +12,8 @@ export interface InspectorHost {
   confirm(msg: string, run: () => void): void;
   now(): number;
   goAsset(assetId: string): void;
+  goTicket(ticketId: string): void;
+  newTicket(assetId: string): void;
 }
 
 const field = (label: string, input: HTMLElement) => h('label', { class: 'fld' }, h('span', null, label), input);
@@ -73,7 +76,7 @@ function renderDevice(root: HTMLElement, st: Readonly<State>, d: Device, host: I
       h('dl', null, ...d.nics.map(n => kv(`MAC ${n.id}`, h('code', null, n.mac))))));
   }
 
-  root.append(toolSection(st, d, host), agentSection(st, d, host));
+  root.append(toolSection(st, d, host), agentSection(st, d, host), ticketSection(st, d, host));
   const us = userSection(st, d, host); if (us) root.append(us);
   const sws = softwareSection(st, d, host); if (sws) root.append(sws);
 
@@ -104,4 +107,14 @@ function renderDevice(root: HTMLElement, st: Readonly<State>, d: Device, host: I
     spec.agentCapable && !isServer ? h('button', { onclick: () => host.dispatch({ type: 'infra.setItsmServer', payload: { id: d.id } }) }, 'Désigner comme serveur ITSM') : null,
     h('button', { onclick: () => host.confirm(`Remplacer ${d.name} par un équipement neuf du même type ? Le nom, l'IP et le câblage sont conservés ; l'adresse MAC change.`, () => host.dispatch({ type: 'infra.replaceDevice', payload: { id: d.id } })) }, 'Remplacer l\'équipement'),
     h('button', { class: 'danger', onclick: () => host.confirm(`Supprimer ${d.name} et ses câbles ?`, () => host.dispatch({ type: 'infra.removeDevice', payload: { id: d.id } })) }, 'Supprimer')));
+}
+
+function ticketSection(st: Readonly<State>, d: Device, host: InspectorHost): HTMLElement {
+  const a = Object.values(st.management.assets).find(x => x.deviceId === d.id);
+  if (!a) return h('section', null, h('h3', null, 'Tickets'), h('p', { class: 'muted' }, 'Cet équipement est inconnu de l\'outil : on ne peut pas lui rattacher de ticket. Lancez une découverte réseau (vue ITSM).'));
+  const open = ticketsForAsset(st, a.id);
+  return h('section', null, h('h3', null, 'Tickets'),
+    open.length ? h('ul', { class: 'tkl' }, ...open.map(t => h('li', null, h('button', { class: 'link', onclick: () => host.goTicket(t.id) }, t.ref), ' ', t.title, ' ', h('span', { class: 'muted' }, `· ${STATUS_LABEL[t.status]}`))))
+      : h('p', { class: 'muted' }, 'Aucun ticket ouvert sur cet actif.'),
+    h('div', { class: 'actions' }, h('button', { onclick: () => host.newTicket(a.id) }, 'Créer un ticket'), h('button', { onclick: () => host.goAsset(a.id) }, 'Voir l\'actif')));
 }

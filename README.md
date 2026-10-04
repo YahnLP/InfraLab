@@ -4,7 +4,9 @@ Laboratoire pédagogique **ITSM / ITAM** : un même système d'information vu à
 
 Créé par Yahn LE PRETTRE — Formaxion Landes. Application indépendante du simulateur réseau, dont elle réutilise certaines idées (planificateur à temps simulé, canvas SVG, moteur de TP auto-testés).
 
-> **État : M2 — inventaire.** Vues Infrastructure et ITSM (parc, agents, découverte, fiche d'actif, utilisateurs, journaux), agent d'inventaire, découverte réseau, rapprochement, écart réalité/observé. Rappel M1 : Noyau typé et testé, catalogue de 15 équipements, commandes physiques, joignabilité avec événements en cascade, canvas SVG, palette, inspecteur et journal « Pourquoi ? ». Tickets et service desk : M3.
+> **État : M3 — service desk.** Incidents et demandes avec priorité impact × urgence, workflow à prérequis expliqués (qualification, attribution à un technicien, solution documentée avant résolution), lien ticket ↔ actif, « Voir dans l'infrastructure », pastille de tickets sur le schéma. Le scénario du TP 16 (PC débranché) se joue de bout en bout.
+
+**M2 — inventaire.** Vues Infrastructure et ITSM (parc, agents, découverte, fiche d'actif, utilisateurs, journaux), agent d'inventaire, découverte réseau, rapprochement, écart réalité/observé. Rappel M1 : Noyau typé et testé, catalogue de 15 équipements, commandes physiques, joignabilité avec événements en cascade, canvas SVG, palette, inspecteur et journal « Pourquoi ? ». Prochain jalon : moteur de TP (M4).
 
 ## Documentation
 - [Architecture et plan de développement](docs/ARCHITECTURE.md)

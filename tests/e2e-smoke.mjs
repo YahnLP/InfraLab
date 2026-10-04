@@ -61,6 +61,33 @@ await page.getByRole('tab', { name: 'ITSM' }).click(); await page.getByRole('but
 ok(await page.locator('.diff').count() === 0, 'après +1 jour, la remontée planifiée a résorbé l\'écart');
 await page.getByRole('tab', { name: 'Infrastructure' }).click();
 
+// M3 : ticket sur un poste débranché (TP 16)
+await page.evaluate(() => { const { store } = window.infralab; const st = store.getState(); const pc = Object.values(st.reality.devices).find(d => d.name === 'PC-COMPTA-01'); const l = Object.values(st.reality.links).find(x => x.a.device === pc.id || x.b.device === pc.id); store.dispatch({ type: 'infra.disconnect', payload: { link: l.id } }); });
+await page.locator('.node[aria-label^="PC-COMPTA-01"]').click();
+await page.getByRole('button', { name: 'Créer un ticket' }).click();
+await page.locator('select[name=requester]').selectOption({ label: 'Alice Martin (Comptabilité)' });
+await page.locator('input[name=title]').fill('Mon PC n\'a plus Internet'); await page.getByRole('button', { name: 'Créer le ticket' }).click();
+ok((await page.locator('.itsm-page h1').textContent()).includes('Internet'), 'ticket créé depuis l\'infrastructure, fiche ouverte');
+ok((await page.locator('.itsm-page').textContent()).includes('PC-COMPTA-01'), 'ticket lié à l\'actif');
+await page.getByRole('button', { name: /Qualifier/ }).click({ force: true });
+ok((await page.locator('.toast.err').count()) === 1, 'qualifier sans catégorie est refusé avec une explication');
+await page.getByLabel('Catégorie', { exact: true }).selectOption('Réseau'); await page.getByLabel('Impact').selectOption('low'); await page.getByLabel('Urgence').selectOption('medium');
+await page.getByLabel('Assigné à').selectOption({ label: 'David Petit' });
+for (const l of [/Qualifier/, /Attribuer/, /Prendre en charge/]) await page.getByRole('button', { name: l }).click();
+ok((await page.locator('.itsm-page .asset-head').textContent()).includes('En cours'), 'ticket en cours');
+await page.getByRole('button', { name: "Voir dans l'infrastructure" }).click();
+ok(await page.locator('.node.sel').count() === 1 && await page.locator('.tkbadge').count() === 1, 'depuis le ticket : équipement sélectionné, pastille de ticket sur le schéma');
+await page.screenshot({ path: `${shots}/m3-ticket-infra.png` });
+await page.evaluate(() => { const { store } = window.infralab; const st = store.getState(); const pc = Object.values(st.reality.devices).find(d => d.name === 'PC-COMPTA-01'); const sw = Object.values(st.reality.devices).find(d => d.name === 'SW-SIEGE-01'); store.dispatch({ type: 'infra.connect', payload: { aDevice: pc.id, aPort: 'eth0', bDevice: sw.id, bPort: 'port3' } }); });
+await page.getByRole('tab', { name: 'ITSM' }).click(); await page.getByRole('button', { name: 'Tickets', exact: true }).click(); await page.locator('tr.row').first().click();
+await page.getByRole('button', { name: /Résoudre/ }).click({ force: true });
+ok((await page.locator('.toast.err').count()) >= 1, 'résoudre sans solution est refusé');
+await page.locator('textarea').first().fill('Câble rebranché sur le port 3.'); await page.getByRole('button', { name: 'Enregistrer la solution' }).click();
+await page.getByRole('button', { name: /Résoudre/ }).click(); await page.getByRole('button', { name: /Clore/ }).click();
+ok((await page.locator('.itsm-page .asset-head').textContent()).includes('Clos'), 'ticket clos après solution documentée');
+await page.screenshot({ path: `${shots}/m3-ticket.png` });
+await page.getByRole('tab', { name: 'Infrastructure' }).click();
+
 // pose par glisser-déposer + câblage
 await page.getByRole('button', { name: 'Nouveau', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 const box = await page.locator('.canvas').boundingBox();

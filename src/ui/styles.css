@@ -159,3 +159,14 @@ dialog.confirm .actions { justify-content: flex-end; }
 .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
 .declared, .scan { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; margin-bottom: 12px; } .declared button { grid-column: 1 / -1; } .scan { grid-template-columns: minmax(180px, 320px) auto; justify-content: start; margin-bottom: 8px; }
 @media (max-width: 960px) { .itsm { grid-template-columns: 1fr; } .itsm-nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); } .itsm-nav h3 { display: none; } .cols { grid-template-columns: 1fr; } .itsm-page { padding: 14px; } }
+
+/* tickets */
+.node .tkbadge circle { fill: var(--warn); stroke: var(--card); stroke-width: 2; } .node .tkbadge text { fill: #fff; font: 700 11px var(--sans); }
+.tkl { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.grow { flex: 1; } .ref { font-family: var(--mono); color: var(--muted); }
+.tform { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; } .tform .wide { grid-column: 1 / -1; } .tform button { justify-self: start; }
+textarea { font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; width: 100%; resize: vertical; }
+.qual { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.trs { display: grid; gap: 8px; } .tr { display: grid; gap: 2px; justify-items: start; } button.blocked { opacity: .55; cursor: not-allowed; }
+.cmts, .hist { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; } .cmts li { padding: 6px 8px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
+.cmts time, .hist time { font-family: var(--mono); color: var(--muted); font-size: 12px; } .desc { max-width: 70ch; white-space: pre-wrap; }

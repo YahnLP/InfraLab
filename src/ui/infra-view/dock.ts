@@ -1,4 +1,5 @@
-import type { DomainEvent, Store } from '../../core';
+import type { DomainEvent, Store, TicketStatus } from '../../core';
+import { STATUS_LABEL } from '../../itsm';
 import { clear, h } from '../kit/dom';
 import type { OfflineReason } from '../../infra';
 import { EVENT_LABEL, REASON_SHORT, fmtTime } from '../shell/labels';
@@ -10,7 +11,7 @@ export class Dock {
   constructor(private root: HTMLElement, private store: Store, private onFocus: (deviceId: string) => void) {
     store.subscribe(() => this.render()); this.render();
   }
-  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
+  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.tickets[id]?.ref ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
   private describe(e: DomainEvent): string {
     const p = e.payload as Record<string, any>;
     switch (e.type) {
@@ -23,6 +24,8 @@ export class Dock {
       case 'AgentInventoryFailed': return String(p['detail'] ?? '');
       case 'NetworkDiscoveryCompleted': return `${p['cidr']} : ${p['found']} trouvé(s), ${p['created']} nouveau(x)`;
       case 'AssetMatched': return `par ${p['by']}`;
+      case 'TicketStatusChanged': return `${STATUS_LABEL[p['from'] as TicketStatus]} → ${STATUS_LABEL[p['to'] as TicketStatus]}`;
+      case 'TicketCreated': return String(p['title'] ?? '');
       case 'SoftwareInstalled': case 'SoftwareRemoved': return String(p['softwareId']);
       default: return '';
     }

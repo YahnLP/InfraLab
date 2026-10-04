@@ -1,5 +1,6 @@
 import type { Device, DeviceKind, Store } from '../../core';
 import { CATALOG, computeReachability, linkIsUp, portInUse } from '../../infra';
+import { ticketsForDevice } from '../../itsm';
 import { agentHealth } from '../../inventory';
 import { clear, h, s, svgFromString } from '../kit/dom';
 import { glyph } from './icons';
@@ -80,6 +81,7 @@ export class InfraCanvas {
       const r = reach[d.id]; const p = this.pos(d);
       const status = !d.powered ? 'off' : d.online ? 'on' : 'down';
       const isServer = st.reality.itsmServerId === d.id;
+      const tickets = ticketsForDevice(st, d.id).length;
       const sel = this.sel?.kind === 'device' && this.sel.id === d.id;
       const g = s('g', { class: `node ${status}${sel ? ' sel' : ''}`, transform: `translate(${p.x} ${p.y})`, 'data-id': d.id, tabindex: 0, role: 'button',
         'aria-label': `${d.name}, ${CATALOG[d.kind].label}, ${status === 'on' ? 'en ligne' : status === 'off' ? 'éteint' : 'hors ligne'}` },
@@ -91,6 +93,7 @@ export class InfraCanvas {
         status === 'down' ? s('path', { class: 'dotmark', d: `M${NODE / 2 - 7} ${-NODE / 2 + 1}l6 6M${NODE / 2 - 1} ${-NODE / 2 + 1}l-6 6` }) : null,
         status === 'on' ? s('path', { class: 'dotmark', d: `M${NODE / 2 - 7} ${-NODE / 2 + 4}l2 3 4-5` }) : null,
         d.agent.state !== 'none' ? s('g', { class: `agent ${agentHealth(st, d)}` }, s('title', null, `Agent : ${agentHealth(st, d)}`), s('circle', { cx: -NODE / 2 + 11, cy: NODE / 2 - 11, r: 9 }), s('text', { x: -NODE / 2 + 11, y: NODE / 2 - 7.5, 'text-anchor': 'middle' }, 'A')) : null,
+        tickets ? s('g', { class: 'tkbadge' }, s('title', null, `${tickets} ticket(s) ouvert(s)`), s('circle', { cx: NODE / 2 - 4, cy: NODE / 2 - 4, r: 9 }), s('text', { x: NODE / 2 - 4, y: NODE / 2 - 0.5, 'text-anchor': 'middle' }, String(tickets))) : null,
         isServer ? s('g', null, s('rect', { class: 'badge', x: -NODE / 2, y: -NODE / 2 - 8, width: 34, height: 16, rx: 8 }), s('text', { class: 'badgetxt', x: -NODE / 2 + 17, y: -NODE / 2 + 3, 'text-anchor': 'middle' }, 'ITSM')) : null,
       );
       g.querySelector('.glyph')!.append(svgFromString(glyph(d.kind)));

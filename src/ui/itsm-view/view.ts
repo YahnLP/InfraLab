@@ -3,9 +3,12 @@ import { CATALOG, computeReachability } from '../../infra';
 import { FRESHNESS_LABEL, HEALTH_LABEL, agentHealth, assetFreshness, driftReport } from '../../inventory';
 import { clear, h } from '../kit/dom';
 import { EVENT_LABEL, ago, fmtTime } from '../shell/labels';
+import { isOpen, ticketPriority, ticketsForAsset } from '../../itsm';
+import { newTicketPage, ticketList, ticketPage } from './tickets';
 
 export type Route =
   | { page: 'dashboard' } | { page: 'parc'; filter?: 'all' | 'discovered' | 'inventoried' | 'never' }
+  | { page: 'tickets'; kind?: 'incident' | 'request'; scope?: 'open' | 'all' } | { page: 'ticket'; id: string } | { page: 'newticket'; assetId?: string }
   | { page: 'asset'; id: string } | { page: 'agents' } | { page: 'discovery' } | { page: 'users' } | { page: 'logs' };
 
 export interface ItsmHost {
@@ -14,8 +17,9 @@ export interface ItsmHost {
   goInfra(deviceId: string): void;
 }
 
-const NAV: { page: Route['page']; label: string; group?: string }[] = [
-  { page: 'dashboard', label: 'Tableau de bord' }, { page: 'parc', label: 'Parc', group: 'Parc' },
+const NAV: { page: Route['page']; label: string; group?: string; route?: Route }[] = [
+  { page: 'dashboard', label: 'Tableau de bord' },
+  { page: 'tickets', label: 'Tickets', group: 'Support', route: { page: 'tickets' } }, { page: 'tickets', label: 'Incidents', group: 'Support', route: { page: 'tickets', kind: 'incident' } }, { page: 'tickets', label: 'Demandes', group: 'Support', route: { page: 'tickets', kind: 'request' } }, { page: 'parc', label: 'Parc', group: 'Parc' },
   { page: 'agents', label: 'Agents', group: 'Inventaire' }, { page: 'discovery', label: 'Découverte réseau', group: 'Inventaire' },
   { page: 'users', label: 'Utilisateurs', group: 'Organisation' }, { page: 'logs', label: 'Journaux', group: 'Administration' },
 ];
@@ -40,12 +44,14 @@ export class ItsmView {
     let group = '';
     for (const n of NAV) {
       if (n.group !== group) { group = n.group ?? ''; if (group) this.nav.append(h('h3', null, group)); }
-      const on = this.route.page === n.page || (this.route.page === 'asset' && n.page === 'parc');
-      this.nav.append(h('button', { class: on ? 'on' : '', 'aria-current': on ? 'page' : null, onclick: () => this.go({ page: n.page } as Route) }, n.label));
+      const r = this.route; const nr = n.route ?? { page: n.page } as Route;
+      const on = r.page === 'ticket' || r.page === 'newticket' ? nr.page === 'tickets' && !('kind' in nr) : r.page === 'tickets' ? nr.page === 'tickets' && (nr as { kind?: string }).kind === r.kind : r.page === n.page || (r.page === 'asset' && n.page === 'parc');
+      this.nav.append(h('button', { class: on ? 'on' : '', 'aria-current': on ? 'page' : null, onclick: () => this.go(nr) }, n.label));
     }
     clear(this.page);
     const r = this.route;
-    this.page.append(r.page === 'dashboard' ? this.dashboard() : r.page === 'parc' ? this.parc(r.filter ?? 'all') : r.page === 'asset' ? this.asset(r.id)
+    const c = { st: this.st, host: this.host, go: (x: Route) => this.go(x) };
+    this.page.append(r.page === 'tickets' ? ticketList(c, r) : r.page === 'ticket' ? ticketPage(c, r.id) : r.page === 'newticket' ? newTicketPage(c, r.assetId) : r.page === 'dashboard' ? this.dashboard() : r.page === 'parc' ? this.parc(r.filter ?? 'all') : r.page === 'asset' ? this.asset(r.id)
       : r.page === 'agents' ? this.agents() : r.page === 'discovery' ? this.discovery() : r.page === 'users' ? this.users() : this.logs());
   }
 
@@ -64,9 +70,12 @@ export class ItsmView {
     const stale = inv.filter(x => assetFreshness(x, now) !== 'fresh');
     const agentsDown = Object.values(this.st.reality.devices).filter(d => d.agent.state === 'running' && agentHealth(this.st, d) === 'unreachable');
     const unknown = this.unknownDevices();
+    const open = Object.values(this.st.management.tickets).filter(isOpen);
+    const urgent = open.filter(t => (ticketPriority(t) ?? 9) <= 2); const toQualify = open.filter(t => t.status === 'new');
     const tile = (n: number, label: string, to: Route, warn = false) => h('button', { class: `tile${warn && n > 0 ? ' warn' : ''}`, onclick: () => this.go(to) }, h('b', null, String(n)), h('span', null, label));
     return h('section', null, h('h1', null, 'Tableau de bord'),
       h('div', { class: 'tiles' },
+        tile(open.length, 'tickets à traiter', { page: 'tickets' }), tile(toQualify.length, 'tickets à qualifier', { page: 'tickets' }, true), tile(urgent.length, 'tickets P1 / P2', { page: 'tickets' }, true),
         tile(a.length, 'actifs connus de l\'outil', { page: 'parc' }),
         tile(disc.length, 'découverts, pas inventoriés', { page: 'parc', filter: 'never' }, true),
         tile(inv.length, 'inventoriés par un agent', { page: 'parc', filter: 'inventoried' }),
@@ -134,9 +143,16 @@ export class ItsmView {
             ? h('div', null, h('table', { class: 'grid small' }, h('thead', null, h('tr', null, h('th', null, 'Donnée'), h('th', null, 'Ce que l\'outil sait'), h('th', null, 'Réalité'))),
                 h('tbody', null, ...drift.map(r => h('tr', null, h('td', null, r.field), h('td', null, r.observed), h('td', { class: 'diff' }, r.reality))))),
               h('p', { class: 'muted' }, 'L\'outil se met à jour à la prochaine remontée de l\'agent.')) : h('p', { class: 'muted' }, 'L\'outil est à jour : ce qu\'il sait correspond à la réalité.'),
+          h('h2', null, 'Tickets liés'), this.assetTickets(a),
           h('h2', null, 'Données déclarées (saisies à la main)'), form,
           h('label', { class: 'fld' }, h('span', null, 'Utilisateur affecté'), assign))),
       note('Dans les outils réels', 'les valeurs « observées » viennent de l\'agent (GLPI Agent, SCCM, Intune…) et ne se saisissent pas ; les valeurs « déclarées » (n° d\'inventaire, contrat, service) sont renseignées par le gestionnaire de parc.'));
+  }
+
+  private assetTickets(a: Asset): HTMLElement {
+    const all = ticketsForAsset(this.st, a.id, false);
+    return h('div', null, all.length ? h('ul', { class: 'tkl' }, ...all.map(t => h('li', null, h('button', { class: 'link', onclick: () => this.go({ page: 'ticket', id: t.id }) }, t.ref), ` ${t.title} `, h('span', { class: 'muted' }, `· ${isOpen(t) ? 'ouvert' : 'terminé'}`)))) : h('p', { class: 'muted' }, 'Aucun ticket sur cet actif : c\'est l\'historique du poste.'),
+      h('button', { onclick: () => this.go({ page: 'newticket', assetId: a.id }) }, 'Créer un ticket'));
   }
 
   private agents(): HTMLElement {
@@ -182,7 +198,7 @@ export class ItsmView {
 
   private logs(): HTMLElement {
     const log = [...this.host.store.getLog()].reverse().slice(0, 300); const st = this.st;
-    const nm = (id: string) => st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? id;
+    const nm = (id: string) => st.management.tickets[id]?.ref ?? st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? id;
     return h('section', null, h('h1', null, 'Journaux'),
       log.length ? h('table', { class: 'grid small' }, h('thead', null, h('tr', null, ...['Heure simulée', 'Événement', 'Objet', 'Origine'].map(t => h('th', null, t)))),
         h('tbody', null, ...log.map(e => h('tr', null, h('td', null, h('code', null, fmtTime(e.t))), h('td', null, EVENT_LABEL[e.type] ?? e.type), h('td', null, nm(e.subject.id)), h('td', null, e.actor === 'user' ? 'utilisateur' : e.actor === 'agent' ? 'agent' : 'système'))))) : h('p', { class: 'empty' }, 'Aucun événement.'),

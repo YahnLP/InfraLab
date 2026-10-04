@@ -54,7 +54,7 @@ export function mountApp(root: HTMLElement): void {
     dialog.showModal();
   };
 
-  const ihost = { dispatch, confirm, now: () => sch.now, goAsset: (id: string) => showItsm({ page: 'asset', id }) };
+  const ihost = { dispatch, confirm, now: () => sch.now, goAsset: (id: string) => showItsm({ page: 'asset', id }), goTicket: (id: string) => showItsm({ page: 'ticket', id }), newTicket: (assetId: string) => showItsm({ page: 'newticket', assetId }) };
   const canvas = new InfraCanvas({
     store, dispatch, hint: m => { hint.textContent = m; },
     onSelect: (sel: Selection) => renderInspector(inspector, store.getState(), sel, ihost),
