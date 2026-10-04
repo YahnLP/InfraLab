@@ -4,13 +4,15 @@ import type { Ci, Relation, State } from '../core';
 export const CI_KIND_LABEL: Record<Ci['kind'], string> = { service: 'Service', application: 'Application', infrastructure: 'Infrastructure' };
 export const RELATION_LABEL: Record<Relation['type'], string> = { depends_on: 'dépend de', uses: 'utilise', hosted_on: 'est hébergé sur' };
 
-export interface AutoRelation { a: string; b: string }
-/** Relations « connecté à » : déduites du câblage réel entre actifs qui ont un CI. Jamais saisies à la main. */
+/** `hosted` : a est une machine virtuelle hébergée sur b. */
+export interface AutoRelation { a: string; b: string; hosted?: boolean }
+/** Relations « connecté à » (câblage réel) et « hébergé sur » (machine virtuelle → hyperviseur) entre actifs qui ont un CI. Jamais saisies à la main. */
 export function autoRelations(st: Readonly<State>): AutoRelation[] {
   const ciOfDevice = new Map<string, string>();
   for (const ci of Object.values(st.management.cis)) { const a = ci.assetId && st.management.assets[ci.assetId]; if (a && a.deviceId) ciOfDevice.set(a.deviceId, ci.id); }
   const out: AutoRelation[] = [];
   for (const l of Object.values(st.reality.links)) { const a = ciOfDevice.get(l.a.device), b = ciOfDevice.get(l.b.device); if (a && b) out.push({ a, b }); }
+  for (const d of Object.values(st.reality.devices)) { const a = ciOfDevice.get(d.id), b = d.hostId ? ciOfDevice.get(d.hostId) : undefined; if (a && b) out.push({ a, b, hosted: true }); }
   return out;
 }
 

@@ -29,6 +29,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'tp-06-installer-agent', number: 6, title: 'Installer un agent', level: 2, levelLabel: level(2), difficulty: 1, duration: '25 min',
     skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Exploiter et dépanner', kind: 'worked' }],
+    timeNote: 'L\'agent remonte son inventaire à intervalle régulier : la première remontée est planifiée peu après l\'installation. Avancez l\'horloge (+15 min ou +1 h) pour la voir arriver, ou forcez-la depuis la fiche de l\'agent.',
     context: 'NovaTech vient de scanner son réseau. L\'outil connaît désormais les postes, mais seulement par ce que le réseau lui a répondu. Le poste PC21 (Bruno Leroy) doit être inventorié de façon détaillée.',
     stages: [
       { id: 's1', title: 'Ce que l\'outil sait déjà', objectives: ['know'],
@@ -87,6 +88,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'tp-10-agent-en-erreur', number: 10, title: 'Agent en erreur', level: 2, levelLabel: level(2), difficulty: 2, duration: '35 min',
     skills: [{ ref: 'Exploiter et dépanner', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    timeNote: 'Un agent en erreur ne remonte plus : avancez l\'horloge pour vérifier si la remontée reprend après votre correction, et pour voir un inventaire devenir obsolète (plusieurs jours sans remontée).',
     context: 'Le tableau de bord de NovaTech signale des agents qui ne remontent plus correctement sur trois postes. Chaque panne a une cause différente : à vous de les distinguer.',
     stages: [
       { id: 's1', title: 'Lire l\'état d\'un agent', objectives: ['diag'],
@@ -304,6 +306,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'tp-22-sla', number: 22, title: 'SLA : tenir les délais', level: 5, levelLabel: level(5), difficulty: 2, duration: '40 min',
     skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    timeNote: 'Le SLA se mesure en temps simulé : 10 minutes se sont déjà écoulées. Avancez l\'horloge pour voir un ticket passer de « en cours » à « à risque » puis « dépassé », et constater qu\'un ticket « en attente » ne consomme plus de délai.',
     context: 'Deux tickets, saisis par le service desk à partir d\'appels, attendent depuis 10 minutes (temps simulé). Le premier bloque toute la comptabilité ; le second est mineur.',
     stages: [
       { id: 's1', title: 'Qualifier pour déclencher le bon SLA', objectives: ['p1', 'p4', 'clock'],
@@ -543,6 +546,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'tp-28-contrats', number: 28, title: 'Contrats, fournisseurs et échéances', level: 6, levelLabel: level(6), difficulty: 2, duration: '35 min',
     skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    timeNote: 'Les échéances dépendent de la date simulée : avancez l\'horloge de plusieurs jours (+1 jour) pour voir un contrat passer d\'« actif » à « proche de l\'échéance », puis « expiré ».',
     context: 'NovaTech suit trois contrats chez deux fournisseurs. Aucune alerte n\'a été envoyée : à vous de lire les échéances, de renouveler ce qui doit l\'être et de rattacher les contrats aux équipements qu\'ils couvrent.',
     stages: [
       { id: 's1', title: 'Repérer les échéances', objectives: ['which'],
@@ -960,6 +964,7 @@ export const SCENARIOS: Scenario[] = [
   {
     id: 'tp-07-premiere-remontee', number: 7, title: 'Première remontée d\'inventaire', level: 2, levelLabel: level(2), difficulty: 1, duration: '25 min',
     skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    timeNote: 'Sans action de votre part, l\'agent remonte tout seul à l\'heure prévue. Avancez l\'horloge pour constater qu\'un inventaire se met à jour avec le temps, au lieu de seulement forcer la remontée.',
     context: 'L\'agent est installé sur PC21 mais n\'a pas encore remonté d\'informations. Forcez une remontée et observez ce qui change dans la fiche de l\'actif.',
     stages: [
       stage('s1', 'Avant la remontée', ['before'], ['Tant que l\'agent n\'a rien remonté, la fiche ne contient que ce que la découverte a vu : nom, IP, MAC. Pas de système d\'exploitation, pas de logiciels, pas d\'utilisateur.'], ['Une fiche partielle n\'est pas fausse, elle est incomplète : savoir ce qu\'on ne sait pas est déjà de l\'inventaire.']),
@@ -1290,6 +1295,264 @@ export const SCENARIOS: Scenario[] = [
       answer('final', 1),
     ],
     realWorld: 'Un administrateur ITSM fait précisément cela au quotidien : arbitrer entre l\'urgence (rétablir), l\'hygiène (inventaire, licences, comptes) et le long terme (problèmes, changements), en laissant une trace à chaque étape.',
+  },
+  /* ============================ TP 41 ============================ */
+  {
+    id: 'tp-41-calendrier-ouvre', number: 41, title: 'SLA : le week-end compte-t-il ?', level: 5, levelLabel: level(5), difficulty: 2, duration: '35 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    timeNote: 'Il est lundi 07:00. Le ticket a été ouvert vendredi à 17:00 : tout un week-end s\'est écoulé. Observez, dans la liste des tickets, comment le même ticket est jugé « dépassé » ou « en cours » selon le calendrier retenu (page Paramètres de la vue ITSM). Vous pouvez avancer l\'horloge, par exemple +1 h, pour voir arriver l\'ouverture du service à 08:00.',
+    context: 'Vendredi à 17:00, Alice a signalé que l\'imprimante du service comptabilité ne marche plus. Le ticket est qualifié (priorité P3 : 24 h pour résoudre). Nous sommes lundi à 07:00, le service desk n\'ouvre qu\'à 08:00, et l\'outil affiche déjà ce ticket en rouge.',
+    stages: [
+      stage('s1', 'Comprendre ce que mesure le SLA', ['why'], ['Un SLA est un **engagement de durée**, mais une durée mesurée sur un **calendrier**. Le calendrier dit quelles heures comptent : tout le temps (24 h / 24, 7 j / 7) ou seulement les heures ouvrées (ici du lundi au vendredi, de 8 h à 18 h).', 'Regardez le ticket INC-0001 dans la liste : il est ouvert depuis 62 heures de temps réel. Mais le service desk, lui, n\'a travaillé qu\'**une heure** depuis (vendredi de 17 h à 18 h).'], ['Le même ticket est « dépassé » ou « dans les temps » selon le calendrier : ce n\'est pas un détail, c\'est ce qui rend le SLA honnête.']),
+      stage('s2', 'Régler le calendrier', ['cal', 'running'], ['Dans la vue ITSM, page **Paramètres** (Administration), choisissez le calendrier correspondant au contrat de service de NovaTech : un support aux heures de bureau. Revenez ensuite à la liste des tickets : le SLA est recalculé à partir du **temps ouvré** écoulé.'], ['Changer le calendrier ne répare pas un retard : il corrige la **mesure**, pour qu\'elle corresponde à ce qui a été promis.']),
+      stage('s3', 'Tenir l\'engagement', ['resolve', 'contract'], ['Traitez maintenant le ticket : qualifiez-le jusqu\'à la prise en charge, attribuez-le à David, documentez la solution et résolvez-le. Le SLA doit être **respecté**.'], ['Un calendrier ouvré s\'applique à un contrat ouvré. Pour un service critique promis 24 h / 24, le calendrier continu reste le bon choix.']),
+    ],
+    setup: [
+      { advance: 4 * DAY + 9 * HOUR }, // vendredi 17:00
+      newIncident('Imprimante de la comptabilité en panne', 'Appel d\'Alice à 17 h : l\'imprimante du service ne sort plus rien.', 'Alice'),
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Matériel', subcategory: 'Imprimante', impact: 'medium', urgency: 'medium' } } },
+      { advance: 3 * DAY - 10 * HOUR }, // lundi 07:00
+    ],
+    objectives: [
+      { id: 'why', label: 'Expliquer pourquoi le ticket est affiché « dépassé »', question: Q('Le ticket (P3, 24 h pour résoudre) est ouvert depuis vendredi 17 h et l\'outil affiche « dépassé » lundi à 7 h. Pourquoi ?', ['Le service desk a ignoré le ticket pendant 62 heures de travail', 'Le calendrier continu compte aussi les nuits et le week-end, pendant lesquels le service desk ne travaille pas', 'La priorité du ticket est trop haute', 'L\'horloge simulée est en avance'], 1, 'Le calendrier continu compte toutes les heures. Or le service desk n\'ouvre que du lundi au vendredi de 8 h à 18 h : seule une heure ouvrée s\'est écoulée.') },
+      { id: 'cal', label: 'Le calendrier des SLA correspond à un support aux heures ouvrées', check: { k: 'slaCalendar', is: 'business' }, requires: ['why'] },
+      { id: 'running', label: 'Le ticket INC-0001 n\'est plus « dépassé » : le délai de résolution est de nouveau tenable', check: { k: 'sla', ticket: T(1), resolveNot: 'breached' }, requires: ['cal'] },
+      { id: 'resolve', label: 'INC-0001 est résolu avec une solution documentée, SLA respecté', check: { k: 'all', of: [{ k: 'sla', ticket: T(1), resolve: 'met' }, { k: 'ticket', ref: T(1), solutionMin: 30 }] }, requires: ['running'] },
+      { id: 'contract', label: 'Choisir le calendrier d\'un service promis 24 h / 24', requires: ['resolve'], question: Q('NovaTech vend à un client un support de supervision promis 24 h / 24, 7 j / 7. Quel calendrier de SLA convient ?', ['Heures ouvrées : c\'est moins strict', 'Continu : la mesure doit suivre l\'engagement pris', 'Peu importe, le résultat sera le même', 'Aucun calendrier : un SLA n\'a pas besoin de mesure'], 1, 'Le calendrier suit le contrat. Mesurer en heures ouvrées un engagement 24 h / 24 masquerait des dépassements réels.') },
+    ],
+    hints: [
+      { for: 'cal', levels: ['Le réglage n\'est pas sur le ticket : il concerne tout l\'outil.', 'Vue ITSM, menu Administration, page « Paramètres ».'] },
+      { for: 'resolve', levels: ['Qualifiez, attribuez à David, prenez en charge, puis renseignez la solution avant de résoudre.'] },
+    ],
+    solutionText: ['Répondre à la question : le calendrier continu compte les heures où personne ne travaille.', 'Vue ITSM → Paramètres : choisir le calendrier « heures ouvrées ».', 'Qualifier, attribuer à David, prendre en charge, documenter et résoudre INC-0001.', 'Répondre à la dernière question : un engagement 24 h / 24 se mesure en continu.'],
+    solution: [
+      answer('why', 1), { do: 'itsm.setSlaCalendar', args: { calendar: 'business' } },
+      ...resolveSteps(T(1), { category: 'Matériel', subcategory: 'Imprimante', impact: 'medium', urgency: 'medium' }, 'Bourrage et pilote d\'impression réinstallé : l\'imprimante de la comptabilité imprime de nouveau.').slice(0, 6),
+      answer('contract', 1),
+    ],
+    realWorld: 'Dans les outils réels, le calendrier est un objet à part (« planning de service », « business hours » dans ServiceNow, « calendrier » dans GLPI ou Jira Service Management) rattaché au contrat ou au SLA. Congés, jours fériés et fuseaux horaires s\'y ajoutent : ici, un seul calendrier hebdomadaire suffit à comprendre le principe.',
+  },
+
+  /* ============================ TP 42 ============================ */
+  {
+    id: 'tp-42-matinee-service-desk', number: 42, title: 'Une matinée au service desk', level: 3, levelLabel: level(3), difficulty: 3, duration: '45 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    timeNote: 'Dans ce TP, les appels arrivent au fil du temps simulé. Utilisez +15 min ou +1 h pour faire passer le temps, comme on attend le prochain appel : les nouveaux tickets apparaissent seuls dans la liste, avec un message dans cette section.',
+    context: 'Il est 8 h 00. Vous tenez seul le service desk de NovaTech. Un premier appel est déjà noté. D\'autres arriveront pendant la matinée : un service desk ne reçoit jamais ses tickets tous en même temps, et la priorité de l\'un peut bouleverser le traitement de l\'autre.',
+    stages: [
+      stage('s1', 'Premier appel, premier tri', ['triage'], ['Qualifiez INC-0001 : estimez l\'**impact** (combien de personnes ?) et l\'**urgence** (quel délai le problème tolère-t-il ?). La priorité en découle.'], ['Une priorité se décide quand on connaît le ticket, mais elle doit pouvoir être comparée à celle du ticket suivant.']),
+      stage('s2', 'Un appel urgent arrive', ['arrive', 'order', 'p1'], ['Faites avancer l\'horloge jusqu\'au deuxième appel (une demi-heure environ). Quand un ticket critique arrive pendant le traitement d\'un autre, on **arbitre** : le P1 passe devant, l\'autre attend.', 'Le délai de prise en charge d\'un P1 est de 15 minutes seulement : l\'indicateur SLA du ticket vous le montre.'], ['Traiter dans l\'ordre d\'arrivée est simple, mais ce n\'est pas toujours juste : c\'est la priorité qui ordonne la file.']),
+      stage('s3', 'Finir la matinée', ['third', 'all'], ['Un troisième appel arrive en milieu de matinée. Terminez la file : chaque ticket doit être qualifié, traité et résolu avec une solution écrite.'], ['Une file de tickets se gère dans le temps : arrivée, tri, arbitrage, résolution, documentation.']),
+    ],
+    setup: [
+      DISCOVER,
+      newIncident('Souris à remplacer', 'Appel de Bruno à 8 h : sa souris double-clique parfois. Pas urgent.', 'Bruno'),
+    ],
+    timeline: [
+      { id: 'appel2', at: 30 * MIN, notice: 'Nouvel appel à 8 h 30 : Alice, toute la comptabilité est bloquée (INC-0002).', steps: [newIncident('Plus aucun accès aux applications métier', 'Appel d\'Alice : toute la comptabilité est bloquée, la clôture de paie est ce soir.', 'Alice')] },
+      { id: 'appel3', at: 90 * MIN, notice: 'Nouvel appel à 9 h 30 : Chloé ne peut plus imprimer (INC-0003).', steps: [newIncident('Impossible d\'imprimer', 'Appel de Chloé : l\'imprimante du service commercial n\'imprime plus.', 'Chloé')] },
+    ],
+    objectives: [
+      { id: 'triage', label: 'INC-0001 est qualifié avec la priorité que justifie sa description', check: { k: 'ticket', ref: T(1), priority: 4, qualified: true } },
+      { id: 'arrive', label: 'Le deuxième appel est arrivé (faites avancer l\'horloge)', check: { k: 'ticket', ref: T(2) }, requires: ['triage'] },
+      { id: 'order', label: 'Choisir quel ticket traiter en premier', requires: ['arrive'], question: Q('Vous aviez commencé INC-0001 (souris, P4). INC-0002 arrive : toute la comptabilité est bloquée. Que faites-vous ?', ['Je termine INC-0001 d\'abord : il est arrivé le premier', 'Je qualifie INC-0002 tout de suite et le prends en charge : sa priorité passe devant', 'Je laisse INC-0002 attendre que la souris soit réglée', 'Je rappelle Alice pour lui dire d\'attendre'], 1, 'La priorité (impact × urgence) ordonne la file, pas l\'ordre d\'arrivée. Un P1 doit être pris en charge en 15 minutes.') },
+      { id: 'p1', label: 'INC-0002 est qualifié P1 et pris en charge', check: { k: 'all', of: [{ k: 'ticket', ref: T(2), priority: 1, qualified: true }, { k: 'ticket', ref: T(2), reached: 'in_progress' }] }, requires: ['order'] },
+      { id: 'third', label: 'Le troisième appel est arrivé (faites encore avancer l\'horloge)', check: { k: 'ticket', ref: T(3) }, requires: ['p1'] },
+      { id: 'all', label: 'Les trois tickets sont résolus, chacun avec une solution écrite', check: { k: 'all', of: [1, 2, 3].map(n => ({ k: 'ticket' as const, ref: T(n), reached: 'resolved' as const, solutionMin: 30 })) }, requires: ['third'] },
+    ],
+    hints: [
+      { for: 'arrive', levels: ['Aucun appel n\'arrive tant que le temps ne passe pas.', 'Utilisez « +15 min » deux fois, ou « +1 h », dans la section « Dans ce TP, le temps compte ».'] },
+      { for: 'p1', levels: ['Un blocage de toute la comptabilité touche beaucoup de monde et ne tolère aucun délai.'] },
+    ],
+    solutionText: ['Qualifier INC-0001 en P4 (impact faible, urgence faible).', 'Avancer de 30 minutes : INC-0002 arrive. Le qualifier P1, l\'attribuer à David, le prendre en charge, le résoudre.', 'Avancer d\'une heure : INC-0003 arrive. Le traiter, puis résoudre INC-0001.'],
+    solution: [
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Matériel', subcategory: 'Périphérique', impact: 'low', urgency: 'low' } } },
+      { advance: 30 * MIN }, answer('order', 1),
+      ...resolveSteps(T(2), { category: 'Réseau', impact: 'high', urgency: 'high' }, 'Contrôleur de domaine redémarré, accès aux applications métier rétablis.').slice(0, 6),
+      { advance: 60 * MIN },
+      ...resolveSteps(T(3), { category: 'Matériel', subcategory: 'Imprimante', impact: 'low', urgency: 'medium' }, 'Imprimante relancée et file d\'impression purgée.').slice(0, 6),
+      ...resolveSteps(T(1), { category: 'Matériel', subcategory: 'Périphérique', impact: 'low', urgency: 'low' }, 'Souris remplacée par une neuve, ancien modèle retiré du parc.').slice(0, 6),
+    ],
+    realWorld: 'Un service desk réel gère une file qui se remplit en continu. Les outils trient automatiquement par priorité et par échéance SLA, et alertent quand un ticket approche de son délai : c\'est le même principe, appliqué à des centaines de tickets.',
+  },
+
+  /* ============================ TP 43 ============================ */
+  {
+    id: 'tp-43-hyperviseur-en-panne', number: 43, title: 'Quand l\'hyperviseur s\'arrête', level: 4, levelLabel: level(4), difficulty: 3, duration: '45 min',
+    skills: [{ ref: 'Exploiter et dépanner', kind: 'worked' }, { ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    timeNote: 'Tout fonctionne au début de ce TP : la panne survient dans le temps simulé, puis les appels arrivent. Avancez l\'horloge (+15 min) jusqu\'à ce que les tickets apparaissent.',
+    context: 'NovaTech héberge deux serveurs virtuels, VM-APP01 (application RH) et VM-APP02 (intranet), sur un seul hyperviseur, HV-01. Ce matin tout va bien. Plus tard, des utilisateurs vont signaler que « deux applications ne marchent plus ». À vous de trouver ce qu\'elles ont en commun.',
+    stages: [
+      stage('s1', 'Laisser venir la panne', ['arrive1', 'arrive2'], ['Faites avancer l\'horloge jusqu\'à l\'arrivée des deux tickets (environ 35 minutes). Dans la vue Infrastructure, observez alors les deux machines virtuelles : leur état et la raison indiquée.'], ['Une panne ne s\'annonce pas : c\'est le temps qui passe qui la révèle, et ce sont les utilisateurs qui la signalent en premier.']),
+      stage('s2', 'Chercher le point commun', ['diag', 'link'], ['Deux applications différentes en panne **en même temps** : on cherche ce qu\'elles partagent. Une machine virtuelle ne fonctionne pas seule : elle s\'exécute sur un **hyperviseur**. Sélectionnez une VM dans la vue Infrastructure : la section « Hébergement » indique où elle tourne, et la CMDB affiche la relation « hébergé sur ».', 'Rattachez ensuite les deux tickets à l\'actif réellement en cause.'], ['Corréler les tickets évite de réparer deux fois le même problème, ou de réparer le mauvais équipement.']),
+      stage('s3', 'Rétablir et documenter', ['fix', 'close', 'learn'], ['Rétablissez le service à la source. Inutile de toucher aux VM : si la cause est l\'hôte, c\'est l\'hôte qu\'on répare. Puis résolvez les deux tickets en documentant la cause.'], ['Réparer la cause plutôt que les symptômes : un seul geste rétablit deux services.']),
+    ],
+    setup: [
+      { do: 'infra.addDevice', args: { kind: 'hypervisor', name: 'HV-01', x: 560, y: 440 } }, { do: 'infra.addDevice', args: { kind: 'vm', name: 'VM-APP01', x: 656, y: 440 } }, { do: 'infra.addDevice', args: { kind: 'vm', name: 'VM-APP02', x: 752, y: 440 } },
+      { do: 'infra.connect', args: { aDevice: '@dev:HV-01', aPort: 'eth0', bDevice: '@dev:SW02', bPort: 'port5' } },
+      { do: 'infra.connect', args: { aDevice: '@dev:VM-APP01', aPort: 'eth0', bDevice: '@dev:SW02', bPort: 'port6' } },
+      { do: 'infra.connect', args: { aDevice: '@dev:VM-APP02', aPort: 'eth0', bDevice: '@dev:SW02', bPort: 'port7' } },
+      { do: 'infra.setIp', args: { id: '@dev:HV-01', ip: '192.168.10.30', mask: 24 } }, { do: 'infra.setIp', args: { id: '@dev:VM-APP01', ip: '192.168.10.31', mask: 24 } }, { do: 'infra.setIp', args: { id: '@dev:VM-APP02', ip: '192.168.10.32', mask: 24 } },
+      { do: 'infra.setHost', args: { id: '@dev:VM-APP01', host: '@dev:HV-01' } }, { do: 'infra.setHost', args: { id: '@dev:VM-APP02', host: '@dev:HV-01' } },
+      DISCOVER,
+    ],
+    timeline: [
+      { id: 'panne', at: 20 * MIN, notice: 'Appel d\'Alice : l\'application RH ne répond plus (INC-0001).', steps: [{ do: 'infra.powerOff', args: { id: '@dev:HV-01' } }, newIncident('Application RH inaccessible', 'Appel d\'Alice : l\'application RH (VM-APP01) ne répond plus depuis quelques minutes.', 'Alice')] },
+      { id: 'appel2', at: 35 * MIN, notice: 'Appel de Chloé : l\'intranet est inaccessible (INC-0002).', steps: [newIncident('Intranet inaccessible', 'Appel de Chloé : l\'intranet (VM-APP02) ne s\'ouvre plus.', 'Chloé')] },
+    ],
+    forbid: NOREPLACE,
+    objectives: [
+      { id: 'arrive1', label: 'Le premier appel est arrivé (faites avancer l\'horloge)', check: { k: 'ticket', ref: T(1) } },
+      { id: 'arrive2', label: 'Le second appel est arrivé', check: { k: 'ticket', ref: T(2) }, requires: ['arrive1'] },
+      { id: 'diag', label: 'Formuler l\'hypothèse du point commun', requires: ['arrive2'], question: Q('Deux applications, hébergées sur deux machines virtuelles différentes, tombent en même temps. Quelle hypothèse vérifier en premier ?', ['Deux pannes indépendantes survenues par hasard', 'L\'élément qu\'elles ont en commun : l\'hyperviseur qui héberge les deux machines virtuelles', 'Un virus sur le poste d\'Alice', 'Une erreur de saisie dans l\'outil de ticketing'], 1, 'Une machine virtuelle dépend de son hôte. Deux VM en panne simultanée sur le même hyperviseur désignent l\'hôte.') },
+      { id: 'link', label: 'Les deux tickets sont rattachés à l\'actif HV-01', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), linkedDevice: '@dev:HV-01' }, { k: 'ticket', ref: T(2), linkedDevice: '@dev:HV-01' }] }, requires: ['diag'] },
+      { id: 'fix', label: 'HV-01 et ses deux machines virtuelles sont de nouveau en ligne', check: { k: 'all', of: [{ k: 'deviceOnline', device: '@dev:HV-01' }, { k: 'deviceOnline', device: '@dev:VM-APP01' }, { k: 'deviceOnline', device: '@dev:VM-APP02' }] }, requires: ['link'] },
+      { id: 'close', label: 'Les deux tickets sont résolus avec une solution documentée', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), reached: 'resolved', solutionMin: 30 }, { k: 'ticket', ref: T(2), reached: 'resolved', solutionMin: 30 }] }, requires: ['fix'] },
+      { id: 'learn', label: 'Tirer la leçon sur la dépendance', requires: ['close'], question: Q('Pourquoi supprimer ou recâbler les machines virtuelles n\'aurait-il servi à rien ?', ['Parce qu\'une VM ne peut pas être supprimée', 'Parce que la panne venait de l\'hôte : tant que l\'hyperviseur est arrêté, toutes ses VM le sont', 'Parce que les VM n\'ont pas de câble', 'Parce que l\'outil refuse de modifier les VM'], 1, 'On traite la cause (l\'hôte), pas les symptômes (les VM). Cette relation est précisément ce que la CMDB doit enregistrer : « hébergé sur ».') },
+    ],
+    hints: [
+      { for: 'link', levels: ['Les tickets désignent les VM, mais la cause est plus bas dans la chaîne.', 'Sur la fiche d\'un ticket, liez l\'actif HV-01.'] },
+      { for: 'fix', levels: ['Regardez l\'état de HV-01 dans la vue Infrastructure : est-il alimenté ?'] },
+    ],
+    solutionText: ['Avancer l\'horloge de 40 minutes : les deux tickets arrivent.', 'Observer que VM-APP01 et VM-APP02 sont hébergées sur HV-01, arrêté.', 'Lier HV-01 aux deux tickets, rallumer HV-01 : les VM repartent.', 'Résoudre les deux tickets avec une solution écrite.'],
+    solution: [
+      { advance: 40 * MIN }, answer('diag', 1),
+      { do: 'itsm.linkAsset', args: { id: T(1), asset: '@ast:HV-01' } }, { do: 'itsm.linkAsset', args: { id: T(2), asset: '@ast:HV-01' } },
+      { do: 'infra.powerOn', args: { id: '@dev:HV-01' } },
+      ...resolveSteps(T(1), { category: 'Réseau', impact: 'medium', urgency: 'high' }, 'L\'hyperviseur HV-01 était arrêté : rallumé, les deux machines virtuelles sont revenues.').slice(0, 6),
+      ...resolveSteps(T(2), { category: 'Réseau', impact: 'medium', urgency: 'high' }, 'Même cause que INC-0001 : hyperviseur HV-01 arrêté, redémarré.').slice(0, 6),
+      answer('learn', 1),
+    ],
+    realWorld: 'Dans VMware, Hyper-V ou Proxmox, une VM s\'arrête avec son hôte, sauf si un cluster la redémarre ailleurs (haute disponibilité). La CMDB doit porter la relation « hébergé sur » : c\'est elle qui permet de passer d\'un symptôme (une application) à sa cause (un hôte) et de mesurer l\'impact d\'une panne ou d\'une maintenance.',
+  },
+
+  /* ============================ TP 44 ============================ */
+  {
+    id: 'tp-44-maintenance-hyperviseur', number: 44, title: 'Maintenance planifiée d\'un hyperviseur', level: 5, levelLabel: level(5), difficulty: 3, duration: '50 min',
+    skills: [{ ref: 'Travailler en mode projet', kind: 'worked' }, { ref: 'Exploiter et dépanner', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    timeNote: 'La maintenance doit avoir lieu hors des heures ouvrées : il faut donc planifier une heure du soir, puis faire avancer l\'horloge jusqu\'à ce moment (+1 h, plusieurs fois, ou +1 jour) avant d\'intervenir. Une intervention se prévoit dans le temps ; on ne la fait pas « tout de suite ».',
+    context: 'HV-01 doit recevoir une mise à jour du micrologiciel : il faudra l\'éteindre. Il héberge VM-APP01 (application RH) et VM-APP02 (intranet), utilisées toute la journée. Un second hyperviseur, HV-02, a la capacité de les accueillir. Il est lundi 8 h : l\'intervention doit se faire le soir, sans coupure pour les utilisateurs.',
+    stages: [
+      stage('s1', 'Mesurer l\'impact avant d\'agir', ['q'], ['Avant de planifier, regardez de quoi dépend le service : sélectionnez une VM dans la vue Infrastructure, section « Hébergement ». Éteindre un hôte, c\'est éteindre tout ce qu\'il héberge.'], ['Un changement s\'évalue par son **impact**, c\'est-à-dire par les dépendances, pas seulement par l\'équipement qu\'on touche.']),
+      stage('s2', 'Planifier le changement', ['plan'], ['Créez un **changement normal** pour HV-01 (lié à l\'actif), avec risque, plan, plan de retour arrière et approbation par un responsable. Planifiez l\'intervention **après 18 h** (hors heures ouvrées).', 'Dans la fiche du changement, « Planifier dans » se compte en heures à partir de maintenant : 8 h après 8 h du matin tombent à 16 h (heures ouvrées), 12 h donnent 20 h.'], ['Un changement approuvé et planifié est une promesse : qui, quoi, quand, comment revenir en arrière.']),
+      stage('s3', 'Intervenir sans coupure', ['migrate', 'stop', 'done'], ['Quand l\'horloge atteint l\'heure prévue, **déplacez** d\'abord les deux machines virtuelles vers HV-02 (vue Infrastructure, section « Hébergement » de chaque VM), **puis** éteignez HV-01. Les VM doivent rester en ligne.', 'Marquez le changement comme réalisé puis vérifié, en consignant le résultat.'], ['L\'ordre est tout : migrer d\'abord, éteindre ensuite. Éteindre d\'abord aurait coupé les services, même brièvement.']),
+    ],
+    setup: [
+      { do: 'infra.addDevice', args: { kind: 'hypervisor', name: 'HV-01', x: 560, y: 440 } }, { do: 'infra.addDevice', args: { kind: 'vm', name: 'VM-APP01', x: 656, y: 440 } }, { do: 'infra.addDevice', args: { kind: 'vm', name: 'VM-APP02', x: 752, y: 440 } }, { do: 'infra.addDevice', args: { kind: 'hypervisor', name: 'HV-02', x: 848, y: 440 } },
+      { do: 'infra.connect', args: { aDevice: '@dev:HV-01', aPort: 'eth0', bDevice: '@dev:SW02', bPort: 'port5' } },
+      { do: 'infra.connect', args: { aDevice: '@dev:VM-APP01', aPort: 'eth0', bDevice: '@dev:SW02', bPort: 'port6' } },
+      { do: 'infra.connect', args: { aDevice: '@dev:VM-APP02', aPort: 'eth0', bDevice: '@dev:SW02', bPort: 'port7' } },
+      { do: 'infra.connect', args: { aDevice: '@dev:HV-02', aPort: 'eth0', bDevice: '@dev:SW02', bPort: 'port8' } },
+      { do: 'infra.setIp', args: { id: '@dev:HV-01', ip: '192.168.10.30', mask: 24 } }, { do: 'infra.setIp', args: { id: '@dev:VM-APP01', ip: '192.168.10.31', mask: 24 } }, { do: 'infra.setIp', args: { id: '@dev:VM-APP02', ip: '192.168.10.32', mask: 24 } }, { do: 'infra.setIp', args: { id: '@dev:HV-02', ip: '192.168.10.33', mask: 24 } },
+      { do: 'infra.setHost', args: { id: '@dev:VM-APP01', host: '@dev:HV-01' } }, { do: 'infra.setHost', args: { id: '@dev:VM-APP02', host: '@dev:HV-01' } },
+      DISCOVER,
+    ],
+    objectives: [
+      { id: 'q', label: 'Prévoir l\'effet d\'un arrêt de HV-01 sur ses machines virtuelles', question: Q('Que se passe-t-il pour VM-APP01 et VM-APP02 si l\'on éteint HV-01 sans rien faire d\'autre ?', ['Rien : une machine virtuelle est indépendante de son hôte', 'Elles deviennent injoignables, car elles s\'exécutent sur HV-01', 'Elles migrent automatiquement vers HV-02', 'Elles s\'éteignent mais redémarrent seules'], 1, 'Une VM s\'exécute sur son hôte : sans hôte, plus de VM. Ici aucune haute disponibilité n\'est configurée, donc rien ne les déplace seul.') },
+      { id: 'plan', label: 'Un changement normal lié à HV-01 est approuvé et planifié hors heures ouvrées', check: { k: 'all', of: [{ k: 'change', ref: '@chg:CHG-0001', reached: 'scheduled', type: 'normal', linkedAsset: '@ast:HV-01' }, { k: 'changeWindow', ref: '@chg:CHG-0001', outsideBusinessHours: true }] }, requires: ['q'] },
+      { id: 'migrate', label: 'VM-APP01 et VM-APP02 sont hébergées sur HV-02', check: { k: 'all', of: [{ k: 'vmHost', vm: '@dev:VM-APP01', host: '@dev:HV-02' }, { k: 'vmHost', vm: '@dev:VM-APP02', host: '@dev:HV-02' }] }, requires: ['plan'] },
+      { id: 'stop', label: 'À l\'heure prévue, HV-01 est éteint et les machines virtuelles sont restées en ligne', check: { k: 'all', of: [{ k: 'changeWindow', ref: '@chg:CHG-0001', reachedByNow: true }, { k: 'devicePowered', device: '@dev:HV-01', value: false }, { k: 'deviceOnline', device: '@dev:VM-APP01' }, { k: 'deviceOnline', device: '@dev:VM-APP02' }] }, requires: ['migrate'] },
+      { id: 'done', label: 'Le changement est vérifié, avec son résultat consigné', check: { k: 'change', ref: '@chg:CHG-0001', reached: 'verified' }, requires: ['stop'] },
+    ],
+    hints: [
+      { for: 'plan', levels: ['Le changement doit être « normal », lié à l\'actif HV-01, avec risque, plan, retour arrière et approbateur (Éric, responsable).', 'Planifiez dans 12 heures : il sera 20 h, hors heures ouvrées.'] },
+      { for: 'migrate', levels: ['Sélectionnez la VM dans la vue Infrastructure : l\'inspecteur permet de choisir son hyperviseur hôte.'] },
+      { for: 'stop', levels: ['L\'heure prévue doit être atteinte : avancez l\'horloge. Migrez avant d\'éteindre.'] },
+    ],
+    solutionText: ['Répondre à la question d\'impact.', 'Créer le changement normal lié à HV-01 : risque, plan, retour arrière, approbateur Éric ; le soumettre, l\'approuver, le planifier dans 12 h.', 'Déplacer les deux VM vers HV-02.', 'Avancer jusqu\'à 20 h, éteindre HV-01 : les VM restent en ligne.', 'Marquer le changement réalisé, consigner le résultat, le vérifier.'],
+    solution: [
+      answer('q', 1),
+      { do: 'itsm.createChange', args: { title: 'Mise à jour du micrologiciel de HV-01', type: 'normal', assetIds: ['@ast:HV-01'] } },
+      { do: 'itsm.updateChange', args: { id: '@chg:CHG-0001', fields: { risk: 'medium', plan: 'Migrer les VM vers HV-02, éteindre HV-01, appliquer le micrologiciel, rallumer.', rollback: 'Remettre l\'ancien micrologiciel et ramener les VM sur HV-01.', approver: '@usr:Éric', scheduledAt: 12 * HOUR } } },
+      { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'proposed' } }, { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'approved' } }, { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'scheduled' } },
+      { do: 'infra.setHost', args: { id: '@dev:VM-APP01', host: '@dev:HV-02' } }, { do: 'infra.setHost', args: { id: '@dev:VM-APP02', host: '@dev:HV-02' } },
+      { advance: 12 * HOUR },
+      { do: 'infra.powerOff', args: { id: '@dev:HV-01' } },
+      { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'implemented' } },
+      { do: 'itsm.updateChange', args: { id: '@chg:CHG-0001', fields: { result: 'Micrologiciel à jour, aucune coupure constatée sur les VM.' } } }, { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'verified' } },
+    ],
+    realWorld: 'Les hyperviseurs en cluster migrent les VM à chaud (vMotion, migration à chaud Hyper-V, Proxmox) : c\'est ce que fait ici votre déplacement, en version simplifiée. Les fenêtres de maintenance hors heures ouvrées, l\'approbation par un comité (CAB) et le plan de retour arrière sont des pratiques ITIL standard.',
+  },
+
+  /* ============================ TP 45 ============================ */
+  {
+    id: 'tp-45-groupes-techniciens', number: 45, title: 'Équipes et groupes de techniciens', level: 8, levelLabel: level(8), difficulty: 2, duration: '35 min',
+    skills: [{ ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Participer à la vie de la cybersécurité', kind: 'worked' }],
+    context: 'Le service desk de niveau 1 s\'agrandit : Karim Benali et Nadia Roux le rejoignent. Ils ont déjà un compte, avec le seul rôle « Utilisateur ». Plutôt que d\'ajouter des rôles compte par compte, NovaTech veut un groupe « Support N1 » qui porte le rôle Technicien. Deux tickets attendent déjà d\'être affectés à l\'équipe.',
+    stages: [
+      stage('s1', 'Pourquoi un groupe ?', ['why'], ['Un **groupe** rassemble des personnes qui ont le même métier. On donne les **rôles au groupe**, et chaque membre les **hérite**. L\'arrivée, le départ ou le changement de droits d\'une équipe se font alors **à un seul endroit**.'], ['Gérer des équipes plutôt que des individus réduit les oublis : le jour où quelqu\'un change de poste, il suffit de le sortir du groupe.']),
+      stage('s2', 'Créer le groupe et aiguiller les tickets', ['create', 'inherit', 'route', 'assign'], ['Dans la vue ITSM, page **Groupes et délégations** (Administration), créez le groupe « Support N1 », donnez-lui le rôle **Technicien** et ajoutez Karim et Nadia. Vérifiez sur la page Utilisateurs que leurs rôles personnels n\'ont pas changé.', 'Ouvrez INC-0001 : renseignez la **file d\'attente** (le groupe), puis attribuez-le à Karim. Sans le groupe, l\'outil aurait refusé : seul un technicien peut être assigné.'], ['Un ticket est d\'abord aiguillé vers une équipe (la file), puis pris par une personne de cette équipe.']),
+      stage('s3', 'Quand quelqu\'un part', ['leave'], ['Nadia est réaffectée à la comptabilité. Retirez-la du groupe : elle perd immédiatement le rôle Technicien, sans qu\'on ait touché à son compte.'], ['Les droits qui suivent l\'appartenance à un groupe disparaissent avec elle : c\'est la bonne pratique contre l\'accumulation de droits.']),
+    ],
+    setup: [
+      { do: 'itsm.addUser', args: { name: 'Karim Benali', service: 'Informatique', roles: ['user'] } },
+      { do: 'itsm.addUser', args: { name: 'Nadia Roux', service: 'Informatique', roles: ['user'] } },
+      newIncident('Poste très lent', 'Appel d\'Alice : son PC met dix minutes à démarrer.', 'Alice'),
+      newIncident('Écran qui clignote', 'Appel de Bruno : l\'écran de son poste clignote par intermittence.', 'Bruno'),
+    ],
+    objectives: [
+      { id: 'why', label: 'Justifier l\'usage d\'un groupe', question: Q('Pourquoi donner le rôle Technicien à un groupe plutôt qu\'à chaque personne ?', ['C\'est plus rapide à écrire, mais ça n\'a aucun autre intérêt', 'On gère l\'équipe en un seul endroit : arrivée, départ et droits se mettent à jour pour tous les membres', 'Parce qu\'un rôle ne peut pas être donné à une personne', 'Pour cacher qui a quels droits'], 1, 'L\'appartenance au groupe porte les droits. On entre ou on sort du groupe : les droits suivent, sans retoucher chaque compte.') },
+      { id: 'create', label: 'Le groupe « Support N1 » existe, avec le rôle Technicien et Karim parmi ses membres', check: { k: 'group', name: 'Support N1', members: ['@usr:Karim'], roles: ['technician'] }, requires: ['why'] },
+      { id: 'inherit', label: 'Karim est technicien par son groupe, sans que son compte personnel ait changé', check: { k: 'all', of: [{ k: 'effectiveRole', user: '@usr:Karim', role: 'technician', value: true }, { k: 'userRoles', user: '@usr:Karim', lacks: ['technician'] }] }, requires: ['create'] },
+      { id: 'route', label: 'INC-0001 est aiguillé vers la file « Support N1 »', check: { k: 'ticketGroup', ref: T(1), group: 'Support N1' }, requires: ['inherit'] },
+      { id: 'assign', label: 'INC-0001 est attribué à Karim', check: { k: 'ticket', ref: T(1), assignee: '@usr:Karim' }, requires: ['route'] },
+      { id: 'leave', label: 'Nadia n\'est plus technicien (elle a quitté le groupe)', check: { k: 'effectiveRole', user: '@usr:Nadia', role: 'technician', value: false }, requires: ['assign'] },
+    ],
+    hints: [
+      { for: 'create', levels: ['Page « Groupes et délégations » du menu Administration : nom, rôles, membres.'] },
+      { for: 'assign', levels: ['La liste des assignables ne contient que des techniciens : le groupe doit déjà être créé.'] },
+      { for: 'leave', levels: ['Retirez la case de Nadia dans la liste des membres du groupe, puis enregistrez les membres.'] },
+    ],
+    solutionText: ['Répondre à la question.', 'Créer le groupe « Support N1 » (rôle Technicien, membres Karim et Nadia).', 'Aiguiller INC-0001 vers la file du groupe, puis l\'attribuer à Karim.', 'Retirer Nadia des membres du groupe.'],
+    solution: [
+      answer('why', 1),
+      { do: 'itsm.createGroup', args: { name: 'Support N1', roles: ['technician'], members: ['@usr:Karim', '@usr:Nadia'] } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { group: '@grp:Support N1' } } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { assignee: '@usr:Karim' } } },
+      { do: 'itsm.setGroupMembers', args: { id: '@grp:Support N1', members: ['@usr:Karim'] } },
+    ],
+    realWorld: 'Active Directory, Entra ID, GLPI, ServiceNow et Jira gèrent tous des groupes (ou équipes) : les droits se donnent au groupe, jamais à chacun. Les revues d\'accès périodiques vérifient justement qui est dans quel groupe.',
+  },
+
+  /* ============================ TP 46 ============================ */
+  {
+    id: 'tp-46-delegation-conges', number: 46, title: 'Délégation de droits pendant un congé', level: 8, levelLabel: level(8), difficulty: 3, duration: '40 min',
+    skills: [{ ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }, { ref: 'Participer à la vie de la cybersécurité', kind: 'worked' }],
+    timeNote: 'Une délégation a une date de fin. Pour la voir expirer, faites avancer l\'horloge (+1 jour) après avoir testé les droits de Karim : le droit disparaît sans que personne ne le retire.',
+    context: 'David Petit, seul technicien de l\'entreprise, part en congé. Karim Benali, qui n\'a que le rôle « Utilisateur », doit le remplacer pendant 24 heures. Donner définitivement le rôle Technicien à Karim serait excessif : on utilise une **délégation**, qui prête le rôle pour une durée limitée.',
+    stages: [
+      stage('s1', 'Prêter un rôle, pas le donner', ['why', 'deleg'], ['Une **délégation** prête à une personne un rôle que le délégant possède, pour une durée définie. Elle prend fin **toute seule** à l\'échéance. On ne peut déléguer que ce que l\'on détient, et le rôle d\'administrateur ne se délègue pas.', 'Dans la vue ITSM, page **Groupes et délégations**, déléguez le rôle Technicien de David à Karim pour 24 heures.'], ['Un droit temporaire qui expire seul vaut mieux qu\'un droit permanent qu\'on oublie de retirer.']),
+      stage('s2', 'Karim remplace David', ['karim', 'work'], ['Agissez en tant que Karim (« Agir en tant que », en haut). Il peut maintenant traiter les tickets : qualifier, attribuer, prendre en charge INC-0001. Avant la délégation, ces actions lui auraient été refusées.'], ['Les actions faites pendant la délégation sont journalisées au nom de **Karim** : la traçabilité reste individuelle.']),
+      stage('s3', 'L\'échéance', ['expire', 'after'], ['Faites avancer l\'horloge au-delà de l\'échéance (+1 jour). Dans la page des délégations, l\'état passe à « expirée » ; Karim redevient un simple utilisateur.'], ['Le droit a disparu sans intervention de personne : c\'est tout l\'intérêt de la date de fin.']),
+    ],
+    setup: [
+      { do: 'itsm.addUser', args: { name: 'Karim Benali', service: 'Informatique', roles: ['user'] } },
+      newIncident('Imprimante du service comptabilité en panne', 'Appel d\'Alice : l\'imprimante ne sort plus rien.', 'Alice'),
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Matériel', subcategory: 'Imprimante', impact: 'medium', urgency: 'medium' } } },
+    ],
+    objectives: [
+      { id: 'why', label: 'Justifier une délégation plutôt qu\'un rôle permanent', question: Q('Pourquoi déléguer le rôle Technicien à Karim pour 24 heures plutôt que le lui attribuer ?', ['Parce qu\'un rôle ne peut jamais être attribué', 'Parce que le droit disparaît seul à l\'échéance : pas de droit permanent oublié', 'Parce que Karim n\'a pas de compte', 'Parce que ça évite de tracer ses actions'], 1, 'Le besoin est temporaire (un congé) : le droit doit l\'être aussi. L\'échéance retire le droit sans qu\'on ait à y penser.') },
+      { id: 'deleg', label: 'David a délégué le rôle Technicien à Karim', check: { k: 'delegation', from: '@usr:David', to: '@usr:Karim', role: 'technician' }, requires: ['why'] },
+      { id: 'karim', label: 'Vous agissez en tant que Karim Benali', check: { k: 'actedAs', user: '@usr:Karim' }, requires: ['deleg'] },
+      { id: 'work', label: 'Karim a pris en charge INC-0001, et c\'est lui qui l\'a fait', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), reached: 'in_progress' }, { k: 'didAs', user: '@usr:Karim', type: 'TicketStatusChanged', payload: { to: 'in_progress' } }] }, requires: ['karim'] },
+      { id: 'expire', label: 'La délégation est arrivée à échéance (faites avancer l\'horloge)', check: { k: 'delegation', from: '@usr:David', to: '@usr:Karim', role: 'technician', state: 'ended' }, requires: ['work'] },
+      { id: 'after', label: 'Prévoir ce qui arrive à Karim après l\'échéance', requires: ['expire'], question: Q('Après l\'échéance, Karim tente de traiter un autre ticket. Que se passe-t-il ?', ['Il le traite : il garde le rôle par habitude', 'L\'action est refusée : le droit a expiré sans que personne n\'ait eu à le retirer', 'Le ticket est traité au nom de David', 'L\'outil le supprime du système'], 1, 'À l\'échéance, Karim retrouve ses seuls droits d\'utilisateur. Chaque refus nomme le droit manquant.') },
+    ],
+    hints: [
+      { for: 'deleg', levels: ['Page « Groupes et délégations » : choisissez De, Vers, Rôle et la durée.'] },
+      { for: 'work', levels: ['« Agir en tant que » Karim, puis qualifiez, attribuez (à lui-même) et prenez en charge le ticket.'] },
+      { for: 'expire', levels: ['L\'échéance est dans 24 heures simulées : utilisez « +1 jour » en haut de la fenêtre.'] },
+    ],
+    solutionText: ['Répondre à la question.', 'Déléguer le rôle Technicien de David à Karim, 24 heures.', 'Agir en tant que Karim : qualifier, attribuer à Karim, prendre en charge INC-0001.', 'Avancer d\'un jour : la délégation expire.'],
+    solution: [
+      answer('why', 1),
+      { do: 'itsm.delegate', args: { from: '@usr:David', to: '@usr:Karim', role: 'technician', hours: 24 } },
+      { do: 'itsm.actAs', args: { user: '@usr:Karim' } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { assignee: '@usr:Karim' } }, as: '@usr:Karim' },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' }, as: '@usr:Karim' }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' }, as: '@usr:Karim' }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'in_progress' }, as: '@usr:Karim' },
+      { advance: DAY + MIN }, answer('after', 1),
+    ],
+    realWorld: 'Les outils réels appellent cela « remplaçant » (ServiceNow : délégation), « absence » ou « substitution » (GLPI), ou un accès temporaire (PIM dans Entra ID). Le principe est constant : durée bornée, traçabilité au nom de la personne qui agit, interdiction de déléguer les droits d\'administration.',
   },
 ];
 

@@ -21,6 +21,7 @@ function resolveOne(st: Readonly<State>, ref: string): string {
     : kind === 'lic' ? Object.values(st.management.licenses).find(t => t.ref === key)
     : kind === 'prb' ? Object.values(st.management.problems).find(t => t.ref === key)
     : kind === 'chg' ? Object.values(st.management.changes).find(t => t.ref === key)
+    : kind === 'grp' ? Object.values(st.management.groups).find(t => t.name === key)
     : kind === 'kb' ? Object.values(st.management.articles).find(t => t.ref === key) : undefined;
   return found ? found.id : `?${ref}`; // référence introuvable : la commande échouera clairement
 }

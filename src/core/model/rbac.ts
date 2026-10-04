@@ -19,7 +19,9 @@ export const PERMISSIONS: { id: string; label: string; group: string }[] = [
   { id: 'infra.edit', label: 'Intervenir sur l\'infrastructure et les agents', group: 'Infrastructure' },
   { id: 'audit.view', label: 'Consulter le journal d\'audit', group: 'Administration' },
   { id: 'admin.users', label: 'Gérer les comptes utilisateurs', group: 'Administration' },
+  { id: 'admin.groups', label: 'Gérer les groupes et les délégations', group: 'Administration' },
   { id: 'admin.roles', label: 'Gérer les rôles et leurs droits', group: 'Administration' },
+  { id: 'admin.settings', label: 'Régler les paramètres de l\'outil (calendrier des SLA)', group: 'Administration' },
 ];
 export const PERMISSION_LABEL: Record<string, string> = Object.fromEntries(PERMISSIONS.map(p => [p.id, p.label]));
 
@@ -27,15 +29,23 @@ export const DEFAULT_ROLES: Role[] = [
   { id: 'user', name: 'Utilisateur', description: 'Signale un incident ou fait une demande.', permissions: ['ticket.create'] },
   { id: 'technician', name: 'Technicien', description: 'Traite les tickets et intervient sur le parc et l\'infrastructure.', permissions: ['ticket.create', 'ticket.viewAll', 'ticket.qualify', 'ticket.assign', 'ticket.work', 'ticket.close', 'problem.manage', 'change.create', 'kb.write', 'asset.edit', 'asset.lifecycle', 'cmdb.edit', 'infra.edit'] },
   { id: 'manager', name: 'Responsable', description: 'Pilote le service : approuve les changements, gère contrats et licences.', permissions: ['ticket.create', 'ticket.viewAll', 'ticket.assign', 'ticket.close', 'change.approve', 'itam.manage', 'audit.view'] },
-  { id: 'admin', name: 'Administrateur', description: 'Gère les comptes et les droits. N\'intervient pas sur les tickets : séparation des fonctions.', permissions: ['ticket.create', 'ticket.viewAll', 'audit.view', 'admin.users', 'admin.roles'] },
+  { id: 'admin', name: 'Administrateur', description: 'Gère les comptes et les droits. N\'intervient pas sur les tickets : séparation des fonctions.', permissions: ['ticket.create', 'ticket.viewAll', 'audit.view', 'admin.users', 'admin.groups', 'admin.roles', 'admin.settings'] },
 ];
 export const defaultRoles = (): Record<string, Role> => Object.fromEntries(structuredClone(DEFAULT_ROLES).map(r => [r.id, r]));
 
 /** Droits d'un utilisateur : union des droits de ses rôles. */
-export function permissionsOf(st: Readonly<State>, userId: string): Set<string> {
+/** Rôles effectifs : les siens, ceux de ses groupes et, si `now` est donné, ceux qu'on lui prête (délégation en cours). */
+export function rolesOf(st: Readonly<State>, userId: string, now?: number): Set<string> {
   const u = st.management.users[userId]; const out = new Set<string>(); if (!u || u.disabled) return out;
-  for (const r of u.roles) for (const p of st.management.roles[r]?.permissions ?? []) out.add(p);
+  u.roles.forEach(r => out.add(r));
+  for (const g of Object.values(st.management.groups ?? {})) if (g.members.includes(userId)) g.roles.forEach(r => out.add(r));
+  if (now !== undefined) for (const d of Object.values(st.management.delegations ?? {})) if (d.to === userId && !d.revoked && d.startAt <= now && now < d.endAt) out.add(d.role);
+  return out;
+}
+export function permissionsOf(st: Readonly<State>, userId: string, now?: number): Set<string> {
+  const out = new Set<string>();
+  for (const r of rolesOf(st, userId, now)) for (const p of st.management.roles[r]?.permissions ?? []) out.add(p);
   return out;
 }
 /** Sans « agir en tant que » (acteur nul), le simulateur est en mode formateur : tous les droits. */
-export function can(st: Readonly<State>, perm: string): boolean { return !st.actingAs || permissionsOf(st, st.actingAs).has(perm); }
+export function can(st: Readonly<State>, perm: string, now?: number): boolean { return !st.actingAs || permissionsOf(st, st.actingAs, now).has(perm); }

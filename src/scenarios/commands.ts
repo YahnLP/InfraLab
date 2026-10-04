@@ -4,7 +4,7 @@ import { getScenario } from './catalog';
 export function registerScenarioCommands(store: Store): void {
   const session = (st: import('../core').State) => { if (!st.session) throw new CommandError('no_session', 'Aucun TP en cours'); return st.session; };
   store.registerCommand('scenario.begin', (ctx, p) => {
-    ctx.state.session = { scenarioId: String(p['id']), mode: p['mode'] === 'exam' ? 'exam' : 'tp', startedAt: ctx.now, logStart: Number(p['logStart'] ?? 0), hints: {}, solutionViewed: false, stage: 0, answers: {}, wrong: 0 };
+    ctx.state.session = { scenarioId: String(p['id']), mode: p['mode'] === 'exam' ? 'exam' : 'tp', startedAt: ctx.now, logStart: Number(p['logStart'] ?? 0), hints: {}, solutionViewed: false, stage: 0, answers: {}, wrong: 0, fired: [] };
     ctx.emit('ScenarioStarted', { kind: 'scenario', id: String(p['id']) }, { mode: ctx.state.session.mode });
   });
   store.registerCommand('scenario.hint', (ctx, p) => {
@@ -37,6 +37,11 @@ export function registerScenarioCommands(store: Store): void {
   store.registerCommand('scenario.finish', ctx => {
     const s = session(ctx.state); if (s.finishedAt !== undefined) throw new CommandError('finished', 'Déjà terminé');
     s.finishedAt = ctx.now; ctx.emit('ScenarioFinished', { kind: 'scenario', id: s.scenarioId });
+  });
+  store.registerCommand('scenario.fire', (ctx, p) => {
+    const s = session(ctx.state); const id = String(p['id']); s.fired ??= [];
+    if (s.fired.includes(id)) throw new CommandError('already', 'Événement déjà déclenché'); s.fired.push(id);
+    ctx.emit('ScenarioEventFired', { kind: 'scenario', id: s.scenarioId }, { event: id, notice: String(p['notice'] ?? '') });
   });
   store.registerCommand('scenario.quit', ctx => { const s = session(ctx.state); ctx.emit('ScenarioQuit', { kind: 'scenario', id: s.scenarioId }); ctx.state.session = null; });
 }

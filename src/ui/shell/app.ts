@@ -8,7 +8,7 @@ import { InfraCanvas, type Selection } from '../infra-view/canvas';
 import { Dock } from '../infra-view/dock';
 import { renderInspector } from '../infra-view/inspector';
 import { glyphSvg } from '../infra-view/icons';
-import { getScenario as SCENARIOS_BY_ID, registerScenarioCommands, seedNovatech as seedExample, seedNovatechFull, startScenario, type Scenario } from '../../scenarios';
+import { advanceTime, getScenario as SCENARIOS_BY_ID, registerScenarioCommands, seedNovatech as seedExample, seedNovatechFull, startScenario, type Scenario } from '../../scenarios';
 import { renderTpCatalog } from '../tp/catalog-page';
 import { TpPanel } from '../tp/panel';
 import { fmtTime } from './labels';
@@ -36,7 +36,7 @@ export function mountApp(root: HTMLElement): void {
   /* ---- éléments ---- */
   const toastBox = h('div', { class: 'toasts', 'aria-live': 'polite' });
   const hint = h('div', { class: 'hint' });
-  const clock = h('output', { class: 'clock', 'aria-label': 'Heure simulée' });
+  const clock = h('output', { class: 'clock', 'aria-label': 'Heure simulée', title: 'Le temps ne passe que si vous le faites avancer (+1 h, +1 jour). Il sert aux SLA, aux échéances de contrats, aux remontées d\'agent et aux événements des TP.' });
   const stage = h('div', { class: 'stage' });
   const inspector = h('aside', { class: 'inspector', 'aria-label': 'Propriétés' });
   const dockEl = h('section', { class: 'dock', 'aria-label': 'Journal des événements' });
@@ -48,9 +48,9 @@ export function mountApp(root: HTMLElement): void {
   const tpEl = h('div', { class: 'tpview', hidden: true });
   const tpPanelEl = h('aside', { class: 'tp-dock', 'aria-label': 'Travail pratique en cours', hidden: true });
 
-  const toast = (msg: string, kind: 'info' | 'err' = 'info') => {
+  const toast = (msg: string, kind: 'info' | 'err' = 'info', ms?: number) => {
     const t = h('div', { class: `toast ${kind}`, role: kind === 'err' ? 'alert' : 'status' }, msg); toastBox.append(t);
-    window.setTimeout(() => t.remove(), kind === 'err' ? 6000 : 3000);
+    window.setTimeout(() => t.remove(), ms ?? (kind === 'err' ? 6000 : 3000));
   };
   const dispatch = (cmd: { type: string; payload?: Record<string, unknown> }): boolean => {
     const r = store.dispatch(cmd); if (!r.ok) toast(r.error?.message ?? 'Action impossible', 'err'); return r.ok;
@@ -119,6 +119,8 @@ export function mountApp(root: HTMLElement): void {
     } catch (e) { if (!isAbort(e)) toast('Ouverture impossible : ' + ((e as Error).message || 'erreur inconnue'), 'err'); }
   };
   const picker = h('input', { type: 'file', accept: '.json,application/json', hidden: true, 'aria-label': 'Choisir un fichier projet InfraLab', onchange: async () => { const f = picker.files?.[0]; picker.value = ''; if (f) loadText(await f.text(), f.name, null); } }) as HTMLInputElement;
+  /** Fait avancer l'horloge simulée ; les événements du TP (ticket qui arrive, panne…) se déclenchent au bon instant. */
+  const tick = (ms: number) => { const notices = advanceTime(store, sch, ms); notices.forEach(n => toast(n, 'info', 9000)); refresh(); };
   const refresh = () => { if (!loading) { dirty = true; } renderFname(); renderWho(); renderInspector(inspector, store.getState(), canvas.getSelection(), ihost); clock.textContent = fmtTime(sch.now); autosave(); };
   store.subscribe(refresh);
 
@@ -157,7 +159,7 @@ export function mountApp(root: HTMLElement): void {
     },
   };
   function showTp(): void { show(2); renderTpCatalog(tpEl, tpHost); }
-  new TpPanel(tpPanelEl, store, { dispatch, confirm, restart: () => { const id = store.getState().session; const sc = id && SCENARIOS_BY_ID(id.scenarioId); if (sc && id) { startScenario(store, sch, sc, id.mode); resetFile(); canvas.select(null); canvas.fit(); refresh(); } } }, () => sch.now);
+  new TpPanel(tpPanelEl, store, { dispatch, confirm, advance: tick, restart: () => { const id = store.getState().session; const sc = id && SCENARIOS_BY_ID(id.scenarioId); if (sc && id) { startScenario(store, sch, sc, id.mode); resetFile(); canvas.select(null); canvas.fit(); refresh(); } } }, () => sch.now);
 
   /* ---- en-tête ---- */
   const header = h('header', { class: 'top' },
@@ -170,8 +172,8 @@ export function mountApp(root: HTMLElement): void {
       fnameEl, picker),
     h('div', { class: 'grow' }), whoBox,
     h('div', { class: 'simtime' }, h('span', { class: 'muted' }, 'Heure simulée'), clock,
-      h('button', { title: 'Avancer le temps simulé d\'une heure (remontées d\'agent planifiées)', onclick: () => { advance(store, sch, HOUR); refresh(); } }, '+1 h'),
-      h('button', { title: 'Avancer le temps simulé d\'un jour', onclick: () => { advance(store, sch, DAY); refresh(); } }, '+1 jour')),
+      h('button', { title: 'Avancer le temps simulé d\'une heure (SLA, échéances, remontées d\'agent, événements du TP)', onclick: () => tick(HOUR) }, '+1 h'),
+      h('button', { title: 'Avancer le temps simulé d\'un jour', onclick: () => tick(DAY) }, '+1 jour')),
     h('button', { onclick: () => { showInfra(); canvas.fit(); } }, 'Recentrer'),
     h('button', { onclick: () => { const go = () => { resetFile(); seedExample(store, dispatch); sch.now = 0; canvas.fit(); refresh(); }; if (Object.keys(store.getState().reality.devices).length) confirm('Remplacer le schéma actuel par le SI d\'exemple ?', () => { store.restore({ state: emptyState(), log: [] }); go(); }); else go(); } }, 'SI d\'exemple'),
     h('button', { title: '4 sites, ≈ 45 équipements, 45 utilisateurs, contrats, licences, CMDB', onclick: () => confirm('Remplacer le projet actuel par NovaTech complet (4 sites, ≈ 45 équipements, 45 utilisateurs) ?', () => { store.restore({ state: emptyState(), log: [] }); resetFile(); sch.now = 0; seedNovatechFull(store, dispatch); advance(store, sch, 10 * 60000); canvas.select(null); canvas.fit(); showInfra(); refresh(); }) }, 'NovaTech complet'),

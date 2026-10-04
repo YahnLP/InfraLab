@@ -3,7 +3,7 @@
  * Deux couches : `reality` (ce qui est vrai) et `management` (ce que l'outil en sait).
  * Les entités sont enrichies jalon par jalon (M1 Infra, M2 Inventaire, M3 Tickets…).
  */
-export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'article' | 'contract' | 'license' | 'supplier' | 'relation' | 'ci' | 'role' | 'site' | 'scenario';
+export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'article' | 'contract' | 'license' | 'supplier' | 'relation' | 'ci' | 'role' | 'group' | 'site' | 'scenario';
 export interface EntityRef { kind: EntityKind; id: string }
 
 /* ---------------- Réalité ---------------- */
@@ -33,6 +33,8 @@ export interface Device {
   os?: { name: string; version: string };
   software: { softwareId: string; version: string }[];
   loggedUser?: string;
+  /** Machine virtuelle : équipement hyperviseur qui l'héberge. Elle partage alors son réseau et tombe avec lui. */
+  hostId?: string;
   agent: AgentRuntime;
 }
 
@@ -69,6 +71,10 @@ export interface Asset {
   purchasedAt?: number; warrantyEnd?: number; cost?: number;
 }
 export interface User { id: string; name: string; roles: string[]; service?: string; site?: string; /** Compte désactivé : ne peut plus agir ni recevoir de ticket. */ disabled?: boolean }
+/** Groupe : des personnes qui reçoivent ensemble les rôles du groupe (ex. « Support N1 »). */
+export interface Group { id: string; name: string; members: string[]; roles: string[] }
+/** Délégation : `from` prête un de ses rôles à `to` pendant une durée (absence, congés) ; elle expire seule avec l'horloge. */
+export interface Delegation { id: string; from: string; to: string; role: string; startAt: number; endAt: number; revoked?: boolean }
 /** Rôle : un ensemble de droits (RBAC). */
 export interface Role { id: string; name: string; description?: string; permissions: string[] }
 
@@ -93,7 +99,7 @@ export interface Ticket {
   /** Identifiant de l'utilisateur qui demande. */
   requester: string;
   category?: string; subcategory?: string; impact?: Level; urgency?: Level;
-  status: TicketStatus; assignee?: string;
+  status: TicketStatus; assignee?: string; /** File d'attente (groupe) vers laquelle le ticket est aiguillé. */ groupId?: string;
   /** Actifs concernés (CI plus tard) : lien entre le ticket et l'inventaire. */
   assetIds: string[];
   comments: TicketComment[]; solution?: string;
@@ -101,7 +107,7 @@ export interface Ticket {
   /** Première prise en charge (démarre la preuve de réactivité du SLA). */
   respondedAt?: number;
   /** Temps passé « en attente » : l'horloge du SLA est suspendue. */
-  pausedMs?: number; pausedSince?: number;
+  pausedMs?: number; pausedSince?: number; /** Part ouvrée des pauses (calendrier « heures ouvrées »). */ pausedBizMs?: number;
   problemId?: string; articleIds?: string[];
 }
 
@@ -135,14 +141,19 @@ export interface Session {
   stage: number;
   /** Réponses aux questions de compréhension (dernière tentative) et nombre de mauvaises réponses. */
   answers: Record<string, { choice: number; correct: boolean }>; wrong: number;
+  /** Événements de la chronologie du scénario déjà déclenchés (ils ne se rejouent pas). */
+  fired?: string[];
 }
+
+/** Paramètres de l'outil de gestion. */
+export interface Settings { slaCalendar: 'continuous' | 'business' }
 
 /* ---------------- État global ---------------- */
 export interface State {
   schemaVersion: 1;
   counters: Record<string, number>;
   reality: { devices: Record<string, Device>; links: Record<string, Link>; itsmServerId: string | null };
-  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket>; problems: Record<string, Problem>; changes: Record<string, Change>; articles: Record<string, Article>; suppliers: Record<string, Supplier>; contracts: Record<string, Contract>; licenses: Record<string, License>; softwarePolicy: Record<string, SoftwarePolicy>; cis: Record<string, Ci>; relations: Record<string, Relation>; roles: Record<string, Role> };
+  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket>; problems: Record<string, Problem>; changes: Record<string, Change>; articles: Record<string, Article>; suppliers: Record<string, Supplier>; contracts: Record<string, Contract>; licenses: Record<string, License>; softwarePolicy: Record<string, SoftwarePolicy>; cis: Record<string, Ci>; relations: Record<string, Relation>; roles: Record<string, Role>; groups: Record<string, Group>; delegations: Record<string, Delegation>; settings: Settings };
   /** Sélection partagée entre les deux vues (« Voir dans l'infrastructure »). */
   focus: EntityRef | null;
   /** Utilisateur « incarné » : ses droits s'appliquent aux actions. Nul = mode formateur (tous les droits). */
@@ -156,7 +167,7 @@ export function emptyState(): State {
   return {
     schemaVersion: 1, counters: {},
     reality: { devices: {}, links: {}, itsmServerId: null },
-    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {}, suppliers: {}, contracts: {}, licenses: {}, softwarePolicy: {}, cis: {}, relations: {}, roles: defaultRoles() },
+    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {}, suppliers: {}, contracts: {}, licenses: {}, softwarePolicy: {}, cis: {}, relations: {}, roles: defaultRoles(), groups: {}, delegations: {}, settings: { slaCalendar: 'continuous' } },
     focus: null, actingAs: null, session: null,
   };
 }

@@ -1,4 +1,4 @@
-import { CommandError, PERMISSIONS, permissionsOf, type State, type Store } from '../core';
+import { CommandError, PERMISSIONS, nextId, permissionsOf, rolesOf, type State, type Store } from '../core';
 import { TEV } from './events';
 
 const str = (v: unknown) => String(v ?? '');
@@ -14,6 +14,50 @@ export function registerRbacCommands(store: Store): void {
     if (id) { const u = user(ctx, id); if (u.disabled) throw new CommandError('disabled', 'Ce compte est désactivé.'); }
     if (ctx.state.actingAs === id) throw new CommandError('nothing_changed', 'Déjà dans cette identité');
     ctx.state.actingAs = id; ctx.emit(TEV.ActorChanged, id ? { kind: 'user', id } : { kind: 'scenario', id: 'trainer' }, { user: id });
+  });
+  store.registerCommand('itsm.setSlaCalendar', (ctx, p) => {
+    const cal = str(p['calendar']); if (cal !== 'continuous' && cal !== 'business') throw new CommandError('bad_calendar', 'Calendrier inconnu');
+    if (ctx.state.management.settings.slaCalendar === cal) throw new CommandError('nothing_changed', 'Ce calendrier est déjà celui des SLA');
+    const from = ctx.state.management.settings.slaCalendar; ctx.state.management.settings.slaCalendar = cal;
+    ctx.emit(TEV.SettingChanged, { kind: 'scenario', id: 'settings' }, { setting: 'slaCalendar', from, to: cal });
+  });
+  const group = (ctx: { state: State }, id: unknown) => { const g = ctx.state.management.groups[str(id)]; if (!g) throw new CommandError('group_not_found', 'Groupe inconnu'); return g; };
+  const checkRoles = (ctx: { state: State }, v: unknown) => { const roles = [...new Set(((v as string[] | undefined) ?? []).map(str))]; for (const r of roles) if (!ctx.state.management.roles[r]) throw new CommandError('role_not_found', `Rôle inconnu : ${r}`); return roles; };
+  store.registerCommand('itsm.createGroup', (ctx, p) => {
+    const name = str(p['name']).trim(); if (!name) throw new CommandError('bad_name', 'Le nom est obligatoire');
+    if (Object.values(ctx.state.management.groups).some(g => g.name.toLowerCase() === name.toLowerCase())) throw new CommandError('duplicate', 'Un groupe porte déjà ce nom');
+    const members = [...new Set(((p['members'] as string[] | undefined) ?? []).map(str))]; members.forEach(m => user(ctx, m));
+    const roles = checkRoles(ctx, p['roles']); const id = nextId(ctx.state.counters, 'grp');
+    ctx.state.management.groups[id] = { id, name, members, roles }; ctx.emit(TEV.GroupCreated, { kind: 'group', id }, { name });
+  });
+  store.registerCommand('itsm.setGroupMembers', (ctx, p) => {
+    const g = group(ctx, p['id']); const members = [...new Set(((p['members'] as string[] | undefined) ?? []).map(str))]; members.forEach(m => user(ctx, m));
+    if (members.length === g.members.length && members.every(m => g.members.includes(m))) throw new CommandError('nothing_changed', 'Aucune modification');
+    const before = hadAdmin(ctx.state); const was = g.members; g.members = members; keepAdmin(ctx, before);
+    ctx.emit(TEV.GroupChanged, { kind: 'group', id: g.id }, { members: { from: was, to: members } });
+  });
+  store.registerCommand('itsm.setGroupRoles', (ctx, p) => {
+    const g = group(ctx, p['id']); const roles = checkRoles(ctx, p['roles']);
+    if (roles.length === g.roles.length && roles.every(r => g.roles.includes(r))) throw new CommandError('nothing_changed', 'Aucune modification');
+    const before = hadAdmin(ctx.state); const was = g.roles; g.roles = roles; keepAdmin(ctx, before);
+    ctx.emit(TEV.GroupChanged, { kind: 'group', id: g.id }, { roles: { from: was, to: roles } });
+  });
+  store.registerCommand('itsm.delegate', (ctx, p) => {
+    const from = user(ctx, p['from']), to = user(ctx, p['to']); const role = str(p['role']);
+    if (from.id === to.id) throw new CommandError('same_user', 'On ne se délègue pas un rôle à soi-même');
+    if (to.disabled) throw new CommandError('disabled', 'Ce compte est désactivé');
+    if (!ctx.state.management.roles[role]) throw new CommandError('role_not_found', 'Rôle inconnu');
+    if (!rolesOf(ctx.state, from.id).has(role)) throw new CommandError('not_holder', `${from.name} ne détient pas ce rôle : on ne peut déléguer que ce que l'on possède.`);
+    if (role === 'admin') throw new CommandError('no_admin_delegation', 'Le rôle d\'administrateur ne se délègue pas : il se donne, de façon tracée, dans la gestion des comptes.');
+    const hours = Number(p['hours']); if (!Number.isFinite(hours) || hours <= 0) throw new CommandError('bad_duration', 'Durée invalide : une délégation a toujours une fin');
+    const id = nextId(ctx.state.counters, 'dlg'); const endAt = ctx.now + hours * 3600000;
+    ctx.state.management.delegations[id] = { id, from: from.id, to: to.id, role, startAt: ctx.now, endAt };
+    ctx.emit(TEV.DelegationGranted, { kind: 'user', id: to.id }, { from: from.id, role, until: endAt });
+  });
+  store.registerCommand('itsm.revokeDelegation', (ctx, p) => {
+    const d = ctx.state.management.delegations[str(p['id'])]; if (!d) throw new CommandError('delegation_not_found', 'Délégation inconnue');
+    if (d.revoked) throw new CommandError('nothing_changed', 'Déjà retirée'); if (d.endAt <= ctx.now) throw new CommandError('nothing_changed', 'Déjà expirée');
+    d.revoked = true; ctx.emit(TEV.DelegationRevoked, { kind: 'user', id: d.to }, { role: d.role });
   });
   store.registerCommand('itsm.setUserRoles', (ctx, p) => {
     const u = user(ctx, p['id']); const roles = [...new Set(((p['roles'] as string[] | undefined) ?? []).map(str))];

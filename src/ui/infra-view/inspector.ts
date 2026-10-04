@@ -76,6 +76,14 @@ function renderDevice(root: HTMLElement, st: Readonly<State>, d: Device, host: I
       h('dl', null, ...d.nics.map(n => kv(`MAC ${n.id}`, h('code', null, n.mac))))));
   }
 
+  if (d.kind === 'vm') {
+    const hvs = Object.values(st.reality.devices).filter(x => x.kind === 'hypervisor');
+    const sel = h('select', { 'aria-label': 'Hyperviseur hôte', onchange: () => host.dispatch({ type: 'infra.setHost', payload: { id: d.id, host: sel.value || null } }) }, h('option', { value: '' }, 'Aucun (câblée comme un équipement ordinaire)'), ...hvs.map(x => h('option', { value: x.id, selected: d.hostId === x.id }, x.name))) as HTMLSelectElement;
+    root.append(h('section', null, h('h3', null, 'Hébergement'), h('label', { class: 'fld' }, h('span', null, 'Hébergée sur'), sel), h('p', { class: 'muted' }, d.hostId ? 'Elle partage le réseau de son hyperviseur et tombe avec lui.' : hvs.length ? 'Choisissez un hyperviseur : la machine virtuelle suivra son hôte.' : 'Aucun hyperviseur sur le schéma.')));
+  } else if (d.kind === 'hypervisor') {
+    const vms = Object.values(st.reality.devices).filter(x => x.hostId === d.id);
+    root.append(h('section', null, h('h3', null, 'Machines virtuelles hébergées'), vms.length ? h('ul', { class: 'tkl' }, ...vms.map(v => h('li', null, v.name, ' ', h('span', { class: `pill ${v.online ? 'on' : 'down'}` }, v.online ? 'en ligne' : 'hors ligne')))) : h('p', { class: 'muted' }, 'Aucune machine virtuelle rattachée (depuis la fiche d\'une machine virtuelle).')));
+  }
   root.append(toolSection(st, d, host), agentSection(st, d, host), ticketSection(st, d, host));
   const us = userSection(st, d, host); if (us) root.append(us);
   const sws = softwareSection(st, d, host); if (sws) root.append(sws);

@@ -1,8 +1,9 @@
-import { CommandError, nextId, type Level, type Store, type Ticket } from '../core';
+import { CommandError, nextId, rolesOf, type Level, type Store, type Ticket } from '../core';
 import { IEV } from '../inventory/events';
 import { TEV } from './events';
 import { registerItilCommands } from './itil-commands';
 import { registerItamCommands } from './itam-commands';
+import { businessMs } from './calendar';
 import { accessGuard } from './rbac';
 import { registerRbacCommands } from './rbac-commands';
 import { TAXONOMY } from './taxonomy';
@@ -69,8 +70,13 @@ export function registerItsmCommands(store: Store): void {
     }
     if (f['assignee'] !== undefined && f['assignee'] !== (t.assignee ?? '')) {
       const a = String(f['assignee']);
-      if (a) { const u = ctx.state.management.users[a]; if (!u) throw new CommandError('user_not_found', 'Utilisateur inconnu'); if (u.disabled) throw new CommandError('disabled', 'Ce compte est désactivé : on ne lui attribue plus de ticket'); if (!u.roles.includes('technician')) throw new CommandError('not_technician', 'Seul un technicien peut être assigné'); t.assignee = a; } else delete t.assignee;
+      if (a) { const u = ctx.state.management.users[a]; if (!u) throw new CommandError('user_not_found', 'Utilisateur inconnu'); if (u.disabled) throw new CommandError('disabled', 'Ce compte est désactivé : on ne lui attribue plus de ticket'); if (!rolesOf(ctx.state, u.id, ctx.now).has('technician')) throw new CommandError('not_technician', 'Seul un technicien peut être assigné'); t.assignee = a; } else delete t.assignee;
       changed.push('assignee');
+    }
+    if (f['group'] !== undefined && f['group'] !== (t.groupId ?? '')) {
+      const g = String(f['group']);
+      if (g) { if (!ctx.state.management.groups[g]) throw new CommandError('group_not_found', 'Groupe inconnu'); t.groupId = g; } else delete t.groupId;
+      changed.push('group');
     }
     if (f['solution'] !== undefined && String(f['solution']) !== (t.solution ?? '')) { t.solution = String(f['solution']); changed.push('solution'); }
     if (!changed.length) throw new CommandError('nothing_changed', 'Aucune modification');
@@ -99,11 +105,11 @@ export function registerItsmCommands(store: Store): void {
     const t = ticketOf(ctx, p); const to = String(p['to']);
     const tr = TRANSITIONS.find(x => x.from === t.status && x.to === to);
     if (!tr) throw new CommandError('bad_transition', `Passage impossible : ${t.status} → ${to}`);
-    const b = blocker(t, tr, ctx.state); if (b) throw new CommandError('guard_failed', b);
+    const b = blocker(t, tr, ctx.state, ctx.now); if (b) throw new CommandError('guard_failed', b);
     const from = t.status; t.status = tr.to; touch(t, ctx.now);
     if (tr.to === 'in_progress' && t.respondedAt === undefined) t.respondedAt = ctx.now;
     if (tr.to === 'pending') t.pausedSince = ctx.now;
-    if (from === 'pending' && t.pausedSince !== undefined) { t.pausedMs = (t.pausedMs ?? 0) + (ctx.now - t.pausedSince); delete t.pausedSince; }
+    if (from === 'pending' && t.pausedSince !== undefined) { t.pausedMs = (t.pausedMs ?? 0) + (ctx.now - t.pausedSince); t.pausedBizMs = (t.pausedBizMs ?? 0) + businessMs(t.pausedSince, ctx.now); delete t.pausedSince; }
     if (tr.to === 'resolved') t.resolvedAt = ctx.now; if (tr.to === 'closed') t.closedAt = ctx.now;
     if (from === 'resolved' && tr.to === 'in_progress') delete t.resolvedAt;
     ctx.emit(TEV.TicketStatusChanged, { kind: 'ticket', id: t.id }, { from, to: tr.to });

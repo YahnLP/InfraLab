@@ -61,6 +61,7 @@ export function registerInfraCommands(store: Store): void {
       const l = ctx.state.reality.links[lid]!; delete ctx.state.reality.links[lid];
       ctx.emit(EV.CableDisconnected, ref(l.a.device === d.id ? l.b.device : l.a.device), { link: lid, a: l.a, b: l.b, reason: 'device_removed' });
     }
+    for (const v of Object.values(ctx.state.reality.devices)) if (v.hostId === d.id) { delete v.hostId; ctx.emit(EV.VmHostChanged, ref(v.id), { host: null, reason: 'host_removed' }); }
     delete ctx.state.reality.devices[d.id];
     if (ctx.state.reality.itsmServerId === d.id) ctx.state.reality.itsmServerId = null;
     ctx.emit(EV.DeviceRemoved, ref(d.id), { name: d.name });
@@ -101,6 +102,15 @@ export function registerInfraCommands(store: Store): void {
     const d = dev(ctx, p['id']);
     if (d.powered) throw new CommandError('already_on', `${d.name} est déjà allumé`);
     d.powered = true; ctx.emit(EV.DevicePoweredOn, ref(d.id), { name: d.name });
+    syncReachability(ctx);
+  });
+
+  store.registerCommand('infra.setHost', (ctx, p) => {
+    const vm = dev(ctx, p['id']); if (vm.kind !== 'vm') throw new CommandError('not_vm', `${vm.name} n'est pas une machine virtuelle`);
+    const hostId = p['host'] ? String(p['host']) : null;
+    if (hostId) { const h = dev(ctx, hostId); if (h.kind !== 'hypervisor') throw new CommandError('not_hypervisor', `${h.name} n'est pas un hyperviseur`); if (vm.hostId === hostId) throw new CommandError('nothing_changed', 'Déjà hébergée sur cet hyperviseur'); vm.hostId = hostId; }
+    else { if (!vm.hostId) throw new CommandError('nothing_changed', 'Cette machine virtuelle n\'a pas d\'hôte'); delete vm.hostId; }
+    ctx.emit(EV.VmHostChanged, ref(vm.id), { host: hostId });
     syncReachability(ctx);
   });
 

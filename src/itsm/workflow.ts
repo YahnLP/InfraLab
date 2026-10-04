@@ -1,13 +1,13 @@
-import type { State, Ticket, TicketStatus } from '../core';
+import { rolesOf, type State, type Ticket, type TicketStatus } from '../core';
 
 /** Workflow déclaratif : chaque transition porte ses prérequis (« gardes »), expliqués à l'apprenant. */
-export interface Transition { from: TicketStatus; to: TicketStatus; label: string; guard?: (t: Ticket, s: Readonly<State>) => string | null }
+export interface Transition { from: TicketStatus; to: TicketStatus; label: string; guard?: (t: Ticket, s: Readonly<State>, now?: number) => string | null }
 
 const needsQualification = (t: Ticket) => !t.category ? 'Choisissez une catégorie.' : !t.impact ? 'Renseignez l\'impact.' : !t.urgency ? 'Renseignez l\'urgence.' : null;
-const needsAssignee = (t: Ticket, s: Readonly<State>) => {
+const needsAssignee = (t: Ticket, s: Readonly<State>, now?: number) => {
   if (!t.assignee) return 'Attribuez le ticket à un technicien.';
   if (s.management.users[t.assignee]?.disabled) return 'L\'assigné a un compte désactivé.';
-  return s.management.users[t.assignee]?.roles.includes('technician') ? null : 'L\'assigné doit avoir le rôle technicien.';
+  return rolesOf(s, t.assignee, now).has('technician') ? null : 'L\'assigné doit avoir le rôle technicien.';
 };
 
 export const TRANSITIONS: Transition[] = [
@@ -23,4 +23,4 @@ export const TRANSITIONS: Transition[] = [
 
 export function transitionsFrom(status: TicketStatus): Transition[] { return TRANSITIONS.filter(t => t.from === status); }
 /** Prérequis manquant pour une transition, ou null si elle est possible. */
-export function blocker(t: Ticket, tr: Transition, s: Readonly<State>): string | null { return tr.guard ? tr.guard(t, s) : null; }
+export function blocker(t: Ticket, tr: Transition, s: Readonly<State>, now?: number): string | null { return tr.guard ? tr.guard(t, s, now) : null; }

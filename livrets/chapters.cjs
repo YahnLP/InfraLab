@@ -44,7 +44,7 @@ module.exports = [
   ],
   keypoints: ["Découverte = peu d'informations mais vite ; agent = détail ; saisie = dernier recours.", "Clé réseau : MAC ; clé de gestion : numéro de série / d'inventaire.", "Affecté (décision) ≠ connecté (constat).", "Un agent en erreur se diagnostique avant de se réparer."] },
 
-{ n: 3, title: "Le Service Desk : prendre un appel, qualifier, résoudre", tps: "TP 11 à 15",
+{ n: 3, title: "Le Service Desk : prendre un appel, qualifier, résoudre", tps: "TP 11 à 15, 42",
   intro: "Le service desk est le point d'entrée unique des utilisateurs. Sa qualité se mesure à ce que le ticket permet de faire ensuite.",
   sections: [
   { h: "3.1 Un bon ticket", p: [
@@ -62,9 +62,11 @@ module.exports = [
   ],
   keypoints: ["Qui, quoi, où, quand.", "Priorité = f(impact, urgence).", "Documenter : symptôme, cause, action, vérification.", "Résolu ≠ Clos."] },
 
-{ n: 4, title: "Diagnostiquer un incident technique", tps: "TP 16 à 20",
+{ n: 4, title: "Diagnostiquer un incident technique", tps: "TP 16 à 20, 43",
   intro: "Face à une panne, le réflexe n'est pas de cliquer partout : c'est de raisonner du plus simple au plus complexe, et de chercher ce qui est commun.",
   sections: [
+  { h: "4.0 Quand une panne arrive avec le temps", p: [
+    "Une panne ne s'annonce pas : elle survient, puis les appels arrivent, souvent à quelques minutes d'intervalle. Dans les TP où le **temps compte**, l'horloge simulée n'avance que lorsque vous la faites avancer (+15 min, +1 h, +1 jour) : c'est vous qui laissez venir la situation. Une **machine virtuelle** s'exécute sur un **hyperviseur** : si l'hôte s'arrête, toutes ses VM s'arrêtent avec lui. Deux applications en panne en même temps appellent donc la question : *qu'ont-elles en commun ?*"] },
   { h: "4.1 La méthode en cinq temps", p: [], bullets: [
     "**Comprendre** : que voit exactement l'utilisateur ? depuis quand ? qu'est-ce qui a changé ?",
     "**Délimiter** : un seul poste ou plusieurs ? tous les services ou un seul ?",
@@ -80,17 +82,19 @@ module.exports = [
   ],
   keypoints: ["Du plus simple au plus complexe, une modification à la fois.", "Plusieurs pannes simultanées → chercher le point commun.", "Incident majeur : cause commune, priorités, communication.", "Vérifier le rétablissement réel avant de clore."] },
 
-{ n: 5, title: "Aller plus loin qu'un ticket : SLA, problèmes, changements, connaissances", tps: "TP 22 à 25",
+{ n: 5, title: "Aller plus loin qu'un ticket : SLA, problèmes, changements, connaissances", tps: "TP 22 à 25, 41, 44",
   intro: "Le service desk traite les symptômes. ITIL propose d'autres pratiques pour traiter les causes, maîtriser les modifications et ne pas réapprendre les mêmes choses.",
   sections: [
   { h: "5.1 Le SLA (accord de niveau de service)", p: [
     "Un **SLA** est un engagement chiffré : temps de **prise en charge** et temps de **résolution** selon la priorité. Dans InfraLab :"],
     table: { head: ["Priorité", "Prise en charge", "Résolution"], rows: [["P1", "15 minutes", "4 heures"], ["P2", "1 heure", "8 heures"], ["P3", "4 heures", "24 heures"], ["P4", "8 heures", "72 heures"]], widths: [2000, 3500, 3526] },
-    p2: ["Le décompte **démarre à la création du ticket**, pas à la prise en charge. Quand on attend une réponse de l'utilisateur, l'horloge peut être **suspendue** (statut « En attente ») : ce n'est pas la faute du service si l'utilisateur ne répond pas. Un ticket mal qualifié reçoit un mauvais SLA."] },
+    p2: ["Le décompte **démarre à la création du ticket**, pas à la prise en charge. Quand on attend une réponse de l'utilisateur, l'horloge peut être **suspendue** (statut « En attente ») : ce n'est pas la faute du service si l'utilisateur ne répond pas. Un ticket mal qualifié reçoit un mauvais SLA.", "Le SLA se mesure sur un **calendrier** : en **continu** (24 h / 24, 7 j / 7) ou en **heures ouvrées** (ici du lundi au vendredi, de 8 h à 18 h). Un ticket ouvert vendredi à 17 h est « dépassé » lundi matin en calendrier continu, alors que le service desk n'a travaillé qu'une heure. Le calendrier doit refléter ce que le contrat promet ; le changer corrige la mesure, pas le retard."] },
   { h: "5.2 Gestion des problèmes", p: [
     "Un **problème** est la cause inconnue d'un ou plusieurs incidents. On y rattache les incidents similaires, on cherche la **cause racine**, on documente un **contournement** (*workaround* : comment rétablir en attendant) et on décrit la **correction définitive**. Un contournement connu et publié s'appelle une **erreur connue**."] },
   { h: "5.3 Gestion des changements", p: [
     "Un **changement** est toute modification de la production. Il suit un parcours : demande → dossier (**risque**, **plan**, **retour arrière**) → **approbation** par une personne habilitée et différente du demandeur → réalisation → **vérification** → clôture. Le but n'est pas de ralentir, mais d'éviter qu'une modification bien intentionnée provoque un incident."] },
+  { h: "5.3bis Planifier un changement dans le temps", p: [
+    "Un changement approuvé est **planifié** à une date, souvent **hors des heures ouvrées** pour limiter l'impact. Quand l'élément touché héberge d'autres services (un hyperviseur et ses machines virtuelles), on **déplace d'abord** ce qui doit rester disponible, **puis** on intervient. Le dossier garde la trace du résultat après vérification."] },
   { h: "5.4 Gestion des connaissances", p: [
     "Une solution trouvée une fois doit servir la fois suivante. On rédige un **article** depuis le ticket résolu (symptôme, cause, résolution), on le **classe** et on le **publie**. Au ticket suivant, on l'**associe**, ce qui mesure son utilité."] },
   ],
@@ -122,7 +126,7 @@ module.exports = [
   ],
   keypoints: ["Un CI = ce dont on suit les dépendances.", "Un service est un CI sans actif.", "Connecté à : automatique ; dépend de : saisi.", "L'impact se propage par rebond."] },
 
-{ n: 8, title: "Administration, droits et traçabilité", tps: "TP 33 à 37, 39, 40",
+{ n: 8, title: "Administration, droits et traçabilité", tps: "TP 33 à 37, 39, 40, 45, 46",
   intro: "Un outil ITSM contient des données sensibles et permet d'agir. Qui a le droit de faire quoi doit être un choix, pas un accident.",
   sections: [
   { h: "8.1 Rôles et permissions (RBAC)", p: [
@@ -135,6 +139,10 @@ module.exports = [
     "À l'**arrivée** : créer le compte, attribuer **exactement** les rôles utiles. Au **départ** : d'abord **réattribuer** ce qui est en cours (tickets), puis **désactiver** le compte. On ne **supprime pas** : l'historique reste consultable pour l'audit. Le dernier administrateur ne peut pas être désactivé (sinon plus personne ne gère)."] },
   { h: "8.5 Le journal d'audit", p: [
     "Chaque action est consignée avec **qui**, **quoi**, **quand**. Face à une anomalie (un coût d'achat passé de 1 200 € à 1 €), le journal permet de remonter à l'auteur, de juger si l'action était **légitime** au regard de son rôle, de corriger, et de décider de la mesure pour éviter la récidive."] },
+  { h: "8.6 Groupes et héritage de rôles", p: [
+    "Un **groupe** rassemble des personnes qui exercent le même métier (« Support N1 »). On donne des **rôles au groupe** ; chaque membre les **hérite**, sans que son compte personnel change. L'arrivée, le départ et la mutation d'une équipe se règlent à un seul endroit. Un ticket peut être aiguillé vers la **file** d'un groupe avant d'être pris par l'un de ses membres."] },
+  { h: "8.7 Délégation temporaire", p: [
+    "Pendant un congé, on **prête** un rôle plutôt que de le donner. La **délégation** a toujours une fin : à l'échéance le droit disparaît seul, sans que personne n'ait à y penser. On ne délègue que ce que l'on détient, jamais le rôle d'administrateur, et les actions faites pendant la délégation sont journalisées au nom de la personne qui agit."] },
   ],
-  keypoints: ["Permissions → rôles → personnes.", "Moindre privilège, revue périodique.", "Séparation des tâches : demandeur ≠ approbateur.", "Départ : réattribuer, puis désactiver ; ne jamais supprimer l'historique.", "Journal d'audit : qui, quoi, quand."] },
+  keypoints: ["Permissions → rôles → personnes.", "Moindre privilège, revue périodique.", "Séparation des tâches : demandeur ≠ approbateur.", "Départ : réattribuer, puis désactiver ; ne jamais supprimer l'historique.", "Journal d'audit : qui, quoi, quand.", "Groupe : on gère l'équipe, les rôles suivent l'appartenance.", "Délégation : durée bornée, jamais administrateur, traçabilité individuelle."] },
 ];

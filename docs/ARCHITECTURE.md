@@ -15,8 +15,8 @@
 | Infrastructure | Schéma SVG (palette, glisser-déposer, câbles, alimentation, adresse IP, matériel, logiciels, session), joignabilité de chaque équipement jusqu'au serveur ITSM avec la **raison** de l'état hors ligne |
 | Inventaire | Agent (installer, démarrer, arrêter, configurer, forcer l'inventaire, journal), collecteur, rapprochement MAC → nom → IP, découverte d'une plage CIDR, écart réalité/observé, provenance par champ |
 | ITSM | Tickets (workflow à prérequis expliqués, priorité impact × urgence, SLA dérivé du temps simulé), problèmes, changements (standard / normal / urgent), base de connaissances, logiciels et politique, licences (conformité), contrats et fournisseurs (échéances), cycle de vie du matériel, CMDB (CI, relations manuelles et déduites du câblage, simulation de panne, analyse d'impact), tableau de bord |
-| Administration | RBAC (4 rôles, 18 droits modifiables, rôles créables), « Agir en tant que », comptes activables/désactivables, garde-fou « dernier administrateur », séparation des tâches, journal d'audit avec auteur |
-| TP | **40 TP** en 8 niveaux, **182 objectifs** vérifiés automatiquement dont **61 questions de compréhension**, chacun découpé en étapes (cours → travaux pratiques → bilan), indices progressifs, solution rejouable testée en CI, mode examen, score (objectifs, qualité, autonomie), compte rendu exportable (HTML imprimable ou JSON, avec empreinte SHA-256), vue formateur « couverture des compétences » |
+| Administration | RBAC (4 rôles, 20 droits modifiables, rôles créables), groupes qui donnent leurs rôles à leurs membres, délégations de rôle à durée limitée (expiration par l'horloge simulée), « Agir en tant que », comptes activables/désactivables, garde-fou « dernier administrateur », séparation des tâches, journal d'audit avec auteur |
+| TP | **46 TP** en 8 niveaux, **217 objectifs** vérifiés automatiquement dont **70 questions de compréhension**, chacun découpé en étapes (cours → travaux pratiques → bilan), indices progressifs, solution rejouable testée en CI, mode examen, score (objectifs, qualité, autonomie), compte rendu exportable (HTML imprimable ou JSON, avec empreinte SHA-256), vue formateur « couverture des compétences » |
 | Données | SI d'exemple (siège) et **NovaTech complet** (4 sites, une quarantaine d'équipements, 45 utilisateurs, 5 fournisseurs, 3 contrats, licence Office volontairement non conforme, installations interdites, CMDB de 3 services) |
 | Qualité | Tests unitaires et d'intégration (Vitest), auto-test de **chaque** TP (état initial sans objectif atteint ; solution = 100 / 100 ; démarrage déterministe ; intégrité des étapes), test de bout en bout navigateur (Playwright), CI GitHub Actions, TypeScript strict |
 
@@ -24,17 +24,17 @@
 
 1. **Format des scénarios** : des données TypeScript typées (et non du YAML). Même structure, mais le compilateur vérifie les références et les vérifications sont des unions typées.
 2. **Pédagogie des TP** : après essai, les TP ont été refondus en **étapes** (cours court, tâches, bilan) avec **questions de compréhension** intercalées, un objectif étant soit un état vérifié, soit une question. Panneau de TP ancré à droite du schéma, repliable, avec barre de progression.
-3. **Numérotation des TP** : les niveaux 7 et 8 ont été remodelés. Les analyses d'impact et les dépendances sont réparties entre les TP 32 et 38 ; l'administration est couverte par les TP 33 à 37 et 39 (rôles et droits, accueil d'un technicien, séparation des tâches, départ d'un technicien, audit, revue des habilitations). Le TP 40 est le TP final.
-4. **Groupes** de techniciens non modélisés : l'administration repose sur les rôles seulement (les droits se donnent à un rôle, un rôle à une personne).
+3. **Numérotation des TP** : les niveaux 7 et 8 ont été remodelés. Les analyses d'impact et les dépendances sont réparties entre les TP 32 et 38 ; l'administration est couverte par les TP 33 à 37 et 39 (rôles et droits, accueil d'un technicien, séparation des tâches, départ d'un technicien, audit, revue des habilitations). Le TP 40 est le TP final. Les TP 41 à 46 (M9) ajoutent les situations où le temps compte (calendrier ouvré, matinée au service desk, panne d'hyperviseur, maintenance planifiée) et l'administration par groupes et délégations ; ils se rangent dans les niveaux existants.
+4. **Groupes et délégations** (livrés depuis M9) : un groupe porte des rôles que ses membres héritent ; un ticket peut être aiguillé vers la file d'un groupe ; une délégation prête un rôle (jamais administrateur) pour une durée, avec expiration par l'horloge. Pas de hiérarchie ni de sous-groupes.
 5. **Vérifications « a atteint »** : certains objectifs se lisent dans l'historique des événements plutôt que dans l'état final (un actif qui passe en réparation puis revient en service a bien « atteint » l'état de réparation).
-6. **SLA** : calendrier continu (24 h / 24, 7 j / 7) ; pas de calendrier ouvré. L'état « en attente » suspend l'horloge.
-7. **NovaTech complet** : une quarantaine d'équipements (et non soixante), un seul réseau pour tous les sites (liaisons inter-sites en couche 2) afin de garder la notion de « joignable par l'outil » lisible ; Office est dépassé de 3 installations (et non 7). Les machines virtuelles sont câblées comme des équipements ordinaires : le lien machine virtuelle ↔ hyperviseur n'est pas modélisé.
+6. **SLA** : deux calendriers au choix (page Paramètres, droit `admin.settings`) : continu (24 h / 24, 7 j / 7) ou heures ouvrées (lundi–vendredi, 8 h–18 h, t = 0 étant le lundi 8 h). Un seul calendrier pour tout l'outil, sans jours fériés ni fuseaux. L'état « en attente » suspend l'horloge, dans le calendrier retenu.
+7. **NovaTech complet** : une quarantaine d'équipements (et non soixante), un seul réseau pour tous les sites (liaisons inter-sites en couche 2) afin de garder la notion de « joignable par l'outil » lisible ; Office est dépassé de 3 installations (et non 7). Une machine virtuelle est câblée comme un équipement ordinaire **et** rattachée à un hyperviseur (`hostId`) : elle devient hors ligne (raison `host_down`) quand son hôte l'est, et la CMDB en déduit la relation « hébergé sur ». Pas de haute disponibilité ni de ressources.
 8. **Sauvegarde** : locale au navigateur (`localStorage`), versionnée par la forme de l'état avec normalisation à la restauration. Depuis M9, un projet complet (TP en cours compris) s'enregistre et se rouvre dans un fichier `.infralab.json` choisi par l'élève (API File System Access sous Chrome/Edge, téléchargement et import ailleurs). Le compte rendu de TP reste un export distinct.
 9. **Accessibilité** : étiquettes ARIA, navigation au clavier, thème clair et sombre. Un audit automatisé (axe-core, règles WCAG 2.1 A et AA, `tests/a11y-audit.mjs`) sur 15 vues dans les deux thèmes ne relève plus aucune violation. **Pas d'audit manuel** avec un lecteur d'écran (voir « Reste à faire »).
-10. **Chronologie scénarisée** : un TP prépare un état initial, mais ne déclenche pas d'événements en cours de route (pas de ticket qui arrive à l'étape 3).
+10. **Chronologie scénarisée** : un TP peut déclarer des événements (`Scenario.timeline`) qui se déclenchent à leur heure quand l'élève fait avancer l'horloge (+15 min, +1 h, +1 jour) : ticket qui arrive, panne qui survient. Le temps simulé n'avance jamais seul. Les TP où le temps compte affichent un encart « Dans ce TP, le temps compte » avec l'heure à régler.
 
 ### Reste à faire (hors périmètre livré)
-Essai en classe et retours d'élèves ; audit d'accessibilité manuel (lecteur d'écran, navigation clavier de bout en bout) ; groupes et délégation ; calendrier ouvré pour les SLA ; événements scénarisés dans le temps ; liaison machine virtuelle ↔ hyperviseur.
+Essai en classe et retours d'élèves ; audit d'accessibilité manuel (lecteur d'écran, navigation clavier de bout en bout) ; supervision (alertes, SNMP), Active Directory, GPO et déploiement de logiciels (hors périmètre) ; haute disponibilité des hyperviseurs ; jours fériés et fuseaux horaires pour les SLA.
 
 ---
 
@@ -544,6 +544,7 @@ La page d'aide ajoute à chaque fois : *« pourquoi cette information existe, co
 | 13 | Associer le bon équipement | Choisir l'actif concerné → Retrouver l'historique | Répondre aux incidents et aux demandes (T) · Gérer le patrimoine informatique (T) |
 | 14 | Priorité : impact et urgence | Impact, urgence, priorité → Traiter dans le bon ordre | Répondre aux incidents et aux demandes (T) |
 | 15 | Résoudre et clore un incident | Documenter la solution → Résoudre puis clore | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
+| 42 | Une matinée au service desk | Premier appel, premier tri → Un appel urgent arrive → Finir la matinée | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
 
 ### Niveau 4 — Incidents techniques
 | # | TP | Étapes | Compétences |
@@ -553,6 +554,7 @@ La page d'aide ajoute à chaque fois : *« pourquoi cette information existe, co
 | 18 | Switch en panne | Chercher la cause commune → Rétablir et constater l'effet | Exploiter et dépanner (T) · Administrer une infrastructure (T) |
 | 19 | Plusieurs utilisateurs impactés | Prendre les appels en compte → Qualifier et trier → Diagnostiquer et rétablir → Résoudre, vérifier avec l'utilisateur, clore | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
 | 20 | Incident majeur | Prioriser → Rétablir et informer | Répondre aux incidents et aux demandes (T) · Travailler en mode projet (T) |
+| 43 | Quand l'hyperviseur s'arrête | Laisser venir la panne → Chercher le point commun → Rétablir et documenter | Exploiter et dépanner (T) · Répondre aux incidents et aux demandes (T) · Gérer le patrimoine informatique (T) |
 
 ### Niveau 5 — ITIL
 | # | TP | Étapes | Compétences |
@@ -562,6 +564,8 @@ La page d'aide ajoute à chaque fois : *« pourquoi cette information existe, co
 | 23 | Problem Management | Constater la récurrence, ouvrir un problème → Analyser : cause racine et contournement → Corriger définitivement | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
 | 24 | Change Management | Préparer le dossier de changement → Obtenir l'autorisation → Réaliser et vérifier | Travailler en mode projet (T) · Administrer une infrastructure (T) · Assurer la traçabilité (P) |
 | 25 | Knowledge Management | Capitaliser une résolution → Réutiliser pour résoudre plus vite | Assurer la traçabilité (T) · Répondre aux incidents et aux demandes (T) |
+| 41 | SLA : le week-end compte-t-il ? | Comprendre ce que mesure le SLA → Régler le calendrier → Tenir l'engagement | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
+| 44 | Maintenance planifiée d'un hyperviseur | Mesurer l'impact avant d'agir → Planifier le changement → Intervenir sans coupure | Travailler en mode projet (T) · Exploiter et dépanner (T) · Assurer la traçabilité (P) |
 
 ### Niveau 6 — ITAM
 | # | TP | Étapes | Compétences |
@@ -589,6 +593,8 @@ La page d'aide ajoute à chaque fois : *« pourquoi cette information existe, co
 | 37 | Audit : qui a fait quoi ? | Enquêter dans le journal → Corriger et conclure | Assurer la traçabilité (P) · Participer à la vie de la cybersécurité (T) |
 | 39 | Revue des habilitations | Repérer l'excès → Corriger la matrice | Gérer les habilitations (T) · Participer à la vie de la cybersécurité (T) |
 | 40 | Administrateur ITSM de NovaTech | Rétablir le service → Compléter l'inventaire → Parc, licences et habilitations → Traiter, comprendre, prévenir | Gérer le patrimoine informatique (T) · Répondre aux incidents et aux demandes (T) · Gérer les habilitations (T) · Travailler en mode projet (T) · Assurer la traçabilité (P) |
+| 45 | Équipes et groupes de techniciens | Pourquoi un groupe ? → Créer le groupe et aiguiller les tickets → Quand quelqu'un part | Gérer les habilitations (T) · Participer à la vie de la cybersécurité (T) |
+| 46 | Délégation de droits pendant un congé | Prêter un rôle, pas le donner → Karim remplace David → L'échéance | Gérer les habilitations (T) · Assurer la traçabilité (P) · Participer à la vie de la cybersécurité (T) |
 <!-- tp-table:end -->
 
 ---

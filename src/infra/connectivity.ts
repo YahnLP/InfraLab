@@ -1,7 +1,7 @@
 import { CIDR, IP, type Device, type Nic, type State } from '../core';
 import { CATALOG } from './catalog';
 
-export type OfflineReason = 'powered_off' | 'no_link' | 'no_ip' | 'no_path' | 'wrong_subnet';
+export type OfflineReason = 'powered_off' | 'no_link' | 'no_ip' | 'no_path' | 'wrong_subnet' | 'host_down';
 
 export interface ReachInfo {
   powered: boolean;
@@ -81,7 +81,14 @@ export function computeReachability(s: Readonly<State>): Record<string, ReachInf
   }
 
   const srvNic = server ? primaryIp(server) : undefined;
-  for (const d of Object.values(devs)) {
+  // Une machine virtuelle rattachée à un hyperviseur n'a pas de câble propre : elle suit son hôte. On traite donc les hôtes d'abord.
+  const hosted = (d: Device) => d.kind === 'vm' && !!d.hostId && !!devs[d.hostId];
+  for (const d of Object.values(devs).sort((a, b) => Number(hosted(a)) - Number(hosted(b)))) {
+    if (hosted(d)) {
+      const hi = out[d.hostId!]; const info: ReachInfo = { powered: d.powered, linkUp: !!hi?.online, online: false };
+      if (!d.powered) info.reason = 'powered_off'; else if (!hi?.online) info.reason = 'host_down'; else info.online = true;
+      out[d.id] = info; continue;
+    }
     const linkUp = (adj.get(d.id)?.length ?? 0) > 0;
     const info: ReachInfo = { powered: d.powered, linkUp, online: false };
     if (!d.powered) { info.reason = 'powered_off'; out[d.id] = info; continue; }

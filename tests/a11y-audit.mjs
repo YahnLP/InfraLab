@@ -21,7 +21,7 @@ const audit = async name => {
 await page.getByRole('button', { name: 'NovaTech complet' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 await audit('Infrastructure');
 await page.getByRole('tab', { name: 'ITSM' }).click(); await audit('ITSM — tableau de bord');
-for (const p of ['Parc', 'Tickets', 'Licences', 'CMDB', 'Utilisateurs', 'Rôles et droits']) { await page.getByRole('button', { name: p, exact: true }).click(); await audit(`ITSM — ${p}`); }
+for (const p of ['Parc', 'Tickets', 'Licences', 'CMDB', 'Utilisateurs', 'Groupes et délégations', 'Paramètres', 'Rôles et droits']) { await page.getByRole('button', { name: p, exact: true }).click(); await audit(`ITSM — ${p}`); }
 await page.getByRole('tab', { name: 'TP' }).click(); await audit('Catalogue des TP');
 // TP avec tickets, SLA et incident en cours : états colorés variés
 await page.getByRole('article').filter({ hasText: 'Plusieurs utilisateurs impactés' }).getByRole('button', { name: 'Démarrer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();

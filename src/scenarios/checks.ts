@@ -1,6 +1,6 @@
-import type { DomainEvent, State } from '../core';
+import { rolesOf, type DomainEvent, type State } from '../core';
 import { agentHealth, assetForDevice, driftReport } from '../inventory';
-import { isOpen, contractState, forbiddenInstalls, licenseReport, licensesForSoftware, slaOf, ticketPriority } from '../itsm';
+import { isBusinessTime, isOpen, contractState, forbiddenInstalls, licenseReport, licensesForSoftware, slaOf, ticketPriority } from '../itsm';
 import { resolveRefs } from './resolve';
 import type { Check } from './types';
 
@@ -58,7 +58,7 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
     case 'ci': { const x = st.management.cis[c.name]; return !!x && (!c.ciKind || x.kind === c.ciKind) && (c.withAsset === undefined || !!x.assetId === c.withAsset); }
     case 'relation': return Object.values(st.management.relations).some(r => r.from === c.from && r.to === c.to && (!c.type || r.type === c.type));
     case 'answer': return !!st.session?.answers[c.question]?.correct;
-    case 'sla': { const t = st.management.tickets[c.ticket]; const sl = t && slaOf(t, now); return !!sl && (!c.respond || sl.respond.state === c.respond) && (!c.resolve || sl.resolve.state === c.resolve); }
+    case 'sla': { const t = st.management.tickets[c.ticket]; const sl = t && slaOf(t, now, st.management.settings.slaCalendar); return !!sl && (!c.respond || sl.respond.state === c.respond) && (!c.resolve || sl.resolve.state === c.resolve) && (!c.resolveNot || sl.resolve.state !== c.resolveNot); }
     case 'problem': {
       const x = st.management.problems[c.ref]; if (!x) return false;
       if (c.reached && !events.some(e => e.type === 'ProblemStatusChanged' && e.subject.id === x.id && e.payload['to'] === c.reached)) return false;
@@ -97,7 +97,14 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
     case 'rolePerm': return !!st.management.roles[c.role] && st.management.roles[c.role]!.permissions.includes(c.permission) === c.value;
     case 'roleExists': { const r = st.management.roles[c.role]; return !!r && (c.has ?? []).every(x => r.permissions.includes(x)) && (c.lacks ?? []).every(x => !r.permissions.includes(x)); }
     case 'noOpenAssigned': return !Object.values(st.management.tickets).some(t => t.assignee === c.user && isOpen(t));
+    case 'changeWindow': { const x = st.management.changes[c.ref]; if (!x || x.scheduledAt === undefined) return false; return (!c.outsideBusinessHours || !isBusinessTime(x.scheduledAt)) && (!c.reachedByNow || now >= x.scheduledAt); }
+    case 'slaCalendar': return st.management.settings.slaCalendar === c.is;
+    case 'vmHost': { const v = dev(c.vm); return !!v && (c.host === null ? !v.hostId : v.hostId === c.host); }
+    case 'group': { const g = Object.values(st.management.groups).find(x => x.name === c.name); return !!g && (c.members ?? []).every(m => g.members.includes(m)) && (c.roles ?? []).every(r => g.roles.includes(r)); }
+    case 'ticketGroup': { const t = st.management.tickets[c.ref]; return !!t?.groupId && st.management.groups[t.groupId]?.name === c.group; }
+    case 'effectiveRole': return rolesOf(st, c.user, now).has(c.role) === c.value;
+    case 'delegation': return Object.values(st.management.delegations).some(d => d.from === c.from && d.to === c.to && d.role === c.role && (!c.state || (c.state === 'active' ? !d.revoked && d.startAt <= now && now < d.endAt : d.revoked || now >= d.endAt)));
     case 'event': return events.some(e => e.type === c.type && (!c.subject || e.subject.id === c.subject));
-    case 'all': return c.of.every(x => runCheck(st, events, x));
+    case 'all': return c.of.every(x => runCheck(st, events, x, now));
   }
 }

@@ -160,6 +160,12 @@ ok((await page.locator('.itsm-page').textContent()).includes('propres tickets'),
 await page.locator('.who select').selectOption('');
 await page.getByRole('button', { name: 'Rôles et droits', exact: true }).click();
 ok(await page.locator('.matrix input[type=checkbox]').count() > 20, 'matrice des droits affichée');
+await page.getByRole('button', { name: 'Groupes et délégations', exact: true }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('Déléguer'), 'page Groupes et délégations affichée');
+await page.locator('input[aria-label="Nom du groupe"]').fill('Support N1'); await page.getByRole('button', { name: 'Créer le groupe' }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('Support N1'), 'un groupe se crée depuis l\'écran');
+await page.getByRole('button', { name: 'Paramètres', exact: true }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('Heures ouvrées'), 'page Paramètres : choix du calendrier des SLA');
 await page.getByRole('button', { name: /Journal d.audit/ }).click();
 ok((await page.locator('.itsm-page').textContent()).includes('Auteur'), 'journal d\'audit avec auteur');
 await page.screenshot({ path: `${shots}/m7-roles.png` });
@@ -221,7 +227,9 @@ ok(await p2.locator('dialog.help').isVisible() === false, 'aide : le bouton Ferm
 await p2.getByRole('button', { name: 'Aide' }).click(); await p2.keyboard.press('Escape');
 ok(await p2.locator('dialog.help').isVisible() === false, 'aide : Échap ferme la fenêtre');
 ok(await p2.locator('a.credit[href="https://formaxionlandes.fr/"]').count() === 1, 'crédit auteur cliquable vers formaxionlandes.fr');
+await p2.getByRole('button', { name: 'Aide' }).click(); await p2.getByRole('tab', { name: 'Licence et auteur' }).click();
 ok(await p2.locator('dialog.help a[href="https://yahnlp.github.io/simulateur-reseau/"]').count() === 1 && await p2.locator('dialog.help a[href="https://yahnlp.github.io/DockerLab/"]').count() === 1, 'aide : liens vers Simulateur Réseau et Docker Lab');
+await p2.keyboard.press('Escape');
 await p2.screenshot({ path: `${shots}/m9-entete.png` });
 ok(e2.length === 0, 'aucune erreur page 2 : ' + e2.join(' | '));
 ok(errors.length === 0, 'aucune erreur console : ' + errors.join(' | '));

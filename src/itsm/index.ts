@@ -11,3 +11,4 @@ export * from './cmdb';
 export * from './itam-commands';
 export * from './rbac';
 export * from './rbac-commands';
+export * from './calendar';

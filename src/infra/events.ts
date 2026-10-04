@@ -16,4 +16,5 @@ export const EV = {
   SoftwareInstalled: 'SoftwareInstalled',
   SoftwareRemoved: 'SoftwareRemoved',
   UserSessionChanged: 'UserSessionChanged',
+  VmHostChanged: 'VmHostChanged',
 } as const;

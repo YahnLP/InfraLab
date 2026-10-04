@@ -2,8 +2,10 @@ import type { Store } from '../../core';
 import { buildReport, evaluate, fingerprint, getScenario, type Scenario } from '../../scenarios';
 import { reportHtml } from './report-html';
 import { clear, h } from '../kit/dom';
+import { fmtTime } from '../shell/labels';
+import { DAY, HOUR } from '../../core';
 
-export interface PanelHost { dispatch(c: { type: string; payload?: Record<string, unknown> }): boolean; confirm(msg: string, run: () => void): void; restart(): void }
+export interface PanelHost { dispatch(c: { type: string; payload?: Record<string, unknown> }): boolean; confirm(msg: string, run: () => void): void; restart(): void; advance(ms: number): void }
 
 /** Mini-rendu : paragraphes, listes « - » et **gras**. */
 export function rich(lines: string[]): HTMLElement[] {
@@ -55,6 +57,14 @@ export class TpPanel {
       next ? h('p', { class: 'tp-next muted' }, idx < s.stage ? 'Vous revoyez une étape déjà validée.' : `Ensuite : « ${next.title} ». Les étapes suivantes s'ouvrent une à une, quand celle-ci est réussie.`) : h('p', { class: 'tp-next muted' }, 'Dernière étape du TP.'));
     const body = h('div', { class: 'tp-body' });
     if (idx === 0) body.append(h('section', { class: 'tp-ctx' }, h('h3', null, 'Mise en situation'), h('p', null, sc.context)));
+    if (sc.timeNote || sc.timeline) {
+      const fired = this.store.getLog().slice(s.logStart).filter(e => e.type === 'ScenarioEventFired');
+      body.append(h('section', { class: 'tp-time' }, h('h3', null, '⏱ Dans ce TP, le temps compte'),
+        h('p', null, sc.timeNote ?? 'Le temps simulé ne passe que si vous le faites avancer : des événements surviennent au fil des heures.'),
+        h('p', { class: 'muted' }, 'Heure simulée : ', h('b', null, fmtTime(this.now()))),
+        done ? null : h('div', { class: 'actions' }, ...([['+15 min', 15 * 60000], ['+1 h', HOUR], ['+1 jour', DAY]] as const).map(([l, ms]) => h('button', { title: `Avancer l'horloge simulée de ${l.slice(1)}`, onclick: () => this.host.advance(ms) }, l))),
+        fired.length ? h('ul', { class: 'tp-fired', 'aria-label': 'Événements survenus' }, ...fired.map(e => h('li', null, h('b', null, fmtTime(e.t)), ` — ${String(e.payload['notice'])}`))) : null));
+    }
     body.append(h('section', { class: 'tp-lesson' }, h('div', { class: 'tp-sec' }, h('h3', null, 'Cours'), h('button', { class: 'link', onclick: () => this.openReader(`TP ${sc.number} · ${stage.title}`, [h('h3', null, 'Mise en situation'), h('p', null, sc.context), h('h3', null, 'Cours'), ...rich(stage.lesson)]) }, 'Lire en grand')),
       ...rich(stage.lesson)));
     const status = new Map(ev.objectives.map(o => [o.id, o])); const byId = new Map(sc.objectives.map(o => [o.id, o]));

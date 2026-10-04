@@ -17,7 +17,7 @@ export type Check =
   | { k: 'assetInventoried'; device: Ref }
   | { k: 'assetInSync'; device: Ref }
   | { k: 'ticket'; ref: Ref; status?: TicketStatus; category?: string; impact?: Level; urgency?: Level; priority?: 1 | 2 | 3 | 4; linkedDevice?: Ref; hasSolution?: boolean; solutionMin?: number; minComments?: number; subcategory?: string; kind?: 'incident' | 'request'; qualified?: boolean; assignee?: Ref; reached?: TicketStatus; requester?: Ref; descMin?: number; linkedAsset?: Ref; noOtherAsset?: boolean }
-  | { k: 'sla'; ticket: Ref; respond?: SlaState; resolve?: SlaState }
+  | { k: 'sla'; ticket: Ref; respond?: SlaState; resolve?: SlaState; resolveNot?: SlaState }
   | { k: 'problem'; ref: Ref; status?: ProblemStatus; reached?: ProblemStatus; minTickets?: number; hasRootCause?: boolean; hasWorkaround?: boolean; hasFix?: boolean }
   | { k: 'change'; ref: Ref; status?: ChangeStatus; reached?: ChangeStatus; type?: ChangeType; linkedDevice?: Ref; linkedAsset?: Ref; approver?: Ref }
   | { k: 'article'; ref: Ref; status?: 'draft' | 'published'; category?: string; sourceTicket?: Ref; minTickets?: number }
@@ -42,6 +42,13 @@ export type Check =
   | { k: 'rolePerm'; role: string; permission: string; value: boolean }
   | { k: 'noOpenAssigned'; user: Ref }
   | { k: 'roleExists'; role: string; has?: string[]; lacks?: string[] }
+  | { k: 'changeWindow'; ref: Ref; outsideBusinessHours?: boolean; reachedByNow?: boolean }
+  | { k: 'slaCalendar'; is: 'continuous' | 'business' }
+  | { k: 'vmHost'; vm: Ref; host: Ref | null }
+  | { k: 'group'; name: string; members?: Ref[]; roles?: string[] }
+  | { k: 'ticketGroup'; ref: Ref; group: string }
+  | { k: 'effectiveRole'; user: Ref; role: string; value: boolean }
+  | { k: 'delegation'; from: Ref; to: Ref; role: string; state?: 'active' | 'ended' }
   | { k: 'event'; type: string; subject?: Ref }
   | { k: 'all'; of: Check[] };
 
@@ -53,6 +60,8 @@ export interface Question { prompt: string; choices: string[]; correct: number; 
 export interface Objective { id: string; label: string; check?: Check; question?: Question; requires?: string[] }
 /** Étape pédagogique : un cours court, des tâches, puis un bilan. Alterne l'apport de connaissances et la pratique. */
 export interface Stage { id: string; title: string; lesson: string[]; objectives: string[]; debrief: string[] }
+/** Événement scénarisé : se déclenche quand le temps simulé atteint `at` (ms après le début du TP), jamais avant. */
+export interface TimelineEvent { id: string; at: number; /** Message montré à l'élève quand l'événement survient. */ notice: string; steps: Step[] }
 export interface Hint { for: string; levels: string[] }
 
 export interface Scenario {
@@ -72,4 +81,8 @@ export interface Scenario {
   solutionText: string[];
   solution: Step[];
   realWorld: string;
+  /** Le temps compte dans ce TP : explication affichée avec les boutons d'avance de l'horloge. */
+  timeNote?: string;
+  /** Chronologie scénarisée : tickets qui arrivent, pannes, échéances. Déclenchée par l'avance du temps simulé. */
+  timeline?: TimelineEvent[];
 }

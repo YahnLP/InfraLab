@@ -1,5 +1,6 @@
 import { emptyState, type Scheduler, type State, type Store } from '../core';
 import { advance } from '../inventory';
+import { getScenario } from './catalog';
 import { runCheck } from './checks';
 import { seedNovatech } from './novatech';
 import { resolveRefs } from './resolve';
@@ -15,14 +16,32 @@ export interface Evaluation {
 }
 
 /** Exécute une suite de commandes symboliques ; lève une erreur si l'une échoue (décor et solutions sont des données sûres). */
-export function runSteps(store: Store, sch: Scheduler, steps: Step[]): void {
+export function runSteps(store: Store, sch: Scheduler, steps: Step[], timed = true): void {
   for (const s of steps) {
-    if (s.advance) advance(store, sch, s.advance);
+    if (s.advance) { if (timed) advanceTime(store, sch, s.advance); else advance(store, sch, s.advance); }
     if (s.do) {
       const r = store.dispatch({ type: s.do, payload: resolveRefs(store.getState(), s.args ?? {}), actor: 'scenario', ...(s.as ? { actorId: resolveRefs(store.getState(), s.as) } : {}) });
       if (!r.ok) throw new Error(`Étape « ${s.do} » refusée : ${r.error?.message}`);
     }
   }
+}
+
+/**
+ * Fait avancer le temps simulé en déclenchant, au bon instant, les événements de la chronologie du TP en cours
+ * (un ticket qui arrive, une panne). Retourne les messages à montrer à l'élève.
+ */
+export function advanceTime(store: Store, sch: Scheduler, ms: number): string[] {
+  const notices: string[] = []; const end = sch.now + ms;
+  for (let guard = 0; guard < 500; guard++) {
+    const s = store.getState().session; const sc = s && getScenario(s.scenarioId);
+    const due = sc && s && s.finishedAt === undefined ? (sc.timeline ?? []).filter(e => !(s.fired ?? []).includes(e.id) && s.startedAt + e.at <= end).sort((a, b) => a.at - b.at)[0] : undefined;
+    if (!due || !s) { if (end > sch.now) advance(store, sch, end - sch.now); return notices; }
+    const t = Math.max(sch.now, s.startedAt + due.at); if (t > sch.now) advance(store, sch, t - sch.now);
+    runSteps(store, sch, due.steps, false);
+    const r = store.dispatch({ type: 'scenario.fire', payload: { id: due.id, notice: due.notice }, actor: 'scenario' }); if (!r.ok) throw r.error;
+    notices.push(due.notice);
+  }
+  return notices;
 }
 
 /** Repart d'un SI vierge : NovaTech + décor du scénario, puis ouvre la session. Déterministe : deux démarrages donnent le même état. */

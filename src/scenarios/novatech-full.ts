@@ -42,7 +42,7 @@ export function seedNovatechFull(store: Store, dispatch: D): void {
   add('server', 'SRV-FACT', 1072, 240, 'Datacenter'); wire('SRV-FACT', 'eth0', 'SW-DC-01', 'port4');
   add('nas', 'NAS-DC-01', 1168, 240, 'Datacenter'); wire('NAS-DC-01', 'lan1', 'SW-DC-01', 'port5');
   add('switch', 'SW-DC-02', 1072, 120, 'Datacenter'); wire('SW-DC-01', 'port8', 'SW-DC-02', 'port1');
-  ['VM-RH01', 'VM-WEB01'].forEach((n, i) => { add('vm', n, 1072 + i * 96, 20, 'Datacenter'); wire(n, 'eth0', 'SW-DC-02', `port${i + 2}`); });
+  ['VM-RH01', 'VM-WEB01'].forEach((n, i) => { add('vm', n, 1072 + i * 96, 20, 'Datacenter'); wire(n, 'eth0', 'SW-DC-02', `port${i + 2}`); dispatch({ type: 'infra.setHost', payload: { id: dev(n), host: dev('HV-DC-01') } }); });
 
   /* ---- agences Nord et Sud ---- */
   const agence = (code: string, site: string, x: number, y: number, uplinkPort: string) => {
