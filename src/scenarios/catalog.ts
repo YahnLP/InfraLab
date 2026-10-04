@@ -1,4 +1,4 @@
-import type { Level } from '../core';
+import { DAY, type Level } from '../core';
 import type { Hint, Scenario, Step } from './types';
 
 const MIN = 60_000;
@@ -19,7 +19,7 @@ function resolveSteps(ref: string, fields: { category: string; subcategory?: str
     { do: 'itsm.updateTicket', args: { id: ref, fields: { solution } } }, to('resolved'), to('closed'),
   ];
 }
-const level = (n: number) => ['', 'Découverte', 'Inventaire', 'Service Desk', 'Incidents techniques', 'ITIL'][n] ?? '';
+const level = (n: number) => ['', 'Découverte', 'Inventaire', 'Service Desk', 'Incidents techniques', 'ITIL', 'ITAM', 'CMDB'][n] ?? '';
 const NOREPLACE = [{ event: 'DeviceReplaced', message: 'Un équipement a été remplacé alors que la cause était ailleurs.' }, { event: 'DeviceRemoved', message: 'Un équipement a été supprimé du schéma.' }];
 
 export const SCENARIOS: Scenario[] = [
@@ -476,6 +476,235 @@ export const SCENARIOS: Scenario[] = [
       ...resolveSteps(T(2), { category: 'Réseau', subcategory: 'Poste sans réseau', impact: 'low', urgency: 'medium' }, 'Appliqué KB-0001 : câble rebranché, poste de nouveau en ligne.'),
     ],
     realWorld: 'Une base de connaissances (Knowledge) transforme une résolution en actif réutilisable : le service desk gagne du temps et le libre-service de l\'utilisateur devient possible.',
+  },
+  /* ============================ TP 26 ============================ */
+  {
+    id: 'tp-26-logiciels', number: 26, title: 'Logiciels et installations non autorisées', level: 6, levelLabel: level(6), difficulty: 2, duration: '40 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Sécuriser les équipements et les données', kind: 'worked' }],
+    context: 'Les quatre postes de NovaTech sont inventoriés par des agents. La direction demande un point sur les logiciels installés : seuls certains outils sont autorisés, et les logiciels de prise de contrôle à distance ne le sont pas.',
+    stages: [
+      { id: 's1', title: 'Lire l\'inventaire logiciel', objectives: ['find'],
+        lesson: ['L\'inventaire logiciel vient des **agents** : chaque poste remonte la liste de ce qui est installé, avec les versions. La page Logiciels agrège ces données et les compare à la réalité.', 'Deux colonnes à ne pas confondre : les installations **connues de l\'outil** (dernière remontée) et les installations **réelles** (ce qui est vraiment sur le poste).'],
+        debrief: ['L\'outil ne voit que ce que ses agents lui ont dit : un écart entre « connu » et « réel » est un signal à traiter.'] },
+      { id: 's2', title: 'Définir la politique et la faire respecter', objectives: ['policy', 'remove', 'why', 'clean'],
+        lesson: ['Une **politique logicielle** classe les logiciels : autorisés, interdits, ou non classés. Un logiciel interdit déclenche une alerte lorsqu\'il est détecté.', 'La **remédiation** se fait sur le poste (désinstaller). Mais l\'outil n\'est mis à jour qu\'à la **remontée suivante** de l\'agent : tant qu\'elle n\'a pas eu lieu, il continue d\'afficher l\'ancienne situation.'],
+        debrief: ['Détecter, décider, corriger, **vérifier que l\'outil le sait** : la boucle n\'est fermée que lorsque l\'inventaire reflète la réalité.'] },
+    ],
+    setup: [...['PC-COMPTA-01', 'PC21', 'PC22', 'PC23'].map((n): Step => ({ do: 'agent.install', args: { id: `@dev:${n}` } })), { advance: 10 * MIN }],
+    objectives: [
+      { id: 'find', label: 'Repérer le poste qui héberge un logiciel de prise de contrôle à distance', question: { prompt: 'Sur quel poste est installé un outil de prise de contrôle à distance ?', choices: ['PC-COMPTA-01', 'PC21', 'PC22', 'PC23'], correct: 3, explain: 'La page Logiciels liste les installations de TeamViewer : un seul poste est concerné, PC23.' } },
+      { id: 'policy', label: 'Le logiciel de prise de contrôle est classé interdit dans la politique', check: { k: 'policy', software: 'sw-teamviewer', is: 'forbidden' }, requires: ['find'] },
+      { id: 'remove', label: 'Le logiciel n\'est plus installé sur le poste concerné', check: { k: 'softwareInstalled', device: '@dev:PC23', software: 'sw-teamviewer', value: false }, requires: ['policy'] },
+      { id: 'why', label: 'Expliquer pourquoi l\'outil l\'affiche encore', requires: ['remove'], question: { prompt: 'Juste après la désinstallation, la page Logiciels montre toujours l\'installation interdite. Pourquoi ?', choices: ['La désinstallation a échoué', 'L\'outil ne connaît que la dernière remontée de l\'agent : il faut une nouvelle remontée', 'Le logiciel est aussi installé ailleurs', 'La politique n\'est pas enregistrée'], correct: 1, explain: 'La réalité a changé, pas encore l\'inventaire : l\'agent doit remonter à nouveau (forcer l\'inventaire ou avancer le temps).' } },
+      { id: 'clean', label: 'L\'outil ne connaît plus aucune installation interdite', check: { k: 'forbiddenCount', max: 0 }, requires: ['why'] },
+    ],
+    hints: [
+      { for: 'find', levels: ['Ouvrez la page Logiciels (menu Parc) et regardez qui a quoi.'] },
+      { for: 'remove', levels: ['La désinstallation se fait sur l\'équipement, dans la vue Infrastructure (section Logiciels).'] },
+      { for: 'clean', levels: ['L\'agent doit remonter son inventaire : forcez la remontée depuis l\'inspecteur du poste.'] },
+    ],
+    solutionText: ['Page Logiciels : TeamViewer est sur PC23. Le classer « Interdit ».', 'Vue Infrastructure : le désinstaller de PC23, puis forcer l\'inventaire.', 'Vérifier que la page Logiciels ne signale plus rien.'],
+    solution: [answer('find', 3), { do: 'itsm.setSoftwarePolicy', args: { softwareId: 'sw-teamviewer', policy: 'forbidden' } }, { do: 'infra.uninstallSoftware', args: { id: '@dev:PC23', softwareId: 'sw-teamviewer' } }, answer('why', 1), { do: 'agent.runInventory', args: { id: '@dev:PC23' } }],
+    realWorld: 'Les politiques de liste noire / liste blanche (GLPI, Intune, Lansweeper) alertent sur les installations non autorisées. L\'alerte vaut ce que vaut la fraîcheur de l\'inventaire.',
+  },
+
+  /* ============================ TP 27 ============================ */
+  {
+    id: 'tp-27-licences', number: 27, title: 'Licences et conformité', level: 6, levelLabel: level(6), difficulty: 3, duration: '45 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'NovaTech a acheté **3 licences Microsoft Office**. Quatre postes en sont équipés et inventoriés. Le service achats peut commander une licence supplémentaire. Déclarez les droits, mesurez la conformité, puis régularisez.',
+    stages: [
+      { id: 's1', title: 'Déclarer les droits', objectives: ['count', 'declare'],
+        lesson: ['Une **licence** est un droit d\'usage, pas un logiciel. L\'outil ne peut dire si le parc est conforme que si les **droits achetés** sont déclarés.', 'La conformité compare deux nombres : les **droits** (ce qu\'on a acheté) et les **installations** (ce que l\'inventaire a trouvé).'],
+        debrief: ['Sans droits déclarés, il n\'y a pas de conformité mesurable : on ne sait pas ce qu\'on a le droit d\'installer.'] },
+      { id: 's2', title: 'Constater et régulariser', objectives: ['verdict', 'compliant'],
+        lesson: ['Un dépassement se régularise de deux façons : **acheter** les droits manquants, ou **désinstaller** là où le logiciel n\'est pas nécessaire. Le choix est économique et organisationnel.', 'Après une désinstallation, la conformité n\'est constatée par l\'outil qu\'à la remontée suivante de l\'agent.'],
+        debrief: ['Régulariser, c\'est agir (acheter ou désinstaller), puis vérifier que l\'outil le confirme.'] },
+    ],
+    setup: [...['PC-COMPTA-01', 'PC21', 'PC22', 'PC23'].map((n): Step => ({ do: 'agent.install', args: { id: `@dev:${n}` } })), { advance: 10 * MIN }],
+    objectives: [
+      { id: 'count', label: 'Dénombrer les installations d\'Office connues de l\'outil', question: { prompt: 'Combien d\'installations de Microsoft Office l\'outil connaît-il ?', choices: ['2', '3', '4', 'Aucune : il faut d\'abord déclarer les droits'], correct: 2, explain: 'Les quatre postes ont remonté Office. C\'est le chiffre à comparer aux droits achetés.' } },
+      { id: 'declare', label: 'Les droits Office achetés sont déclarés dans l\'outil', check: { k: 'license', software: 'sw-office', exists: true }, requires: ['count'] },
+      { id: 'verdict', label: 'Conclure sur la conformité', requires: ['declare'], question: { prompt: 'Avec 3 droits achetés et 4 installations, le parc est…', choices: ['Conforme : il reste une marge', 'Non conforme : une installation est sans droit', 'Impossible à dire', 'Conforme tant que personne ne contrôle'], correct: 1, explain: 'Un dépassement de droits expose l\'entreprise à un redressement en cas d\'audit éditeur.' } },
+      { id: 'compliant', label: 'La licence Office est conforme dans l\'outil', check: { k: 'license', software: 'sw-office', state: 'compliant' }, requires: ['verdict'] },
+    ],
+    hints: [
+      { for: 'declare', levels: ['Menu Parc → Licences : ajoutez une licence pour Microsoft Office, avec le nombre de droits achetés (3).'] },
+      { for: 'compliant', levels: ['Deux voies : augmenter les droits (achat) ou désinstaller sur un poste. Dans les deux cas, vérifiez le tableau.', 'Après une désinstallation, forcez l\'inventaire du poste.'] },
+    ],
+    solutionText: ['Déclarer une licence Office de 3 droits : 4 installations connues → non conforme (+1).', 'Régulariser : acheter un droit (passer à 4) ou désinstaller Office d\'un poste puis forcer l\'inventaire.'],
+    solution: [answer('count', 2), { do: 'itsm.addLicense', args: { softwareId: 'sw-office', quantity: 3 } }, answer('verdict', 1), { do: 'itsm.updateLicense', args: { id: '@lic:LIC-0001', fields: { quantity: 4 } } }],
+    realWorld: 'Le Software Asset Management rapproche droits et installations (GLPI Licences, ServiceNow SAM Pro). Le coût d\'un écart découvert en audit dépasse en général celui de la licence manquante.',
+  },
+
+  /* ============================ TP 28 ============================ */
+  {
+    id: 'tp-28-contrats', number: 28, title: 'Contrats, fournisseurs et échéances', level: 6, levelLabel: level(6), difficulty: 2, duration: '35 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'NovaTech suit trois contrats chez deux fournisseurs. Aucune alerte n\'a été envoyée : à vous de lire les échéances, de renouveler ce qui doit l\'être et de rattacher les contrats aux équipements qu\'ils couvrent.',
+    stages: [
+      { id: 's1', title: 'Repérer les échéances', objectives: ['which'],
+        lesson: ['Un **contrat** a un fournisseur, un type (maintenance, licence, garantie, location) et des dates. Son état dépend du temps : **actif**, **échéance proche** (moins de 30 jours) ou **expiré**.', 'Un contrat expiré sans alerte, c\'est une maintenance qui s\'arrête, une garantie perdue ou une licence qui n\'est plus valable.'],
+        debrief: ['Surveiller les échéances, c\'est éviter de découvrir à la panne que la maintenance était terminée.'] },
+      { id: 's2', title: 'Renouveler et rattacher', objectives: ['renew1', 'renew2', 'cover', 'why'],
+        lesson: ['**Renouveler** prolonge la date de fin. **Rattacher** un contrat aux actifs qu\'il couvre permet, au moment d\'une panne, de savoir si l\'équipement est sous contrat.'],
+        debrief: ['Un contrat relié aux actifs devient utile le jour de la panne : on voit tout de suite si l\'équipement est couvert.'] },
+    ],
+    setup: [
+      DISCOVER,
+      { do: 'itsm.addSupplier', args: { name: 'Dell France' } }, { do: 'itsm.addSupplier', args: { name: 'Microsoft' } },
+      { do: 'itsm.addContract', args: { title: 'Maintenance des postes', supplierId: '@sup:Dell France', kind: 'maintenance', startAt: -300 * DAY, endAt: 20 * DAY } },
+      { do: 'itsm.addContract', args: { title: 'Abonnement Office', supplierId: '@sup:Microsoft', kind: 'licence', startAt: -400 * DAY, endAt: -5 * DAY } },
+      { do: 'itsm.addContract', args: { title: 'Garantie imprimante', supplierId: '@sup:Dell France', kind: 'warranty', startAt: -100 * DAY, endAt: 600 * DAY } },
+    ],
+    objectives: [
+      { id: 'which', label: 'Identifier les contrats qui demandent une action', question: { prompt: 'Quels contrats demandent une action aujourd\'hui ?', choices: ['CTR-0003 seulement', 'CTR-0001 (échéance proche) et CTR-0002 (expiré)', 'Les trois', 'Aucun'], correct: 1, explain: 'CTR-0001 expire dans 20 jours, CTR-0002 est déjà expiré. CTR-0003 est actif pour près de deux ans.' } },
+      { id: 'renew1', label: 'Le contrat de maintenance est de nouveau confortablement actif', check: { k: 'contract', ref: '@ctr:CTR-0001', state: 'active' }, requires: ['which'] },
+      { id: 'renew2', label: 'L\'abonnement expiré est de nouveau actif', check: { k: 'contract', ref: '@ctr:CTR-0002', state: 'active' }, requires: ['which'] },
+      { id: 'cover', label: 'Le contrat de maintenance est rattaché au poste PC-COMPTA-01', check: { k: 'contract', ref: '@ctr:CTR-0001', coversAsset: '@ast:PC-COMPTA-01' }, requires: ['renew1'] },
+      { id: 'why', label: 'Justifier le rattachement aux actifs', requires: ['cover'], question: { prompt: 'Pourquoi relier un contrat aux actifs qu\'il couvre ?', choices: ['Pour que l\'outil facture le fournisseur', 'Pour savoir, le jour d\'une panne, si l\'équipement est sous contrat', 'Parce que l\'outil l\'exige pour renouveler', 'Pour supprimer les actifs expirés'], correct: 1, explain: 'La fiche d\'actif affiche ses contrats : sous maintenance ou non, on sait qui appeler et si c\'est facturé.' } },
+    ],
+    hints: [{ for: 'renew1', levels: ['Menu Gestion → Contrats et fournisseurs : chaque ligne a un bouton « Renouveler +1 an ».'] }, { for: 'cover', levels: ['Dans la ligne du contrat, la liste « + actif… » permet de choisir les actifs couverts.'] }],
+    solutionText: ['Contrats : CTR-0001 expire dans 20 jours, CTR-0002 est expiré.', 'Renouveler les deux, puis rattacher la maintenance à PC-COMPTA-01.'],
+    solution: [answer('which', 1), { do: 'itsm.updateContract', args: { id: '@ctr:CTR-0001', fields: { endAt: 385 * DAY } } }, { do: 'itsm.updateContract', args: { id: '@ctr:CTR-0002', fields: { endAt: 360 * DAY } } }, { do: 'itsm.updateContract', args: { id: '@ctr:CTR-0001', fields: { assetIds: ['@ast:PC-COMPTA-01'] } } }, answer('why', 1)],
+    realWorld: 'GLPI : Gestion → Contrats, avec alertes d\'échéance ; ServiceNow : Contract Management. Un bon inventaire lie contrat, fournisseur et actif.',
+  },
+
+  /* ============================ TP 29 ============================ */
+  {
+    id: 'tp-29-cycle-de-vie', number: 29, title: 'Cycle de vie d\'un équipement', level: 6, levelLabel: level(6), difficulty: 2, duration: '45 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'NovaTech a commandé un ordinateur portable, PORTABLE-07, pour Chloé Dubois (Commercial). Accompagnez-le de la commande jusqu\'à sa fin de vie : réception, affectation, panne, retour, mise au rebut.',
+    stages: [
+      { id: 's1', title: 'Réceptionner', objectives: ['why', 'receive'],
+        lesson: ['Un actif a un **cycle de vie** : commandé, en stock, en service, en réparation, retiré. Chaque changement d\'état est enregistré : c\'est l\'historique de l\'équipement.', 'À la **réception**, l\'équipement passe de « commandé » à « en stock » : il existe physiquement, il n\'est pas encore à un utilisateur.'],
+        debrief: ['Le stock est l\'état de référence : un équipement qui n\'est ni en service ni retiré doit pouvoir être retrouvé.'] },
+      { id: 's2', title: 'Affecter à un utilisateur', objectives: ['assign'],
+        lesson: ['La mise en service **suppose un utilisateur** : on ne peut pas mettre un actif « en service » sans savoir à qui il est confié. Cette affectation est tracée.'],
+        debrief: ['Qui a quoi, depuis quand : c\'est la question à laquelle l\'historique d\'affectation répond.'] },
+      { id: 's3', title: 'Panne et réparation', objectives: ['repair', 'back'],
+        lesson: ['Un équipement en panne passe **en réparation**. S\'il est sous **garantie** ou sous contrat de maintenance, la réparation est prise en charge : vérifier la couverture avant d\'agir évite des frais inutiles.', 'Après réparation, il retourne en service chez le même utilisateur.'],
+        debrief: ['La réparation est un détour : l\'actif revient chez son utilisateur, l\'historique garde trace de l\'incident.'] },
+      { id: 's4', title: 'Fin de vie', objectives: ['unassign', 'retire', 'why2'],
+        lesson: ['En fin de vie, l\'actif est **restitué** (affectation retirée, retour au stock), puis **retiré**. Un actif retiré ne se réaffecte plus : on ne remet pas en circulation un matériel mis au rebut.'],
+        debrief: ['Le parcours complet reste lisible dans l\'historique : de la commande au rebut, chaque étape est datée.'] },
+    ],
+    setup: [{ do: 'itsm.createAsset', args: { name: 'PORTABLE-07', model: 'Latitude 5540', vendor: 'Dell', purchasedAt: 0, warrantyEnd: 1095 * DAY, cost: 1150 } }],
+    objectives: [
+      { id: 'why', label: 'Comprendre l\'état d\'un actif commandé', question: { prompt: 'PORTABLE-07 vient d\'être commandé. Où se trouve-t-il dans le cycle de vie ?', choices: ['En service chez Chloé', 'En stock', 'Commandé : il n\'est pas encore arrivé', 'Découvert par un agent'], correct: 2, explain: 'Un actif commandé existe dans l\'outil mais pas encore physiquement : ni stock, ni inventaire.' } },
+      { id: 'receive', label: 'PORTABLE-07 est réceptionné', check: { k: 'asset', asset: '@ast:PORTABLE-07', reached: 'stock' }, requires: ['why'] },
+      { id: 'assign', label: 'PORTABLE-07 est en service chez Chloé Dubois', check: { k: 'asset', asset: '@ast:PORTABLE-07', reached: 'in_use', assignedTo: '@usr:Chloé' }, requires: ['receive'] },
+      { id: 'repair', label: 'PORTABLE-07 est passé en réparation', check: { k: 'asset', asset: '@ast:PORTABLE-07', reached: 'repair' }, requires: ['assign'] },
+      { id: 'back', label: 'Après réparation, PORTABLE-07 est de nouveau en service chez Chloé', check: { k: 'all', of: [{ k: 'asset', asset: '@ast:PORTABLE-07', reached: 'repair' }, { k: 'asset', asset: '@ast:PORTABLE-07', reached: 'in_use', assignedTo: '@usr:Chloé' }] }, requires: ['repair'] },
+      { id: 'unassign', label: 'PORTABLE-07 est restitué au stock, sans utilisateur affecté', check: { k: 'asset', asset: '@ast:PORTABLE-07', reached: 'stock', unassigned: true }, requires: ['back'] },
+      { id: 'retire', label: 'PORTABLE-07 est retiré', check: { k: 'asset', asset: '@ast:PORTABLE-07', status: 'retired', unassigned: true }, requires: ['unassign'] },
+      { id: 'why2', label: 'Justifier qu\'un actif retiré ne se réaffecte pas', requires: ['retire'], question: { prompt: 'Pourquoi un actif retiré ne peut-il plus être remis en service ?', choices: ['Pour éviter de remettre en circulation un matériel mis au rebut (sécurité, traçabilité)', 'Parce que l\'outil le supprime', 'Parce que la garantie est finie', 'Parce que son utilisateur est parti'], correct: 0, explain: 'Un matériel retiré a été effacé, sorti du parc et souvent détruit : il ne doit plus réapparaître.' } },
+    ],
+    hints: [
+      { for: 'receive', levels: ['Menu Parc → PORTABLE-07 : la section Cycle de vie propose les étapes possibles.'] },
+      { for: 'assign', levels: ['Choisissez d\'abord l\'utilisateur dans la liste, puis l\'étape de mise en service.'] },
+      { for: 'retire', levels: ['L\'actif doit d\'abord être restitué au stock.'] },
+    ],
+    solutionText: ['Réceptionner (commandé → stock), affecter à Chloé (stock → en service).', 'Envoyer en réparation puis remettre en service.', 'Restituer au stock (affectation retirée), puis retirer.'],
+    solution: [
+      answer('why', 2),
+      { do: 'itsm.setAssetStatus', args: { id: '@ast:PORTABLE-07', to: 'stock' } }, { do: 'itsm.setAssetStatus', args: { id: '@ast:PORTABLE-07', to: 'in_use', user: '@usr:Chloé' } },
+      { do: 'itsm.setAssetStatus', args: { id: '@ast:PORTABLE-07', to: 'repair' } }, { do: 'itsm.setAssetStatus', args: { id: '@ast:PORTABLE-07', to: 'in_use' } },
+      { do: 'itsm.setAssetStatus', args: { id: '@ast:PORTABLE-07', to: 'stock' } }, { do: 'itsm.setAssetStatus', args: { id: '@ast:PORTABLE-07', to: 'retired' } }, answer('why2', 0),
+    ],
+    realWorld: 'Le cycle de vie d\'un actif (ITAM) : Ordered → In stock → In use → In repair → Retired (ServiceNow Hardware Asset Management, GLPI états). L\'historique sert aux audits et à la gestion des garanties.',
+  },
+
+  /* ============================ TP 30 ============================ */
+  {
+    id: 'tp-30-reaffectation', number: 30, title: 'Réaffectation d\'un poste', level: 6, levelLabel: level(6), difficulty: 3, duration: '45 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'Bruno Leroy quitte NovaTech. Son poste PC21 doit être restitué, puis confié à Nadia Roux (Commercial) qui arrive. Dans l\'outil comme dans la réalité, il ne doit rester aucune trace d\'affectation à Bruno.',
+    stages: [
+      { id: 's1', title: 'Restituer le poste', objectives: ['why', 'return'],
+        lesson: ['Un départ déclenche une **restitution** : le poste revient au stock et l\'affectation est retirée. On ne réaffecte pas directement d\'une personne à l\'autre : la restitution marque la fin de la responsabilité de Bruno et conserve l\'historique.'],
+        debrief: ['Restituer avant de réaffecter garde une chaîne claire : à chaque instant, on sait qui est responsable du poste.'] },
+      { id: 's2', title: 'Préparer et réaffecter', objectives: ['session', 'assign', 'sync'],
+        lesson: ['Dans la **réalité**, le poste doit être préparé : session de l\'ancien utilisateur remplacée par celle du nouveau. Dans l\'**outil**, l\'affectation doit suivre, et l\'inventaire de l\'agent confirme l\'utilisateur connecté.', 'Si l\'un des deux est oublié, l\'outil et la réalité divergent : c\'est exactement ce que les audits repèrent.'],
+        debrief: ['Réalité, affectation, inventaire : trois sources qui doivent dire la même chose.'] },
+    ],
+    setup: [
+      { do: 'itsm.addUser', args: { name: 'Nadia Roux', service: 'Commercial' } },
+      { do: 'agent.install', args: { id: '@dev:PC21' } }, { advance: 10 * MIN }, DISCOVER,
+      { do: 'itsm.assignAsset', args: { id: '@ast:PC21', user: '@usr:Bruno' } },
+    ],
+    objectives: [
+      { id: 'why', label: 'Justifier la restitution avant réaffectation', question: { prompt: 'Pourquoi restituer d\'abord PC21 au stock plutôt que de l\'affecter directement à Nadia ?', choices: ['Parce que l\'outil l\'interdit', 'Pour marquer la fin de la responsabilité de Bruno et garder un historique clair', 'Pour libérer une licence', 'Pour que Nadia soit notifiée'], correct: 1, explain: 'La restitution est une étape tracée : elle documente le départ de Bruno et prépare la remise propre du poste.' } },
+      { id: 'return', label: 'PC21 est restitué au stock, sans utilisateur affecté', check: { k: 'asset', asset: '@ast:PC21', reached: 'stock', unassigned: true }, requires: ['why'] },
+      { id: 'session', label: 'Le poste est préparé pour Nadia (plus de session de Bruno)', check: { k: 'deviceUser', device: '@dev:PC21', user: '@usr:Nadia' }, requires: ['return'] },
+      { id: 'assign', label: 'PC21 est en service chez Nadia Roux', check: { k: 'asset', asset: '@ast:PC21', status: 'in_use', assignedTo: '@usr:Nadia' }, requires: ['return'] },
+      { id: 'sync', label: 'L\'inventaire confirme la réalité : l\'outil est à jour', check: { k: 'assetInSync', device: '@dev:PC21' }, requires: ['session', 'assign'] },
+    ],
+    hints: [
+      { for: 'return', levels: ['Fiche de l\'actif PC21 → Cycle de vie : « Restituer au stock ».'] },
+      { for: 'session', levels: ['La session ouverte se règle dans la vue Infrastructure, sur le poste.'] },
+      { for: 'sync', levels: ['L\'outil ne connaît que la dernière remontée de l\'agent : forcez l\'inventaire après avoir préparé le poste.'] },
+    ],
+    solutionText: ['Restituer PC21 au stock : l\'affectation de Bruno disparaît.', 'Préparer le poste pour Nadia (session), l\'affecter dans l\'outil.', 'Forcer l\'inventaire pour que l\'outil reflète la réalité.'],
+    solution: [answer('why', 1), { do: 'itsm.setAssetStatus', args: { id: '@ast:PC21', to: 'stock' } }, { do: 'infra.setLoggedUser', args: { id: '@dev:PC21', user: '@usr:Nadia' } }, { do: 'itsm.setAssetStatus', args: { id: '@ast:PC21', to: 'in_use', user: '@usr:Nadia' } }, { do: 'agent.runInventory', args: { id: '@dev:PC21' } }],
+    realWorld: 'Une procédure départ / arrivée (offboarding / onboarding) couvre : récupération du matériel, effacement, désaffectation des comptes et licences, nouvelle affectation. L\'historique de propriété sert aux audits.',
+  },
+
+  /* ============================ TP 31 ============================ */
+  {
+    id: 'tp-31-creer-des-ci', number: 31, title: 'Créer des éléments de configuration', level: 7, levelLabel: level(7), difficulty: 2, duration: '35 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }],
+    context: 'La CMDB de NovaTech est vide. La comptabilité s\'appuie sur un poste, une imprimante, et sur un service : la facturation. Constituez les CI qui permettront, plus tard, de mesurer l\'impact d\'une panne.',
+    stages: [
+      { id: 's1', title: 'Actif ou élément de configuration ?', objectives: ['what'],
+        lesson: ['Un **actif** est ce qu\'on possède et gère (inventaire, finances). Un **CI**, élément de configuration, est ce dont on veut connaître les **liens** et les **conséquences d\'une panne**.', 'On n\'inscrit pas tout en CMDB : seulement ce qui a des dépendances ou un impact. Une base trop large devient impossible à tenir à jour.'],
+        debrief: ['Un CI est un choix de modélisation : on y met ce qui aide à répondre à « qui est touché si ça tombe ? ».'] },
+      { id: 's2', title: 'Créer les CI', objectives: ['pc', 'printer', 'service', 'why'],
+        lesson: ['Un CI d\'**infrastructure** repose sur un actif. Un CI de **service** (la facturation, la messagerie) n\'a pas d\'équipement propre : il décrit ce que les utilisateurs reçoivent, et dépendra d\'équipements.'],
+        debrief: ['Infrastructure en bas, services en haut : c\'est la structure d\'une CMDB. Les relations (TP 32) les relient.'] },
+    ],
+    setup: [DISCOVER],
+    objectives: [
+      { id: 'what', label: 'Distinguer actif et CI', question: { prompt: 'Qu\'est-ce qui justifie d\'inscrire un élément en CMDB ?', choices: ['Il a une valeur d\'achat élevée', 'Il a des dépendances ou son arrêt a des conséquences à mesurer', 'Il a été découvert par un agent', 'Il est installé depuis plus d\'un an'], correct: 1, explain: 'La CMDB sert à mesurer l\'impact : on y met ce qui a des liens et des conséquences, pas tout ce qu\'on possède.' } },
+      { id: 'pc', label: 'Le poste PC-COMPTA-01 est un CI d\'infrastructure', check: { k: 'ci', name: '@ci:PC-COMPTA-01', ciKind: 'infrastructure', withAsset: true }, requires: ['what'] },
+      { id: 'printer', label: 'L\'imprimante IMP-COMPTA est un CI d\'infrastructure', check: { k: 'ci', name: '@ci:IMP-COMPTA', ciKind: 'infrastructure', withAsset: true }, requires: ['what'] },
+      { id: 'service', label: 'Le service « Facturation comptable » existe comme CI de service', check: { k: 'ci', name: '@ci:Facturation comptable', ciKind: 'service' }, requires: ['what'] },
+      { id: 'why', label: 'Comprendre pourquoi un service est un CI sans actif', requires: ['service'], question: { prompt: 'Pourquoi le CI « Facturation comptable » n\'est-il lié à aucun actif ?', choices: ['Parce qu\'il a été oublié', 'Parce qu\'un service n\'est pas un équipement : il repose sur plusieurs équipements', 'Parce que l\'outil ne le permet pas', 'Parce qu\'il est gratuit'], correct: 1, explain: 'Un service est un résultat pour l\'utilisateur ; il dépend d\'équipements, via des relations.' } },
+    ],
+    hints: [{ for: 'pc', levels: ['Menu Gestion → CMDB : « Promouvoir un actif en CI ».'] }, { for: 'service', levels: ['Même page : « Nouveau service ou application ».'] }],
+    solutionText: ['Promouvoir PC-COMPTA-01 et IMP-COMPTA en CI d\'infrastructure.', 'Créer le CI de service « Facturation comptable ».'],
+    solution: [answer('what', 1), { do: 'itsm.createCi', args: { name: 'PC-COMPTA-01', kind: 'infrastructure', asset: '@ast:PC-COMPTA-01' } }, { do: 'itsm.createCi', args: { name: 'IMP-COMPTA', kind: 'infrastructure', asset: '@ast:IMP-COMPTA' } }, { do: 'itsm.createCi', args: { name: 'Facturation comptable', kind: 'service' } }, answer('why', 1)],
+    realWorld: 'Dans ServiceNow, la CMDB contient des « CI » classés par classes ; GLPI parle d\'éléments et de liens entre éléments. Le modèle de services (Service Mapping) relie les services aux équipements.',
+  },
+
+  /* ============================ TP 32 ============================ */
+  {
+    id: 'tp-32-relations', number: 32, title: 'Relations et analyse d\'impact', level: 7, levelLabel: level(7), difficulty: 3, duration: '45 min',
+    skills: [{ ref: 'Gérer le patrimoine informatique', kind: 'worked' }, { ref: 'Administrer une infrastructure', kind: 'worked' }],
+    context: 'La CMDB de NovaTech contient le poste de la comptabilité, l\'imprimante, le switch du siège et le service « Facturation comptable ». Aucune relation n\'est déclarée pour ce service. Déclarez-les, puis servez-vous de la CMDB pour mesurer l\'effet d\'une panne du switch.',
+    stages: [
+      { id: 's1', title: 'Déclarer les dépendances', objectives: ['auto', 'rel1', 'rel2'],
+        lesson: ['Deux sortes de relations : celles qui se **découvrent**, comme « connecté à », déduites du câblage réel ; et celles qui se **déclarent**, comme « dépend de » ou « utilise », qui expriment un usage.', 'Un service **dépend de** ce sans quoi il ne fonctionne pas : ici, le poste qui édite les factures et l\'imprimante qui les sort.'],
+        debrief: ['Les relations déduites sont fiables mais physiques ; les relations déclarées portent le sens métier, et c\'est à vous de les maintenir.'] },
+      { id: 's2', title: 'Mesurer l\'impact d\'une panne', objectives: ['impact'],
+        lesson: ['L\'**analyse d\'impact** répond à : « si cet élément tombe, qui est touché ? ». Elle combine la propagation **physique** (ce qui perd la connexion) et les dépendances **déclarées** (les services qui reposent sur ce qui est coupé).', 'Dans la fiche d\'un CI, l\'encadré « Si ce CI tombe » fait cette simulation sans toucher à l\'infrastructure.'],
+        debrief: ['Savoir à l\'avance quels services une panne atteint permet de prioriser, et d\'informer les bonnes personnes.'] },
+    ],
+    setup: [
+      { do: 'infra.setIp', args: { id: '@dev:SW-SIEGE-01', ip: '192.168.10.1', mask: 24 } }, DISCOVER,
+      { do: 'itsm.createCi', args: { name: 'PC-COMPTA-01', kind: 'infrastructure', asset: '@ast:PC-COMPTA-01' } }, { do: 'itsm.createCi', args: { name: 'IMP-COMPTA', kind: 'infrastructure', asset: '@ast:IMP-COMPTA' } },
+      { do: 'itsm.createCi', args: { name: 'SW-SIEGE-01', kind: 'infrastructure', asset: '@ast:SW-SIEGE-01' } }, { do: 'itsm.createCi', args: { name: 'Facturation comptable', kind: 'service' } },
+    ],
+    objectives: [
+      { id: 'auto', label: 'Comprendre d\'où viennent les relations « connecté à »', question: { prompt: 'Dans la fiche du CI SW-SIEGE-01, des relations « connecté à » apparaissent sans que personne ne les ait saisies. D\'où viennent-elles ?', choices: ['Elles ont été importées d\'un fichier', 'Elles sont déduites du câblage réel entre équipements qui ont un CI', 'Elles sont devinées par l\'outil à partir du nom', 'Elles ont été créées par le TP'], correct: 1, explain: 'Le câblage de l\'infrastructure est la source : si deux équipements câblés ont un CI, l\'outil en déduit le lien.' } },
+      { id: 'rel1', label: 'Le service dépend du poste de comptabilité', check: { k: 'relation', from: '@ci:Facturation comptable', to: '@ci:PC-COMPTA-01', type: 'depends_on' }, requires: ['auto'] },
+      { id: 'rel2', label: 'Le service dépend de l\'imprimante de la comptabilité', check: { k: 'relation', from: '@ci:Facturation comptable', to: '@ci:IMP-COMPTA', type: 'depends_on' }, requires: ['auto'] },
+      { id: 'impact', label: 'Prévoir l\'effet d\'une panne du switch du siège', requires: ['rel1', 'rel2'], question: { prompt: 'Si SW-SIEGE-01 tombe, quels services sont touchés ?', choices: ['Aucun : le switch n\'est pas un service', 'Facturation comptable, car son poste et son imprimante perdent leur connexion', 'Seulement l\'imprimante', 'Tous les services de l\'entreprise sans exception'], correct: 1, explain: 'Le switch coupe PC-COMPTA-01 et IMP-COMPTA ; le service qui en dépend est atteint. L\'encadré « Si ce CI tombe » le montre.' } },
+    ],
+    hints: [{ for: 'rel1', levels: ['Menu Gestion → CMDB, ouvrez la fiche « Facturation comptable » : on y ajoute les relations.'] }, { for: 'impact', levels: ['Ouvrez la fiche de SW-SIEGE-01 : l\'encadré « Si SW-SIEGE-01 tombe » fait la simulation.'] }],
+    solutionText: ['Fiche « Facturation comptable » : ajouter « dépend de » PC-COMPTA-01 et IMP-COMPTA.', 'Fiche SW-SIEGE-01 : l\'encadré d\'impact liste Facturation comptable.'],
+    solution: [answer('auto', 1), { do: 'itsm.addRelation', args: { from: '@ci:Facturation comptable', to: '@ci:PC-COMPTA-01', type: 'depends_on' } }, { do: 'itsm.addRelation', args: { from: '@ci:Facturation comptable', to: '@ci:IMP-COMPTA', type: 'depends_on' } }, answer('impact', 1)],
+    realWorld: 'La CMDB sert surtout à l\'analyse d\'impact : avant un changement (qui est touché ?) et pendant un incident (quels services sont atteints ?).',
   },
 ];
 

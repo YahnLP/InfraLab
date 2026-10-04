@@ -1,5 +1,5 @@
-import type { ChangeStatus, ChangeType, Level, ProblemStatus, TicketStatus } from '../core';
-import type { SlaState } from '../itsm';
+import type { Asset, ChangeStatus, ChangeType, Level, ProblemStatus, TicketStatus } from '../core';
+import type { ContractState, Compliance, SlaState } from '../itsm';
 import type { AgentHealth } from '../inventory';
 
 /**
@@ -22,6 +22,15 @@ export type Check =
   | { k: 'change'; ref: Ref; status?: ChangeStatus; reached?: ChangeStatus; type?: ChangeType; linkedDevice?: Ref; linkedAsset?: Ref; approver?: Ref }
   | { k: 'article'; ref: Ref; status?: 'draft' | 'published'; category?: string; sourceTicket?: Ref; minTickets?: number }
   | { k: 'answer'; question: string }
+  | { k: 'license'; software: string; state?: Compliance; exists?: boolean }
+  | { k: 'policy'; software: string; is: 'authorized' | 'forbidden' }
+  | { k: 'softwareInstalled'; device: Ref; software: string; value?: boolean }
+  | { k: 'forbiddenCount'; max: number }
+  | { k: 'contract'; ref: Ref; state?: ContractState; coversAsset?: Ref }
+  | { k: 'asset'; asset: Ref; status?: Asset['status']; reached?: Asset['status']; assignedTo?: Ref; unassigned?: boolean }
+  | { k: 'deviceUser'; device: Ref; user: Ref }
+  | { k: 'ci'; name: Ref; ciKind?: 'service' | 'application' | 'infrastructure'; withAsset?: boolean }
+  | { k: 'relation'; from: Ref; to: Ref; type?: 'depends_on' | 'uses' | 'hosted_on' }
   | { k: 'event'; type: string; subject?: Ref }
   | { k: 'all'; of: Check[] };
 

@@ -1,6 +1,6 @@
 import type { DomainEvent, State } from '../core';
 import { agentHealth, assetForDevice, driftReport } from '../inventory';
-import { slaOf, ticketPriority } from '../itsm';
+import { contractState, forbiddenInstalls, licenseReport, licensesForSoftware, slaOf, ticketPriority } from '../itsm';
 import { resolveRefs } from './resolve';
 import type { Check } from './types';
 
@@ -31,6 +31,27 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
       if (c.linkedDevice) { const a = assetForDevice(st, c.linkedDevice); if (!a || !t.assetIds.includes(a.id)) return false; }
       return true;
     }
+    case 'license': { const l = licensesForSoftware(st, c.software); if (!l.length) return false; return !c.state || l.every(x => licenseReport(st, x, now).state === c.state); }
+    case 'policy': return st.management.softwarePolicy[c.software] === c.is;
+    case 'softwareInstalled': { const d = dev(c.device); return !!d && d.software.some(x => x.softwareId === c.software) === (c.value ?? true); }
+    case 'forbiddenCount': return forbiddenInstalls(st).length <= c.max;
+    case 'contract': { const x = st.management.contracts[c.ref]; if (!x) return false; return (!c.state || contractState(x, now) === c.state) && (!c.coversAsset || x.assetIds.includes(c.coversAsset)); }
+    case 'asset': {
+      const a = st.management.assets[c.asset]; if (!a) return false;
+      const ev = (type: string, f: (e: DomainEvent) => boolean) => events.some(e => e.type === type && e.subject.id === a.id && f(e));
+      if (c.reached) {
+        // Vérification « a atteint » : l'historique fait foi, l'état courant a pu évoluer depuis.
+        if (!ev('AssetStatusChanged', e => e.payload['to'] === c.reached)) return false;
+        if (c.assignedTo && !ev('AssetAssigned', e => e.payload['user'] === c.assignedTo)) return false;
+        if (c.unassigned && !ev('AssetAssigned', e => e.payload['user'] === null)) return false;
+        return !c.status || a.status === c.status;
+      }
+      if (c.status && a.status !== c.status) return false; if (c.assignedTo && a.assignedTo !== c.assignedTo) return false; if (c.unassigned && a.assignedTo) return false;
+      return true;
+    }
+    case 'deviceUser': return dev(c.device)?.loggedUser === c.user;
+    case 'ci': { const x = st.management.cis[c.name]; return !!x && (!c.ciKind || x.kind === c.ciKind) && (c.withAsset === undefined || !!x.assetId === c.withAsset); }
+    case 'relation': return Object.values(st.management.relations).some(r => r.from === c.from && r.to === c.to && (!c.type || r.type === c.type));
     case 'answer': return !!st.session?.answers[c.question]?.correct;
     case 'sla': { const t = st.management.tickets[c.ticket]; const sl = t && slaOf(t, now); return !!sl && (!c.respond || sl.respond.state === c.respond) && (!c.resolve || sl.resolve.state === c.resolve); }
     case 'problem': {

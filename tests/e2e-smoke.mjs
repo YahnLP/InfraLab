@@ -136,6 +136,16 @@ await page.locator('select[name=requester]').selectOption({ index: 1 }); await p
 await page.getByLabel('Catégorie', { exact: true }).selectOption('Réseau'); await page.getByLabel('Impact').selectOption('high'); await page.getByLabel('Urgence').selectOption('high');
 ok((await page.locator('.itsm-page').textContent()).includes('reste'), 'SLA affiché avec le temps restant (P1)');
 await page.screenshot({ path: `${shots}/m5-sla.png` });
+// M6 : ITAM + CMDB
+await page.getByRole('button', { name: 'Logiciels', exact: true }).click();
+ok((await page.locator('.itsm-page').textContent()).length > 50, 'page Logiciels affichée');
+await page.getByRole('button', { name: 'Licences', exact: true }).click();
+ok((await page.locator('.itsm-page').textContent()).length > 50, 'page Licences affichée');
+await page.getByRole('button', { name: /Contrats/ }).click();
+ok((await page.locator('.itsm-page').textContent()).length > 50, 'page Contrats et fournisseurs affichée');
+await page.getByRole('button', { name: 'CMDB', exact: true }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('CI'), 'page CMDB affichée');
+await page.screenshot({ path: `${shots}/m6-cmdb.png` });
 await page.getByRole('tab', { name: 'Infrastructure' }).click();
 
 // pose par glisser-déposer + câblage

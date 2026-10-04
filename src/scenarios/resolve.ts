@@ -15,6 +15,10 @@ function resolveOne(st: Readonly<State>, ref: string): string {
     : kind === 'usr' ? Object.values(st.management.users).find(u => u.name.startsWith(key))
     : kind === 'ast' ? Object.values(st.management.assets).find(a => a.name === key)
     : kind === 'tkt' ? Object.values(st.management.tickets).find(t => t.ref === key)
+    : kind === 'ci' ? Object.values(st.management.cis).find(t => t.name === key)
+    : kind === 'sup' ? Object.values(st.management.suppliers).find(t => t.name === key)
+    : kind === 'ctr' ? Object.values(st.management.contracts).find(t => t.ref === key)
+    : kind === 'lic' ? Object.values(st.management.licenses).find(t => t.ref === key)
     : kind === 'prb' ? Object.values(st.management.problems).find(t => t.ref === key)
     : kind === 'chg' ? Object.values(st.management.changes).find(t => t.ref === key)
     : kind === 'kb' ? Object.values(st.management.articles).find(t => t.ref === key) : undefined;

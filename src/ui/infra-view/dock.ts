@@ -12,7 +12,7 @@ export class Dock {
   constructor(private root: HTMLElement, private store: Store, private onFocus: (deviceId: string) => void) {
     store.subscribe(() => this.render()); this.render();
   }
-  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.tickets[id]?.ref ?? st.management.problems[id]?.ref ?? st.management.changes[id]?.ref ?? st.management.articles[id]?.ref ?? (id.startsWith('tp-') ? `TP ${getScenario(id)?.number ?? ''}` : undefined) ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
+  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.contracts[id]?.ref ?? st.management.licenses[id]?.ref ?? st.management.cis[id]?.ref ?? st.management.suppliers[id]?.name ?? st.management.tickets[id]?.ref ?? st.management.problems[id]?.ref ?? st.management.changes[id]?.ref ?? st.management.articles[id]?.ref ?? (id.startsWith('tp-') ? `TP ${getScenario(id)?.number ?? ''}` : undefined) ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
   private describe(e: DomainEvent): string {
     const p = e.payload as Record<string, any>;
     switch (e.type) {
