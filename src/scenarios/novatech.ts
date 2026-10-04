@@ -1,9 +1,9 @@
-import type { Store } from '../../core';
+import type { Store } from '../core';
 
 type D = (c: { type: string; payload?: Record<string, unknown> }) => boolean;
 
 /** Mini-SI du siège NovaTech : de quoi manipuler tout M1. (Le vrai jeu de données NovaTech arrive avec le moteur de TP.) */
-export function seedExample(store: Store, dispatch: D): void {
+export function seedNovatech(store: Store, dispatch: D): void {
   const id = (name: string) => Object.values(store.getState().reality.devices).find(d => d.name === name)!.id;
   const add = (kind: string, name: string, x: number, y: number) => dispatch({ type: 'infra.addDevice', payload: { kind, name, x, y } });
   const wire = (a: string, ap: string, b: string, bp: string) => dispatch({ type: 'infra.connect', payload: { aDevice: id(a), aPort: ap, bDevice: id(b), bPort: bp } });

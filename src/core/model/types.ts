@@ -85,6 +85,14 @@ export interface Ticket {
   createdAt: number; updatedAt: number; resolvedAt?: number; closedAt?: number;
 }
 
+/* ---- Session de TP (M4) ---- */
+export interface Session {
+  scenarioId: string; mode: 'tp' | 'exam'; startedAt: number;
+  /** Les événements du journal à partir de cet index sont ceux du joueur (le décor précède). */
+  logStart: number;
+  hints: Record<string, number>; solutionViewed: boolean; finishedAt?: number;
+}
+
 /* ---------------- État global ---------------- */
 export interface State {
   schemaVersion: 1;
@@ -93,6 +101,8 @@ export interface State {
   management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket> };
   /** Sélection partagée entre les deux vues (« Voir dans l'infrastructure »). */
   focus: EntityRef | null;
+  /** Scénario en cours, ou null en mode libre. */
+  session: Session | null;
 }
 
 export function emptyState(): State {
@@ -100,7 +110,7 @@ export function emptyState(): State {
     schemaVersion: 1, counters: {},
     reality: { devices: {}, links: {}, itsmServerId: null },
     management: { assets: {}, users: {}, tickets: {} },
-    focus: null,
+    focus: null, session: null,
   };
 }
 

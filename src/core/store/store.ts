@@ -106,7 +106,7 @@ export class Store {
   /* ---- snapshot / reset ---- */
   snapshot(): { state: State; log: DomainEvent[] } { return structuredClone({ state: this.state, log: this.log }); }
   restore(s: { state: State; log: DomainEvent[] }): void {
-    const c = structuredClone(s); c.state.management.tickets ??= {}; this.state = c.state; this.log = c.log;
+    const c = structuredClone(s); c.state.management.tickets ??= {}; c.state.session ??= null; this.state = c.state; this.log = c.log;
     this.listeners.forEach(l => l([], this.state));
   }
 }

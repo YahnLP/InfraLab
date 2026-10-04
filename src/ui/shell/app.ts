@@ -8,7 +8,7 @@ import { InfraCanvas, type Selection } from '../infra-view/canvas';
 import { Dock } from '../infra-view/dock';
 import { renderInspector } from '../infra-view/inspector';
 import { glyphSvg } from '../infra-view/icons';
-import { seedExample } from './example';
+import { seedNovatech as seedExample } from '../../scenarios';
 import { fmtTime } from './labels';
 
 const KEY = 'infralab.project.v0';
