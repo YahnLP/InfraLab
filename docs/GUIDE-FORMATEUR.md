@@ -57,7 +57,7 @@ Les TP d'un même niveau sont indépendants : l'ordre à l'intérieur d'une séa
 
 ## 6. Limites connues
 
-Réseau d'entreprise simplifié (tous les sites sur le même réseau) ; SLA en temps continu (24 h / 24) ; pas de groupes d'utilisateurs ; les machines virtuelles ne sont pas rattachées à leur hyperviseur ; la sauvegarde est locale au navigateur (vider les données du site efface le projet) ; les TP ne déclenchent pas d'événements en cours de route.
+Réseau d'entreprise simplifié (tous les sites sur le même réseau) ; SLA en temps continu (24 h / 24) ; pas de groupes d'utilisateurs ; les machines virtuelles ne sont pas rattachées à leur hyperviseur ; la copie automatique est locale au navigateur (vider les données du site l'efface) : faire enregistrer un fichier .infralab.json pour garder un travail ; les TP ne déclenchent pas d'événements en cours de route.
 
 ## 7. Questions fréquentes
 

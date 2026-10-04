@@ -29,12 +29,12 @@
 5. **Vérifications « a atteint »** : certains objectifs se lisent dans l'historique des événements plutôt que dans l'état final (un actif qui passe en réparation puis revient en service a bien « atteint » l'état de réparation).
 6. **SLA** : calendrier continu (24 h / 24, 7 j / 7) ; pas de calendrier ouvré. L'état « en attente » suspend l'horloge.
 7. **NovaTech complet** : une quarantaine d'équipements (et non soixante), un seul réseau pour tous les sites (liaisons inter-sites en couche 2) afin de garder la notion de « joignable par l'outil » lisible ; Office est dépassé de 3 installations (et non 7). Les machines virtuelles sont câblées comme des équipements ordinaires : le lien machine virtuelle ↔ hyperviseur n'est pas modélisé.
-8. **Sauvegarde** : locale au navigateur (`localStorage`), versionnée par la forme de l'état avec normalisation à la restauration. L'export/import d'un projet complet au format JSON n'est pas livré ; ce qui s'exporte, c'est le compte rendu de TP.
+8. **Sauvegarde** : locale au navigateur (`localStorage`), versionnée par la forme de l'état avec normalisation à la restauration. Depuis M9, un projet complet (TP en cours compris) s'enregistre et se rouvre dans un fichier `.infralab.json` choisi par l'élève (API File System Access sous Chrome/Edge, téléchargement et import ailleurs). Le compte rendu de TP reste un export distinct.
 9. **Accessibilité** : étiquettes ARIA, navigation au clavier, thème clair et sombre. Un audit automatisé (axe-core, règles WCAG 2.1 A et AA, `tests/a11y-audit.mjs`) sur 15 vues dans les deux thèmes ne relève plus aucune violation. **Pas d'audit manuel** avec un lecteur d'écran (voir « Reste à faire »).
 10. **Chronologie scénarisée** : un TP prépare un état initial, mais ne déclenche pas d'événements en cours de route (pas de ticket qui arrive à l'étape 3).
 
 ### Reste à faire (hors périmètre livré)
-Essai en classe et retours d'élèves ; audit d'accessibilité manuel (lecteur d'écran, navigation clavier de bout en bout) ; export/import de projet ; groupes et délégation ; calendrier ouvré pour les SLA ; événements scénarisés dans le temps ; liaison machine virtuelle ↔ hyperviseur.
+Essai en classe et retours d'élèves ; audit d'accessibilité manuel (lecteur d'écran, navigation clavier de bout en bout) ; groupes et délégation ; calendrier ouvré pour les SLA ; événements scénarisés dans le temps ; liaison machine virtuelle ↔ hyperviseur.
 
 ---
 

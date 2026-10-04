@@ -210,6 +210,10 @@ await p2.locator('input[type=file]').setInputFiles({ name: 'x.json', mimeType: '
 ok(await p2.locator('.toast.err').count() === 1, 'fichier étranger refusé avec un message');
 await p2.getByRole('button', { name: 'Aide' }).click();
 ok(await p2.locator('dialog.help[open]').count() === 1 && (await p2.locator('dialog.help').textContent()).includes('Créé par Yahn LE PRETTRE'), 'aide : fenêtre ouverte avec la présentation');
+ok(await p2.locator('dialog.help [role=tab]').count() === 4, 'aide : 4 onglets (Prise en main, Couverture, Limites, Licence et auteur)');
+await p2.getByRole('tab', { name: 'Couverture du programme' }).click();
+ok(await p2.locator('.covtable tbody tr').count() >= 15, 'aide : tableau de couverture du programme');
+await p2.getByRole('tab', { name: 'Licence et auteur' }).click();
 await p2.screenshot({ path: `${shots}/m9-aide.png` });
 await p2.keyboard.press('Escape');
 ok(await p2.locator('a.credit[href="https://formaxionlandes.fr/"]').count() === 1, 'crédit auteur cliquable vers formaxionlandes.fr');
