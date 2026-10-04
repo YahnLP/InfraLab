@@ -216,7 +216,10 @@ ok(await p2.locator('.covtable tbody tr').count() >= 15, 'aide : tableau de couv
 await p2.getByRole('tab', { name: 'Licence et auteur' }).click();
 ok((await p2.locator('.help-panel').textContent()).includes('EUPL 1.2') && await p2.locator('.help-panel details.legal').count() === 1, 'aide : licence EUPL 1.2 et mention sur le nom');
 await p2.screenshot({ path: `${shots}/m9-aide.png` });
-await p2.keyboard.press('Escape');
+await p2.getByRole('button', { name: 'Fermer' }).click();
+ok(await p2.locator('dialog.help').isVisible() === false, 'aide : le bouton Fermer ferme la fenêtre');
+await p2.getByRole('button', { name: 'Aide' }).click(); await p2.keyboard.press('Escape');
+ok(await p2.locator('dialog.help').isVisible() === false, 'aide : Échap ferme la fenêtre');
 ok(await p2.locator('a.credit[href="https://formaxionlandes.fr/"]').count() === 1, 'crédit auteur cliquable vers formaxionlandes.fr');
 ok(await p2.locator('dialog.help a[href="https://yahnlp.github.io/simulateur-reseau/"]').count() === 1 && await p2.locator('dialog.help a[href="https://yahnlp.github.io/DockerLab/"]').count() === 1, 'aide : liens vers Simulateur Réseau et Docker Lab');
 await p2.screenshot({ path: `${shots}/m9-entete.png` });

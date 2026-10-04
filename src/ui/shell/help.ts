@@ -89,7 +89,7 @@ export function openHelp(dlg: HTMLDialogElement, initial = 0): void {
     tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === i)); t.setAttribute('tabindex', k === i ? '0' : '-1'); t.classList.toggle('on', k === i); });
     panel.setAttribute('aria-labelledby', `help-tab-${i}`); clear(panel); panel.append(...TABS[i]![1]()); panel.scrollTop = 0;
   }
-  dlg.append(h('div', { class: 'help' },
+  dlg.append(h('div', { class: 'help-body' },
     h('header', null, h('h2', null, `Aide — ${APP_NAME}`), h('p', { class: 'muted' }, `${APP_TAGLINE} · Version ${APP_VERSION} · `, link(AUTHOR_URL, `Créé par ${APP_AUTHOR}`))),
     h('div', { role: 'tablist', class: 'help-tabs', 'aria-label': 'Rubriques de l\'aide' }, ...tabs), panel,
     h('form', { method: 'dialog', class: 'actions' }, h('button', { class: 'primary' }, 'Fermer'))));
