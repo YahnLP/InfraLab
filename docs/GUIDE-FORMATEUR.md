@@ -68,3 +68,7 @@ Réseau d'entreprise simplifié (tous les sites sur le même réseau) ; SLA en t
 **Comment montrer qu'un droit manque ?** Choisir un utilisateur dans « Agir en tant que » et tenter l'action : le refus nomme le droit manquant et les rôles de la personne.
 
 **Peut-on modifier un TP ?** Les TP sont des données TypeScript dans `src/scenarios/catalog.ts` ; chaque modification est contrôlée par des auto-tests (état initial sans objectif atteint, solution à 100 / 100, démarrage déterministe).
+
+**Comment l'élève retrouve son travail la semaine suivante ?** Boutons *Enregistrer* (Ctrl+S) et *Ouvrir* (Ctrl+O) dans l'en-tête : le projet, y compris le TP en cours (score, indices, réponses), est écrit dans un fichier « .infralab.json » dans le dossier choisi par l'élève (clé USB, dossier réseau, OneDrive…). Chrome et Edge proposent le choix du dossier et réécrivent le même fichier aux enregistrements suivants ; Firefox et Safari téléchargent le fichier (réglage « Toujours demander où enregistrer » du navigateur). Une copie automatique reste dans le navigateur du poste, mais elle ne suit pas l'élève d'un poste à l'autre : sur les postes partagés, faites enregistrer un fichier en fin de séance.
+
+**Où est l'aide ?** Bouton « ? Aide » (ou F1) : présentation, utilisation des vues, TP, enregistrement, raccourcis, accessibilité et à propos (auteur, indépendance de l'outil, formulation des compétences).

@@ -63,7 +63,7 @@ function student() {
     ['Partie 3', 'Une fiche par TP (40) : objectifs, question de transfert, journal', 'Après chaque TP'],
     ['Annexes', 'Aide-mémoire : priorités, SLA, tickets, glossaire', 'Toujours à portée de main']], widths: [1500, 4326, 3200] }));
   c.push(space());
-  c.push(box('Ce que l\'on attend de vous', [B('**Comprendre plutôt que cliquer** : avant chaque action, dites ce que vous attendez qu\'il se passe.'), B('Utiliser les indices **en dernier recours** : chaque indice réduit la part « autonomie » de votre score.'), B('Répondre aux questions de réflexion **par écrit**, avec vos mots.'), B('Garder vos comptes rendus exportables (TP terminés) pour votre portfolio.')]));
+  c.push(box('Ce que l\'on attend de vous', [B('**Comprendre plutôt que cliquer** : avant chaque action, dites ce que vous attendez qu\'il se passe.'), B('Utiliser les indices **en dernier recours** : chaque indice réduit la part « autonomie » de votre score.'), B('Répondre aux questions de réflexion **par écrit**, avec vos mots.'), B('**Enregistrer** votre travail avec le bouton « Enregistrer » (Ctrl+S) dans le dossier de votre choix, et le rouvrir plus tard avec « Ouvrir » (Ctrl+O) : le TP reprend où vous l\'avez laissé. Le bouton « ? Aide » résume tout cela.'), B('Garder vos comptes rendus exportables (TP terminés) pour votre portfolio.')]));
   c.push(space());
   c.push(box('À propos des compétences', [NOTE], L.WARM, 'B26B00'));
   // cours

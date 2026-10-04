@@ -190,5 +190,30 @@ ok(await page.locator('.node').count() === 2, 'projet restauré après rechargem
 await page.getByRole('button', { name: 'NovaTech complet' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 ok(await page.locator('.node').count() >= 40, 'NovaTech complet : au moins 40 équipements sur le schéma');
 await page.screenshot({ path: `${shots}/m8-novatech-complet.png` });
+
+// Fichiers (repli téléchargement/import, sans l'API File System Access) et aide
+const p2 = await browser.newPage({ viewport: { width: 1440, height: 860 }, acceptDownloads: true });
+await p2.addInitScript(() => { delete window.showSaveFilePicker; delete window.showOpenFilePicker; });
+const e2 = []; p2.on('pageerror', e => e2.push(String(e)));
+await p2.goto(pathToFileURL(resolve('dist/index.html')).href);
+await p2.getByRole('button', { name: "SI d'exemple" }).click();
+const [dlf] = await Promise.all([p2.waitForEvent('download'), p2.getByRole('button', { name: 'Enregistrer', exact: true }).click()]);
+ok(dlf.suggestedFilename().endsWith('.infralab.json'), 'enregistrement : fichier .infralab.json proposé (' + dlf.suggestedFilename() + ')');
+await dlf.saveAs('/tmp/projet-test.infralab.json');
+await p2.getByRole('button', { name: 'Nouveau' }).click(); await p2.getByRole('button', { name: 'Confirmer' }).click();
+ok(await p2.locator('.node').count() === 0, 'schéma vidé');
+await p2.locator('input[type=file]').setInputFiles('/tmp/projet-test.infralab.json');
+await p2.getByRole('button', { name: 'Confirmer' }).click(); // modifications non enregistrées : confirmation
+await p2.waitForFunction(() => document.querySelectorAll('.node').length === 10);
+ok(true, 'ouverture : le projet enregistré est restauré (10 équipements)');
+await p2.locator('input[type=file]').setInputFiles({ name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('{"a":1}') });
+ok(await p2.locator('.toast.err').count() === 1, 'fichier étranger refusé avec un message');
+await p2.getByRole('button', { name: 'Aide' }).click();
+ok(await p2.locator('dialog.help[open]').count() === 1 && (await p2.locator('dialog.help').textContent()).includes('Créé par Yahn LE PRETTRE'), 'aide : fenêtre ouverte avec la présentation');
+await p2.screenshot({ path: `${shots}/m9-aide.png` });
+await p2.keyboard.press('Escape');
+ok(await p2.locator('.brand .credit').count() === 1, 'crédit auteur dans l\'en-tête');
+await p2.screenshot({ path: `${shots}/m9-entete.png` });
+ok(e2.length === 0, 'aucune erreur page 2 : ' + e2.join(' | '));
 ok(errors.length === 0, 'aucune erreur console : ' + errors.join(' | '));
 await browser.close();

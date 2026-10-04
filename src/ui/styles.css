@@ -217,3 +217,15 @@ tr.off td { opacity: .6; }
 @media (max-width: 1640px) { .simtime > .muted { display: none; } .who select { max-width: 170px; } }
 
 @media (prefers-color-scheme: dark) { .pill.off { color: var(--off); } }
+
+/* fichiers, aide, présentation */
+.brand-box { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-box .credit { font-size: 11px; color: var(--muted, #5b6672); font-weight: 400; white-space: nowrap; }
+.filebox { display: flex; align-items: center; gap: 6px; padding-left: 10px; border-left: 1px solid var(--line); }
+.fname { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted, #5b6672); }
+.fname.dirty::after { content: ' ●'; color: var(--warn); }
+dialog.help { width: min(720px, 94vw); max-height: 90vh; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); padding: 0; }
+dialog.help::backdrop { background: rgba(10,16,22,.45); }
+.help { padding: 18px 22px; overflow: auto; max-height: 88vh; } .help h2 { margin: 0 0 2px; font-size: 20px; } .help h3 { margin: 16px 0 4px; font-size: 15px; } .help p, .help li { line-height: 1.5; font-size: 14px; } .help ul { padding-left: 20px; margin: 4px 0; }
+.help .actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+@media (max-width: 1280px) { .brand-box .credit { display: none; } .fname { display: none; } }
