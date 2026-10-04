@@ -6,6 +6,7 @@ export interface Transition { from: TicketStatus; to: TicketStatus; label: strin
 const needsQualification = (t: Ticket) => !t.category ? 'Choisissez une catégorie.' : !t.impact ? 'Renseignez l\'impact.' : !t.urgency ? 'Renseignez l\'urgence.' : null;
 const needsAssignee = (t: Ticket, s: Readonly<State>) => {
   if (!t.assignee) return 'Attribuez le ticket à un technicien.';
+  if (s.management.users[t.assignee]?.disabled) return 'L\'assigné a un compte désactivé.';
   return s.management.users[t.assignee]?.roles.includes('technician') ? null : 'L\'assigné doit avoir le rôle technicien.';
 };
 

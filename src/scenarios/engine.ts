@@ -19,7 +19,7 @@ export function runSteps(store: Store, sch: Scheduler, steps: Step[]): void {
   for (const s of steps) {
     if (s.advance) advance(store, sch, s.advance);
     if (s.do) {
-      const r = store.dispatch({ type: s.do, payload: resolveRefs(store.getState(), s.args ?? {}), actor: 'scenario' });
+      const r = store.dispatch({ type: s.do, payload: resolveRefs(store.getState(), s.args ?? {}), actor: 'scenario', ...(s.as ? { actorId: resolveRefs(store.getState(), s.as) } : {}) });
       if (!r.ok) throw new Error(`Étape « ${s.do} » refusée : ${r.error?.message}`);
     }
   }

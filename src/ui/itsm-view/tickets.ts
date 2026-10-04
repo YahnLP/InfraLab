@@ -1,4 +1,4 @@
-import type { Level, State, Ticket, TicketKind } from '../../core';
+import { can, type Level, type State, type Ticket, type TicketKind } from '../../core';
 import { SLA_LABEL, fmtDuration, slaOf, type SlaClock, KIND_LABEL, LEVEL_LABEL, PRIORITY_LABEL, STATUS_LABEL, TAXONOMY, blocker, byQueueOrder, isOpen, ticketPriority, transitionsFrom } from '../../itsm';
 import { h } from '../kit/dom';
 import { EVENT_LABEL, ago, fmtTime } from '../shell/labels';
@@ -22,11 +22,12 @@ export function ticketList(c: Ctx, f: TicketFilter): HTMLElement {
   const { st } = c; const scope = f.scope ?? 'open';
   let list = Object.values(st.management.tickets);
   if (f.kind) list = list.filter(t => t.kind === f.kind);
+  const mineOnly = !!st.actingAs && !can(st, 'ticket.viewAll'); if (mineOnly) list = list.filter(t => t.requester === st.actingAs);
   if (scope === 'open') list = list.filter(isOpen);
   list.sort(byQueueOrder);
   const title = f.kind === 'incident' ? 'Incidents' : f.kind === 'request' ? 'Demandes' : 'Tickets';
   const chip = (s: 'open' | 'all', label: string) => h('button', { class: `chip${scope === s ? ' on' : ''}`, onclick: () => c.go({ page: 'tickets', ...(f.kind ? { kind: f.kind } : {}), scope: s }) }, label);
-  return h('section', null, h('h1', null, title),
+  return h('section', null, h('h1', null, title), mineOnly ? h('p', { class: 'muted' }, 'Vous ne voyez que vos propres tickets : le droit « Voir les tickets de tout le monde » manque à ce rôle.') : null,
     h('div', { class: 'chips' }, chip('open', 'À traiter'), chip('all', 'Tous (y compris résolus et clos)'), h('span', { class: 'grow' }),
       h('button', { class: 'primary', onclick: () => c.go({ page: 'newticket' }) }, 'Nouveau ticket')),
     list.length ? h('table', { class: 'grid' }, h('thead', null, h('tr', null, ...['Réf.', 'Titre', 'Demandeur', 'Statut', 'Priorité', 'Assigné à', 'SLA résolution', 'Actifs', 'Mis à jour'].map(x => h('th', null, x)))),

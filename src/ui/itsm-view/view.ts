@@ -6,6 +6,7 @@ import { EVENT_LABEL, ago, fmtTime } from '../shell/labels';
 import { ASSET_STATUS_LABEL, contractState, licenseReport, isOpen, slaOf, ticketPriority, ticketsForAsset } from '../../itsm';
 import { cmdbPage, contractsPage, licensesPage, lifecycleSection, softwarePage } from './itam';
 import { articlePage, changeList, changePage, kbList, problemList, problemPage } from './itil';
+import { rolesPage, usersPage, actorName, denied } from './admin';
 import { newTicketPage, ticketList, ticketPage } from './tickets';
 
 export type Route =
@@ -13,7 +14,7 @@ export type Route =
   | { page: 'tickets'; kind?: 'incident' | 'request'; scope?: 'open' | 'all' } | { page: 'ticket'; id: string } | { page: 'newticket'; assetId?: string }
   | { page: 'software' } | { page: 'licenses' } | { page: 'contracts' } | { page: 'cmdb'; ci?: string }
   | { page: 'problems' } | { page: 'problem'; id: string } | { page: 'changes'; forProblem?: string } | { page: 'change'; id: string } | { page: 'kb' } | { page: 'article'; id: string }
-  | { page: 'asset'; id: string } | { page: 'agents' } | { page: 'discovery' } | { page: 'users' } | { page: 'logs' };
+  | { page: 'asset'; id: string } | { page: 'agents' } | { page: 'discovery' } | { page: 'users' } | { page: 'roles' } | { page: 'logs' };
 
 export interface ItsmHost {
   store: Store; now(): number;
@@ -27,7 +28,7 @@ const NAV: { page: Route['page']; label: string; group?: string; route?: Route }
   { page: 'parc', label: 'Parc', group: 'Parc' }, { page: 'software', label: 'Logiciels', group: 'Parc' }, { page: 'licenses', label: 'Licences', group: 'Parc' },
   { page: 'contracts', label: 'Contrats et fournisseurs', group: 'Gestion' }, { page: 'cmdb', label: 'CMDB', group: 'Gestion' },
   { page: 'agents', label: 'Agents', group: 'Inventaire' }, { page: 'discovery', label: 'Découverte réseau', group: 'Inventaire' },
-  { page: 'users', label: 'Utilisateurs', group: 'Organisation' }, { page: 'logs', label: 'Journaux', group: 'Administration' },
+  { page: 'users', label: 'Utilisateurs', group: 'Administration' }, { page: 'roles', label: 'Rôles et droits', group: 'Administration' }, { page: 'logs', label: 'Journal d\'audit', group: 'Administration' },
 ];
 
 const pill = (cls: string, text: string) => h('span', { class: `pill ${cls}` }, text);
@@ -58,7 +59,7 @@ export class ItsmView {
     const r = this.route;
     const c = { st: this.st, host: this.host, go: (x: Route) => this.go(x) };
     this.page.append(r.page === 'software' ? softwarePage(c) : r.page === 'licenses' ? licensesPage(c) : r.page === 'contracts' ? contractsPage(c) : r.page === 'cmdb' ? cmdbPage(c, r.ci) : r.page === 'problems' ? problemList(c) : r.page === 'problem' ? problemPage(c, r.id) : r.page === 'changes' ? changeList(c, r.forProblem) : r.page === 'change' ? changePage(c, r.id) : r.page === 'kb' ? kbList(c) : r.page === 'article' ? articlePage(c, r.id) : r.page === 'tickets' ? ticketList(c, r) : r.page === 'ticket' ? ticketPage(c, r.id) : r.page === 'newticket' ? newTicketPage(c, r.assetId) : r.page === 'dashboard' ? this.dashboard() : r.page === 'parc' ? this.parc(r.filter ?? 'all') : r.page === 'asset' ? this.asset(r.id)
-      : r.page === 'agents' ? this.agents() : r.page === 'discovery' ? this.discovery() : r.page === 'users' ? this.users() : this.logs());
+      : r.page === 'agents' ? this.agents() : r.page === 'discovery' ? this.discovery() : r.page === 'users' ? usersPage(c) : r.page === 'roles' ? rolesPage(c) : this.logs());
   }
 
   /* ---------------- données ---------------- */
@@ -198,21 +199,12 @@ export class ItsmView {
       note('Dans les outils réels', 'discovery, network scan, probe (ServiceNow Discovery, GLPI Network Discovery, Lansweeper scan…) : ICMP, ARP, SNMP. Un switch non géré, sans IP, reste invisible.'));
   }
 
-  private users(): HTMLElement {
-    const users = Object.values(this.st.management.users); const name = h('input', { type: 'text', placeholder: 'Prénom Nom', 'aria-label': 'Nom' }); const svc = h('input', { type: 'text', placeholder: 'Service', 'aria-label': 'Service' });
-    return h('section', null, h('h1', null, 'Utilisateurs'),
-      users.length ? h('table', { class: 'grid' }, h('thead', null, h('tr', null, ...['Nom', 'Service', 'Actifs affectés'].map(t => h('th', null, t)))),
-        h('tbody', null, ...users.map(u => h('tr', null, h('td', null, h('b', null, u.name)), h('td', null, u.service ?? '—'), h('td', null, this.assets().filter(a => a.assignedTo === u.id).map(a => a.name).join(', ') || '—'))))) : h('p', { class: 'empty' }, 'Aucun utilisateur.'),
-      h('form', { class: 'scan', onsubmit: (e: Event) => { e.preventDefault(); if (this.host.dispatch({ type: 'itsm.addUser', payload: { name: name.value, service: svc.value } })) { /* re-rendu par l'abonnement */ } } },
-        h('label', { class: 'fld' }, h('span', null, 'Nouvel utilisateur'), name), h('label', { class: 'fld' }, h('span', null, 'Service'), svc), h('button', { type: 'submit' }, 'Ajouter')));
-  }
-
   private logs(): HTMLElement {
     const log = [...this.host.store.getLog()].reverse().slice(0, 300); const st = this.st;
-    const nm = (id: string) => st.management.contracts[id]?.ref ?? st.management.licenses[id]?.ref ?? st.management.cis[id]?.ref ?? st.management.suppliers[id]?.name ?? (id.startsWith('sw-') ? id : undefined) ?? st.management.tickets[id]?.ref ?? st.management.problems[id]?.ref ?? st.management.changes[id]?.ref ?? st.management.articles[id]?.ref ?? st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? id;
-    return h('section', null, h('h1', null, 'Journaux'),
-      log.length ? h('table', { class: 'grid small' }, h('thead', null, h('tr', null, ...['Heure simulée', 'Événement', 'Objet', 'Origine'].map(t => h('th', null, t)))),
-        h('tbody', null, ...log.map(e => h('tr', null, h('td', null, h('code', null, fmtTime(e.t))), h('td', null, EVENT_LABEL[e.type] ?? e.type), h('td', null, nm(e.subject.id)), h('td', null, e.actor === 'user' ? 'utilisateur' : e.actor === 'agent' ? 'agent' : 'système'))))) : h('p', { class: 'empty' }, 'Aucun événement.'),
+    const nm = (id: string) => id === 'trainer' ? 'Formateur (tous les droits)' : st.management.contracts[id]?.ref ?? st.management.licenses[id]?.ref ?? st.management.cis[id]?.ref ?? st.management.suppliers[id]?.name ?? (id.startsWith('sw-') ? id : undefined) ?? st.management.tickets[id]?.ref ?? st.management.problems[id]?.ref ?? st.management.changes[id]?.ref ?? st.management.articles[id]?.ref ?? st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? id;
+    return denied(st, 'audit.view', 'Journal d\'audit') ?? h('section', null, h('h1', null, 'Journal d\'audit'),
+      log.length ? h('table', { class: 'grid small' }, h('thead', null, h('tr', null, ...['Heure simulée', 'Événement', 'Objet', 'Auteur'].map(t => h('th', null, t)))),
+        h('tbody', null, ...log.map(e => h('tr', null, h('td', null, h('code', null, fmtTime(e.t))), h('td', null, EVENT_LABEL[e.type] ?? e.type), h('td', null, nm(e.subject.id)), h('td', null, actorName(st, e.actorId) ?? (e.actor === 'agent' ? 'agent d\'inventaire' : e.actor === 'user' ? 'formateur (mode libre)' : e.actor === 'scenario' ? 'décor du TP' : 'système')))))) : h('p', { class: 'empty' }, 'Aucun événement.'),
       note('Dans les outils réels', 'journaux d\'audit (Logs / History / Audit trail) : qui a fait quoi, quand. Ils servent à la traçabilité et aux TP d\'audit.'));
   }
 }

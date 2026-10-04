@@ -16,6 +16,7 @@ export const EVENT_LABEL: Record<string, string> = {
   ArticleCreated: 'Article créé', ArticleUpdated: 'Article modifié', ArticlePublished: 'Article publié', ArticleLinked: 'Article associé au ticket',
   SupplierAdded: 'Fournisseur ajouté', ContractAdded: 'Contrat ajouté', ContractUpdated: 'Contrat modifié', LicenseAdded: 'Licence ajoutée', LicenseUpdated: 'Licence modifiée', SoftwarePolicyChanged: 'Politique logiciel modifiée',
   AssetCreatedManual: 'Actif créé à la main', AssetStatusChanged: 'Cycle de vie de l\'actif', AssetUpdatedFinance: 'Données financières modifiées', CiCreated: 'CI créé', CiRemoved: 'CI supprimé', RelationAdded: 'Relation ajoutée', RelationRemoved: 'Relation retirée',
+  ActorChanged: 'Changement d\'identité', UserRolesChanged: 'Rôles d\'un utilisateur modifiés', UserActiveChanged: 'Compte activé ou désactivé', RoleCreated: 'Rôle créé', RolePermissionChanged: 'Droit d\'un rôle modifié',
   ScenarioStarted: 'TP démarré', QuestionAnswered: 'Question de compréhension', StageStarted: 'Étape suivante du TP', HintUsed: 'Indice consulté', SolutionRevealed: 'Solution affichée', ScenarioFinished: 'TP terminé', ScenarioQuit: 'TP quitté',
   TicketCreated: 'Ticket créé', TicketUpdated: 'Ticket modifié', TicketStatusChanged: 'Statut du ticket modifié', TicketCommented: 'Ticket commenté',
   TicketAssetLinked: 'Actif lié au ticket', TicketAssetUnlinked: 'Actif délié du ticket',

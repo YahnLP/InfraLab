@@ -1,5 +1,6 @@
 import { emptyState, type DomainEvent, type EntityRef, type State } from '../model/types';
 import { nextId } from '../ids';
+import { defaultRoles } from '../model/rbac';
 
 /** Erreur de précondition : la commande est refusée, l'état est inchangé. */
 export class CommandError extends Error {
@@ -17,6 +18,8 @@ export interface CommandContext {
   emit(type: string, subject: EntityRef, payload?: Record<string, unknown>): DomainEvent;
 }
 
+/** Garde d'accès : renvoie le motif du refus, ou null. N'est appliquée qu'aux actions d'un utilisateur incarné. */
+export type Guard = (cmd: Command, state: Readonly<State>, actorId: string) => string | null;
 export type CommandHandler = (ctx: CommandContext, payload: Record<string, unknown>) => void;
 /** Réacteur : fonction pure (événement, état) → commandes à enchaîner. N'a aucun accès à l'UI. */
 export type Reactor = (event: DomainEvent, state: Readonly<State>) => Command[];
@@ -33,6 +36,7 @@ export class Store {
   private listeners = new Set<Listener>();
   private log: DomainEvent[] = [];
   private clock: () => number;
+  private guard: Guard | null = null;
 
   constructor(opts: { clock?: () => number; state?: State } = {}) {
     this.clock = opts.clock ?? (() => 0);
@@ -59,6 +63,7 @@ export class Store {
   registerReactor(on: string, reactor: Reactor): void {
     const l = this.reactors.get(on) ?? []; l.push(reactor); this.reactors.set(on, l);
   }
+  setGuard(g: Guard): void { this.guard = g; }
   subscribe(l: Listener): () => void { this.listeners.add(l); return () => this.listeners.delete(l); }
 
   /* ---- écriture : unique point d'entrée ---- */
@@ -72,10 +77,12 @@ export class Store {
   private run(cmd: Command, causedBy: string | undefined, sink: DomainEvent[], depth: number): { ok: boolean; error?: CommandError } {
     const handler = this.handlers.get(cmd.type);
     if (!handler) return { ok: false, error: new CommandError('unknown_command', `Commande inconnue : ${cmd.type}`) };
+    const acting = depth === 0 && (cmd.actor ?? 'user') === 'user' ? this.state.actingAs : null;
+    if (acting && this.guard) { const why = this.guard(cmd, this.state, acting); if (why) return { ok: false, error: new CommandError('forbidden', why) }; }
     const draft = structuredClone(this.state);
     const produced: DomainEvent[] = [];
     const ctx: CommandContext = {
-      state: draft, now: this.clock(), actor: cmd.actor ?? 'user', actorId: cmd.actorId,
+      state: draft, now: this.clock(), actor: cmd.actor ?? 'user', actorId: cmd.actorId ?? (acting ?? undefined),
       emit: (type, subject, payload = {}) => {
         const e: DomainEvent = {
           id: nextId(draft.counters, 'evt', 6), t: this.clock(), type, actor: ctx.actor,
@@ -106,7 +113,7 @@ export class Store {
   /* ---- snapshot / reset ---- */
   snapshot(): { state: State; log: DomainEvent[] } { return structuredClone({ state: this.state, log: this.log }); }
   restore(s: { state: State; log: DomainEvent[] }): void {
-    const c = structuredClone(s); c.state.management.tickets ??= {}; c.state.session ??= null; c.state.management.problems ??= {}; c.state.management.changes ??= {}; c.state.management.articles ??= {};
+    const c = structuredClone(s); c.state.management.tickets ??= {}; c.state.session ??= null; c.state.actingAs ??= null; (c.state.management as { roles?: unknown }).roles ??= defaultRoles(); c.state.management.problems ??= {}; c.state.management.changes ??= {}; c.state.management.articles ??= {};
     for (const k of ['suppliers', 'contracts', 'licenses', 'softwarePolicy', 'cis', 'relations'] as const) (c.state.management as unknown as Record<string, unknown>)[k] ??= {}; this.state = c.state; this.log = c.log;
     this.listeners.forEach(l => l([], this.state));
   }

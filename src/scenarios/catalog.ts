@@ -19,7 +19,7 @@ function resolveSteps(ref: string, fields: { category: string; subcategory?: str
     { do: 'itsm.updateTicket', args: { id: ref, fields: { solution } } }, to('resolved'), to('closed'),
   ];
 }
-const level = (n: number) => ['', 'Découverte', 'Inventaire', 'Service Desk', 'Incidents techniques', 'ITIL', 'ITAM', 'CMDB'][n] ?? '';
+const level = (n: number) => ['', 'Découverte', 'Inventaire', 'Service Desk', 'Incidents techniques', 'ITIL', 'ITAM', 'CMDB', 'Administration'][n] ?? '';
 const NOREPLACE = [{ event: 'DeviceReplaced', message: 'Un équipement a été remplacé alors que la cause était ailleurs.' }, { event: 'DeviceRemoved', message: 'Un équipement a été supprimé du schéma.' }];
 
 export const SCENARIOS: Scenario[] = [
@@ -705,6 +705,150 @@ export const SCENARIOS: Scenario[] = [
     solutionText: ['Fiche « Facturation comptable » : ajouter « dépend de » PC-COMPTA-01 et IMP-COMPTA.', 'Fiche SW-SIEGE-01 : l\'encadré d\'impact liste Facturation comptable.'],
     solution: [answer('auto', 1), { do: 'itsm.addRelation', args: { from: '@ci:Facturation comptable', to: '@ci:PC-COMPTA-01', type: 'depends_on' } }, { do: 'itsm.addRelation', args: { from: '@ci:Facturation comptable', to: '@ci:IMP-COMPTA', type: 'depends_on' } }, answer('impact', 1)],
     realWorld: 'La CMDB sert surtout à l\'analyse d\'impact : avant un changement (qui est touché ?) et pendant un incident (quels services sont atteints ?).',
+  },
+  /* ============================ TP 33 ============================ */
+  {
+    id: 'tp-33-qui-peut-quoi', number: 33, title: 'Qui peut faire quoi ?', level: 8, levelLabel: level(8), difficulty: 2, duration: '40 min',
+    skills: [{ ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'Alice Martin (Comptabilité) a ouvert un ticket : son poste est lent. Pour comprendre les droits, vous allez endosser tour à tour son identité, puis celle d\'un technicien. Le sélecteur « Agir en tant que » est dans la barre du haut.',
+    stages: [
+      { id: 's1', title: 'Se mettre à la place d\'un utilisateur', objectives: ['alice', 'denied'],
+        lesson: ['Un outil ITSM ne laisse pas tout le monde tout faire. Les **droits** (créer un ticket, le qualifier, approuver un changement…) sont regroupés en **rôles** : Utilisateur, Technicien, Responsable, Administrateur. Chaque personne reçoit un ou plusieurs rôles : c\'est le **RBAC** (contrôle d\'accès par les rôles).', 'Pour le voir, choisissez **Alice** dans « Agir en tant que ». Puis essayez, dans ITSM → Tickets, de qualifier son ticket (catégorie, impact, urgence) : l\'outil refuse et explique pourquoi.'],
+        debrief: ['Le refus n\'est pas un bug : il protège. Un utilisateur qui qualifie lui-même ses tickets pourrait les faire passer en P1 pour être servi en premier.'] },
+      { id: 's2', title: 'Le bon rôle pour le bon travail', objectives: ['david', 'qual', 'assign'],
+        lesson: ['Le **technicien** a les droits d\'exploitation : qualifier, attribuer, traiter. C\'est le **principe du moindre privilège** : chacun reçoit uniquement ce dont il a besoin pour son travail, rien de plus.', 'Passez maintenant en **David Petit** (technicien) : qualifiez le ticket d\'Alice et attribuez-le-vous.'],
+        debrief: ['Chaque action est journalisée **avec son auteur** : le journal d\'audit montre que c\'est David, et non Alice, qui a qualifié et attribué le ticket.'] },
+      { id: 's3', title: 'Lire la matrice des droits', objectives: ['who'],
+        lesson: ['La page **Administration → Rôles et droits** liste, rôle par rôle, ce qui est autorisé. C\'est le document de référence d\'un audit d\'habilitations : « qui peut faire quoi, et pourquoi ? ».'],
+        debrief: ['Savoir lire cette matrice permet de détecter un rôle trop généreux avant qu\'il ne cause un incident.'] },
+    ],
+    setup: [{ do: 'itsm.createTicket', args: { title: 'Mon poste est très lent', description: 'Depuis ce matin, le poste de comptabilité met plusieurs minutes à ouvrir un fichier.', requester: '@usr:Alice', kind: 'incident' }, as: '@usr:Alice' }],
+    objectives: [
+      { id: 'alice', label: 'Vous agissez en tant qu\'Alice Martin', check: { k: 'actedAs', user: '@usr:Alice' } },
+      { id: 'denied', label: 'Comprendre pourquoi Alice ne peut pas qualifier son ticket', requires: ['alice'], question: { prompt: 'Alice essaie de qualifier son propre ticket et l\'outil refuse. Pourquoi ?', choices: ['Le ticket est verrouillé par un technicien', 'Son rôle « Utilisateur » n\'a pas le droit de qualifier : seuls les rôles d\'exploitation l\'ont', 'Alice n\'a pas de compte actif', 'La qualification est automatique'], correct: 1, explain: 'Le rôle Utilisateur ne porte que le droit d\'ouvrir des tickets. Qualifier, c\'est décider de la priorité : cela revient à l\'exploitation.' } },
+      { id: 'david', label: 'Vous agissez en tant que David Petit (technicien)', check: { k: 'actedAs', user: '@usr:David' }, requires: ['denied'] },
+      { id: 'qual', label: 'Le ticket est qualifié, et c\'est David qui l\'a fait', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), qualified: true }, { k: 'didAs', user: '@usr:David', type: 'TicketStatusChanged', payload: { to: 'qualified' } }] }, requires: ['david'] },
+      { id: 'assign', label: 'Le ticket est attribué à David Petit', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), assignee: '@usr:David' }, { k: 'didAs', user: '@usr:David', type: 'TicketStatusChanged', payload: { to: 'assigned' } }] }, requires: ['qual'] },
+      { id: 'who', label: 'Savoir qui approuve les changements', requires: ['assign'], question: { prompt: 'Dans la matrice des droits de départ, quel rôle peut approuver un changement ?', choices: ['Technicien', 'Utilisateur', 'Responsable', 'Administrateur'], correct: 2, explain: 'Le Responsable approuve les changements. Le technicien les prépare : celui qui fait ne valide pas ce qu\'il a demandé.' } },
+    ],
+    hints: [
+      { for: 'alice', levels: ['Barre du haut : sélecteur « Agir en tant que ».'] },
+      { for: 'qual', levels: ['Fiche du ticket : catégorie, sous-catégorie, impact et urgence, puis « Qualifier ».'] },
+      { for: 'who', levels: ['ITSM → Administration → Rôles et droits.'] },
+    ],
+    solutionText: ['Agir en tant qu\'Alice : la qualification est refusée (rôle Utilisateur).', 'Agir en tant que David : qualifier le ticket (catégorie, impact, urgence) puis l\'attribuer.', 'Dans Rôles et droits, le droit « Approuver un changement » appartient au Responsable.'],
+    solution: [
+      { do: 'itsm.actAs', args: { user: '@usr:Alice' } }, answer('denied', 1), { do: 'itsm.actAs', args: { user: '@usr:David' } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Matériel', subcategory: 'Poste de travail', impact: 'low', urgency: 'medium', assignee: '@usr:David' } }, as: '@usr:David' },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' }, as: '@usr:David' }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' }, as: '@usr:David' },
+      answer('who', 2),
+    ],
+    realWorld: 'Le RBAC (Role-Based Access Control) est présent dans tous les outils : rôles ITIL de ServiceNow (itil, itil_admin…), profils GLPI, groupes et permissions de Jira Service Management. La revue périodique des habilitations est un contrôle classique d\'audit.',
+  },
+
+  /* ============================ TP 34 ============================ */
+  {
+    id: 'tp-34-nouveau-technicien', number: 34, title: 'Accueillir un nouveau technicien', level: 8, levelLabel: level(8), difficulty: 2, duration: '35 min',
+    skills: [{ ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'Karim Benali rejoint le service informatique comme technicien. Un ticket urgent l\'attend. Vous êtes administrateur : créez son compte et donnez-lui exactement les droits nécessaires.',
+    stages: [
+      { id: 's1', title: 'Créer le compte et attribuer le rôle', objectives: ['why', 'account', 'role'],
+        lesson: ['Arrivée d\'un collaborateur = **provisionnement** : création du compte, attribution des rôles. On part du **moindre privilège** : le rôle **Technicien** suffit pour traiter des tickets ; il n\'a besoin ni de gérer les comptes ni d\'approuver des changements.', 'Un compte porte une **identité** (nom, service) et des **rôles**. Le rôle « Utilisateur » reste utile : Karim ouvre aussi ses propres tickets.'],
+        debrief: ['Un compte, des rôles : à l\'arrivée d\'une personne on ne copie pas les droits d\'un collègue, on donne un rôle adapté au poste.'] },
+      { id: 's2', title: 'Vérifier en conditions réelles', objectives: ['assign', 'lea'],
+        lesson: ['La preuve qu\'un droit est bien donné : la personne peut faire le travail. Attribuez le ticket à Karim. Et inversement, vérifiez qu\'on n\'a pas donné trop : un administrateur technique n\'a pas à traiter les tickets.'],
+        debrief: ['Donner les droits, c\'est aussi vérifier qu\'on n\'en a pas donné trop.'] },
+    ],
+    setup: [{ do: 'itsm.createTicket', args: { title: 'Le Wi-Fi du 2e étage est coupé', description: 'Appel de Chloé : plus de Wi-Fi depuis 9 h.', requester: '@usr:Chloé', kind: 'incident' }, as: '@usr:Chloé' }, { do: 'itsm.actAs', args: { user: '@usr:Léa' } }],
+    objectives: [
+      { id: 'why', label: 'Justifier le rôle à attribuer', question: { prompt: 'Quel rôle donner à Karim pour qu\'il traite les tickets, sans excès de droits ?', choices: ['Administrateur : il pourra tout faire', 'Technicien (en plus d\'Utilisateur)', 'Responsable, pour qu\'il approuve ses propres changements', 'Aucun rôle : on lui prêtera le compte de David'], correct: 1, explain: 'Technicien couvre l\'exploitation. Administrateur et Responsable donneraient des pouvoirs inutiles. Et on ne partage jamais un compte : la traçabilité disparaîtrait.' } },
+      { id: 'account', label: 'Le compte de Karim Benali existe (service Informatique)', check: { k: 'didAs', user: '@usr:Léa', type: 'UserAdded' }, requires: ['why'] },
+      { id: 'role', label: 'Karim est Utilisateur et Technicien, sans rôle d\'administration', check: { k: 'userRoles', user: '@usr:Karim', has: ['user', 'technician'], lacks: ['admin', 'manager'] }, requires: ['account'] },
+      { id: 'assign', label: 'Le ticket du Wi-Fi est attribué à Karim', check: { k: 'ticket', ref: T(1), assignee: '@usr:Karim' }, requires: ['role'] },
+      { id: 'lea', label: 'Comprendre pourquoi Léa (administratrice) n\'a pas attribué le ticket elle-même', requires: ['assign'], question: { prompt: 'Léa est administratrice. Pourquoi ne peut-elle pas qualifier ni attribuer les tickets ?', choices: ['C\'est un oubli de l\'outil', 'Séparation des fonctions : celle qui gère les droits n\'exploite pas les tickets', 'Elle n\'est pas dans le service informatique', 'Ce droit est réservé aux nouveaux arrivants'], correct: 1, explain: 'Séparer administration et exploitation limite les abus : un administrateur ne peut pas à la fois se donner des droits et agir avec.' } },
+    ],
+    hints: [
+      { for: 'account', levels: ['ITSM → Administration → Utilisateurs : « Nouvel utilisateur ».'] },
+      { for: 'role', levels: ['Dans la fiche de Karim, cochez les rôles. Attention : le moins de droits possible.'] },
+      { for: 'assign', levels: ['Pour attribuer, il faut le droit « Attribuer un ticket » : passez en David (technicien) ou en mode formateur.'] },
+    ],
+    solutionText: ['Créer Karim Benali (Informatique) avec les rôles Utilisateur et Technicien.', 'Passer en David (technicien) et attribuer le ticket à Karim.', 'Léa gère les comptes mais n\'exploite pas : c\'est la séparation des fonctions.'],
+    solution: [
+      answer('why', 1), { do: 'itsm.addUser', args: { name: 'Karim Benali', service: 'Informatique', roles: ['user', 'technician'] }, as: '@usr:Léa' },
+      { do: 'itsm.actAs', args: { user: '@usr:David' } },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Réseau', subcategory: 'Wi-Fi', impact: 'medium', urgency: 'high', assignee: '@usr:Karim' } }, as: '@usr:David' },
+      answer('lea', 1),
+    ],
+    realWorld: 'Le provisionnement (onboarding) crée le compte et ses rôles selon le poste, souvent par un annuaire (Active Directory, Entra ID) synchronisé avec l\'outil ITSM. Les rôles sont donnés par modèle de poste, pas par copie d\'un collègue.',
+  },
+
+  /* ============================ TP 35 ============================ */
+  {
+    id: 'tp-35-separation-des-taches', number: 35, title: 'Séparation des tâches', level: 8, levelLabel: level(8), difficulty: 3, duration: '45 min',
+    skills: [{ ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'David Petit (technicien) a préparé le changement CHG-0001 : le remplacement de SW02. Il aimerait l\'approuver lui-même pour gagner du temps. Faites respecter la règle : qui demande ne valide pas.',
+    stages: [
+      { id: 's1', title: 'Constater le blocage', objectives: ['david', 'why'],
+        lesson: ['Dans ITIL, un changement est **évalué puis autorisé** par quelqu\'un d\'autre que celui qui le demande (le responsable, ou un comité, le **CAB**). C\'est la **séparation des tâches** : on évite qu\'une seule personne décide, exécute et valide.', 'Agissez en tant que **David**, et essayez d\'approuver CHG-0001 : l\'outil refuse.'],
+        debrief: ['Deux raisons au refus : le rôle Technicien n\'a pas le droit d\'approuver, et même un responsable n\'approuverait pas son propre changement.'] },
+      { id: 's2', title: 'Faire approuver par le bon rôle', objectives: ['eric', 'approved'],
+        lesson: ['Passez en **Éric Moreau** (Responsable) : il peut approuver, car il n\'est pas le demandeur. La décision est journalisée à son nom.'],
+        debrief: ['Le journal d\'audit conserve : demandé par David, approuvé par Éric. Deux personnes, deux responsabilités.'] },
+    ],
+    setup: [
+      { do: 'infra.setIp', args: { id: '@dev:SW02', ip: '192.168.10.2', mask: 24 } }, DISCOVER,
+      { do: 'itsm.createChange', args: { title: 'Remplacement de SW02', type: 'normal', assetIds: ['@ast:SW02'] }, as: '@usr:David' },
+      { do: 'itsm.updateChange', args: { id: '@chg:CHG-0001', fields: { risk: 'medium', plan: 'Remplacer le switch, rebrancher, vérifier.', rollback: 'Remettre l\'ancien switch.', approver: '@usr:Éric' } }, as: '@usr:David' },
+      { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'proposed' }, as: '@usr:David' },
+    ],
+    objectives: [
+      { id: 'david', label: 'Vous agissez en tant que David Petit', check: { k: 'actedAs', user: '@usr:David' } },
+      { id: 'why', label: 'Justifier l\'interdiction d\'approuver son propre changement', requires: ['david'], question: { prompt: 'Pourquoi David ne peut-il pas approuver CHG-0001 lui-même ?', choices: ['Il n\'est pas assez ancien', 'Parce que celui qui demande un changement ne doit pas être celui qui l\'autorise', 'Parce que le changement est trop risqué', 'Parce que l\'outil est en maintenance'], correct: 1, explain: 'La séparation des tâches évite qu\'une seule personne contrôle toute la chaîne : erreur ou malveillance seraient plus difficiles à détecter.' } },
+      { id: 'eric', label: 'Vous agissez en tant qu\'Éric Moreau (responsable)', check: { k: 'actedAs', user: '@usr:Éric' }, requires: ['why'] },
+      { id: 'approved', label: 'CHG-0001 est approuvé, par Éric', check: { k: 'all', of: [{ k: 'change', ref: '@chg:CHG-0001', reached: 'approved' }, { k: 'didAs', user: '@usr:Éric', type: 'ChangeStatusChanged', payload: { to: 'approved' } }] }, requires: ['eric'] },
+    ],
+    hints: [
+      { for: 'approved', levels: ['Fiche du changement : le bouton « Approuver » n\'apparaît que s\'il est possible, sinon un message explique pourquoi.'] },
+    ],
+    solutionText: ['En tant que David, l\'approbation est refusée (droit manquant).', 'En tant qu\'Éric, approuver CHG-0001.'],
+    solution: [{ do: 'itsm.actAs', args: { user: '@usr:David' } }, answer('why', 1), { do: 'itsm.actAs', args: { user: '@usr:Éric' } }, { do: 'itsm.transitionChange', args: { id: '@chg:CHG-0001', to: 'approved' }, as: '@usr:Éric' }],
+    realWorld: 'La séparation des tâches (Segregation of Duties) est un principe de contrôle interne : elle figure dans ITIL, ISO 27001 (A.5.3) et les audits financiers. Les outils l\'appliquent par des règles « le demandeur ne peut pas approuver ».',
+  },
+
+  /* ============================ TP 36 ============================ */
+  {
+    id: 'tp-36-depart-technicien', number: 36, title: 'Le départ d\'un technicien', level: 8, levelLabel: level(8), difficulty: 3, duration: '45 min',
+    skills: [{ ref: 'Gérer les habilitations', kind: 'worked' }, { ref: 'Assurer la traçabilité', kind: 'evidence_possible' }],
+    context: 'David Petit quitte NovaTech aujourd\'hui. Il traite encore un ticket. Désactivez son accès sans casser le service : le ticket doit repasser à un autre technicien, et son compte ne doit plus pouvoir agir.',
+    stages: [
+      { id: 's1', title: 'Sécuriser le service', objectives: ['why', 'tech', 'reassign'],
+        lesson: ['Un départ est un risque : un compte actif sans titulaire peut être détourné. Mais désactiver trop vite laisse des **tickets orphelins**. Ordre sûr : d\'abord **préserver le travail en cours**, puis couper l\'accès.', 'Karim Benali, autre technicien, est disponible. Attribuez-lui le ticket de David **avant** de désactiver le compte.'],
+        debrief: ['Un ticket attribué à un compte désactivé ne sera jamais traité : l\'outil refuse d\'ailleurs d\'attribuer un ticket à un compte désactivé.'] },
+      { id: 's2', title: 'Couper l\'accès', objectives: ['disable', 'trace'],
+        lesson: ['On **désactive** le compte plutôt que de le supprimer : l\'historique (qui a fait quoi) reste intact. Le compte désactivé ne peut plus se connecter ni recevoir de ticket. Retirer ses rôles est une mesure de plus (défense en profondeur).'],
+        debrief: ['Désactiver, c\'est conserver la traçabilité tout en supprimant le risque.'] },
+    ],
+    setup: [
+      { do: 'itsm.addUser', args: { name: 'Karim Benali', service: 'Informatique', roles: ['user', 'technician'] } },
+      { do: 'itsm.createTicket', args: { title: 'Sauvegarde nocturne en échec', description: 'Le rapport de sauvegarde indique une erreur depuis deux nuits.', requester: '@usr:Éric', kind: 'incident' }, as: '@usr:Éric' },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Logiciel', subcategory: 'Dysfonctionnement', impact: 'medium', urgency: 'medium', assignee: '@usr:David' } } },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'in_progress' } },
+    ],
+    objectives: [
+      { id: 'why', label: 'Justifier l\'ordre des opérations', question: { prompt: 'Que faire en premier lorsque David part ?', choices: ['Supprimer son compte tout de suite', 'Réattribuer son ticket en cours, puis désactiver son compte', 'Désactiver son compte et prévenir les clients plus tard', 'Ne rien changer : il part ce soir'], correct: 1, explain: 'On sécurise d\'abord la continuité de service (ticket réattribué), puis on coupe l\'accès. On désactive, on ne supprime pas : l\'historique doit rester.' } },
+      { id: 'tech', label: 'Karim Benali (technicien) existe et est actif', check: { k: 'all', of: [{ k: 'userRoles', user: '@usr:Karim', has: ['technician'] }, { k: 'userActive', user: '@usr:Karim', value: true }] }, requires: ['why'] },
+      { id: 'reassign', label: 'Le ticket de David est repris par Karim', check: { k: 'ticket', ref: T(1), assignee: '@usr:Karim' }, requires: ['tech'] },
+      { id: 'disable', label: 'Le compte de David est désactivé, sans ticket ouvert à son nom', check: { k: 'all', of: [{ k: 'userActive', user: '@usr:David', value: false }, { k: 'noOpenAssigned', user: '@usr:David' }] }, requires: ['reassign'] },
+      { id: 'trace', label: 'L\'historique de David reste consultable', requires: ['disable'], question: { prompt: 'Pourquoi désactiver le compte de David plutôt que le supprimer ?', choices: ['Pour garder une licence active', 'Pour conserver la trace de ce qu\'il a fait (audit)', 'Parce que la suppression est impossible dans tous les outils', 'Pour qu\'il puisse revenir sans prévenir'], correct: 1, explain: 'Les événements du journal portent le nom de leur auteur : supprimer le compte rendrait l\'historique anonyme.' } },
+    ],
+    forbid: [{ event: 'UserRolesChanged', message: 'Retirer les rôles n\'est pas demandé ici : la désactivation suffit à couper l\'accès sans perdre le contexte.' }],
+    hints: [
+      { for: 'reassign', levels: ['Fiche du ticket : champ « Assigné à ». Karim a le rôle technicien.'] },
+      { for: 'disable', levels: ['ITSM → Administration → Utilisateurs : bouton « Désactiver » sur la ligne de David.'] },
+    ],
+    solutionText: ['Attribuer le ticket à Karim Benali.', 'Désactiver le compte de David (sans supprimer ni retirer ses rôles).'],
+    solution: [answer('why', 1), { do: 'itsm.updateTicket', args: { id: T(1), fields: { assignee: '@usr:Karim' } } }, { do: 'itsm.setUserActive', args: { id: '@usr:David', active: false } }, answer('trace', 1)],
+    realWorld: 'L\'offboarding (départ) désactive le compte dans l\'annuaire, révoque les accès, récupère le matériel (voir TP 30) et transfère le travail en cours. Les outils conservent les comptes désactivés pour l\'historique.',
   },
 ];
 

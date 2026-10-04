@@ -53,7 +53,7 @@ export function registerItilCommands(store: Store): void {
     const type = (['standard', 'normal', 'emergency'].includes(str(p['type'])) ? str(p['type']) : 'normal') as ChangeType;
     const aids = assets(ctx, p['assetIds']); const prb = p['problem'] ? problem(ctx, p, 'problem') : undefined;
     const id = nextId(ctx.state.counters, 'chg'); const r = ref(ctx, 'change', 'CHG');
-    ctx.state.management.changes[id] = { id, ref: r, title, description: str(p['description']).trim(), type, status: 'draft', assetIds: aids, ...(prb ? { problemId: prb.id } : {}), createdAt: ctx.now, updatedAt: ctx.now };
+    ctx.state.management.changes[id] = { id, ref: r, title, description: str(p['description']).trim(), type, status: 'draft', assetIds: aids, ...((ctx.actorId ?? (p['requestedBy'] ? str(p['requestedBy']) : undefined)) ? { requestedBy: (ctx.actorId ?? str(p['requestedBy'])) } : {}), ...(prb ? { problemId: prb.id } : {}), createdAt: ctx.now, updatedAt: ctx.now };
     ctx.emit(TEV.ChangeCreated, { kind: 'change', id }, { ref: r, title, type });
   });
   store.registerCommand('itsm.updateChange', (ctx, p) => {

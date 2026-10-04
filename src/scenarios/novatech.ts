@@ -9,7 +9,7 @@ export function seedNovatech(store: Store, dispatch: D): void {
   const wire = (a: string, ap: string, b: string, bp: string) => dispatch({ type: 'infra.connect', payload: { aDevice: id(a), aPort: ap, bDevice: id(b), bPort: bp } });
   const ip = (n: string, addr: string) => dispatch({ type: 'infra.setIp', payload: { id: id(n), ip: addr, mask: 24 } });
 
-  ['Alice Martin|Comptabilité', 'Bruno Leroy|Comptabilité', 'Chloé Dubois|Commercial', 'David Petit|Informatique', 'Éric Moreau|Direction'].forEach(u => { const [name, service] = u.split('|'); dispatch({ type: 'itsm.addUser', payload: { name, service, roles: name!.startsWith('David') ? ['user', 'technician'] : name!.startsWith('Éric') ? ['user', 'manager'] : ['user'] } }); });
+  ['Alice Martin|Comptabilité', 'Bruno Leroy|Comptabilité', 'Chloé Dubois|Commercial', 'David Petit|Informatique', 'Éric Moreau|Direction', 'Léa Garnier|Informatique'].forEach(u => { const [name, service] = u.split('|'); dispatch({ type: 'itsm.addUser', payload: { name, service, roles: name!.startsWith('David') ? ['user', 'technician'] : name!.startsWith('Éric') ? ['user', 'manager'] : name!.startsWith('Léa') ? ['user', 'admin'] : ['user'] } }); });
   add('internet', 'INTERNET', 320, 48); add('firewall', 'FW-SIEGE', 320, 168);
   add('switch', 'SW-SIEGE-01', 320, 296); add('switch', 'SW02', 560, 296);
   add('server', 'SRV-ITSM', 96, 296); add('printer', 'IMP-COMPTA', 96, 440);

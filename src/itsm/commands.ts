@@ -3,6 +3,8 @@ import { IEV } from '../inventory/events';
 import { TEV } from './events';
 import { registerItilCommands } from './itil-commands';
 import { registerItamCommands } from './itam-commands';
+import { accessGuard } from './rbac';
+import { registerRbacCommands } from './rbac-commands';
 import { TAXONOMY } from './taxonomy';
 import { TRANSITIONS, blocker } from './workflow';
 
@@ -10,7 +12,7 @@ const LEVELS: Level[] = ['low', 'medium', 'high'];
 
 /** Commandes de gestion (couche `management`). M2 : utilisateurs et saisie des données déclarées. */
 export function registerItsmCommands(store: Store): void {
-  registerItilCommands(store); registerItamCommands(store);
+  registerItilCommands(store); registerItamCommands(store); registerRbacCommands(store); store.setGuard(accessGuard);
   store.registerCommand('itsm.addUser', (ctx, p) => {
     const name = String(p['name'] ?? '').trim(); if (!name) throw new CommandError('bad_name', 'Le nom est obligatoire');
     const id = nextId(ctx.state.counters, 'usr');
@@ -67,7 +69,7 @@ export function registerItsmCommands(store: Store): void {
     }
     if (f['assignee'] !== undefined && f['assignee'] !== (t.assignee ?? '')) {
       const a = String(f['assignee']);
-      if (a) { const u = ctx.state.management.users[a]; if (!u) throw new CommandError('user_not_found', 'Utilisateur inconnu'); if (!u.roles.includes('technician')) throw new CommandError('not_technician', 'Seul un technicien peut être assigné'); t.assignee = a; } else delete t.assignee;
+      if (a) { const u = ctx.state.management.users[a]; if (!u) throw new CommandError('user_not_found', 'Utilisateur inconnu'); if (u.disabled) throw new CommandError('disabled', 'Ce compte est désactivé : on ne lui attribue plus de ticket'); if (!u.roles.includes('technician')) throw new CommandError('not_technician', 'Seul un technicien peut être assigné'); t.assignee = a; } else delete t.assignee;
       changed.push('assignee');
     }
     if (f['solution'] !== undefined && String(f['solution']) !== (t.solution ?? '')) { t.solution = String(f['solution']); changed.push('solution'); }

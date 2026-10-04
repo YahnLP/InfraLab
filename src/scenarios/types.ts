@@ -31,10 +31,19 @@ export type Check =
   | { k: 'deviceUser'; device: Ref; user: Ref }
   | { k: 'ci'; name: Ref; ciKind?: 'service' | 'application' | 'infrastructure'; withAsset?: boolean }
   | { k: 'relation'; from: Ref; to: Ref; type?: 'depends_on' | 'uses' | 'hosted_on' }
+  | { k: 'acting'; user: Ref | null }
+  | { k: 'actedAs'; user: Ref }
+  | { k: 'didAs'; user: Ref; type: string; payload?: Record<string, unknown> }
+  | { k: 'userActive'; user: Ref; value: boolean }
+  | { k: 'userRoles'; user: Ref; has?: string[]; lacks?: string[] }
+  | { k: 'rolePerm'; role: string; permission: string; value: boolean }
+  | { k: 'noOpenAssigned'; user: Ref }
+  | { k: 'roleExists'; role: string; has?: string[]; lacks?: string[] }
   | { k: 'event'; type: string; subject?: Ref }
   | { k: 'all'; of: Check[] };
 
-export interface Step { do?: string; args?: Record<string, unknown>; advance?: number }
+/** `as` : utilisateur au nom duquel la commande est journalisée (traçabilité), sans appliquer les droits. */
+export interface Step { do?: string; args?: Record<string, unknown>; advance?: number; as?: Ref }
 /** Question de compréhension : vérifie qu'on a compris, pas seulement cliqué. */
 export interface Question { prompt: string; choices: string[]; correct: number; explain: string }
 /** Un objectif est soit un état à atteindre (`check`), soit une question (`question`). Son libellé décrit un résultat, jamais la méthode. */

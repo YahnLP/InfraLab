@@ -8,4 +8,5 @@ export const TEV = {
   SupplierAdded: 'SupplierAdded', ContractAdded: 'ContractAdded', ContractUpdated: 'ContractUpdated', LicenseAdded: 'LicenseAdded', LicenseUpdated: 'LicenseUpdated', SoftwarePolicyChanged: 'SoftwarePolicyChanged',
   AssetCreatedManual: 'AssetCreatedManual', AssetStatusChanged: 'AssetStatusChanged', AssetUpdatedFinance: 'AssetUpdatedFinance',
   CiCreated: 'CiCreated', CiRemoved: 'CiRemoved', RelationAdded: 'RelationAdded', RelationRemoved: 'RelationRemoved',
+  ActorChanged: 'ActorChanged', UserRolesChanged: 'UserRolesChanged', UserActiveChanged: 'UserActiveChanged', RoleCreated: 'RoleCreated', RolePermissionChanged: 'RolePermissionChanged',
 } as const;

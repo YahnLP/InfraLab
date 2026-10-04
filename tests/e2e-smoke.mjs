@@ -146,6 +146,20 @@ ok((await page.locator('.itsm-page').textContent()).length > 50, 'page Contrats 
 await page.getByRole('button', { name: 'CMDB', exact: true }).click();
 ok((await page.locator('.itsm-page').textContent()).includes('CI'), 'page CMDB affichée');
 await page.screenshot({ path: `${shots}/m6-cmdb.png` });
+
+// M7 : rôles et droits
+const alice = await page.locator('.who select option', { hasText: 'Alice' }).first().getAttribute('value');
+await page.locator('.who select').selectOption(alice);
+await page.getByRole('button', { name: 'Utilisateurs', exact: true }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('Accès refusé'), 'Alice (utilisateur) ne peut pas gérer les comptes');
+await page.getByRole('button', { name: 'Tickets', exact: true }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('propres tickets'), 'Alice ne voit que ses tickets');
+await page.locator('.who select').selectOption('');
+await page.getByRole('button', { name: 'Rôles et droits', exact: true }).click();
+ok(await page.locator('.matrix input[type=checkbox]').count() > 20, 'matrice des droits affichée');
+await page.getByRole('button', { name: /Journal d.audit/ }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('Auteur'), 'journal d\'audit avec auteur');
+await page.screenshot({ path: `${shots}/m7-roles.png` });
 await page.getByRole('tab', { name: 'Infrastructure' }).click();
 
 // pose par glisser-déposer + câblage

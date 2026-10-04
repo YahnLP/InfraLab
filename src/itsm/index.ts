@@ -9,3 +9,5 @@ export * from './itil-commands';
 export * from './itam';
 export * from './cmdb';
 export * from './itam-commands';
+export * from './rbac';
+export * from './rbac-commands';

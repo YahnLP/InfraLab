@@ -204,3 +204,9 @@ dialog.reader { width: min(760px, 94vw); max-height: 90vh; border: 1px solid var
 @media (max-width: 960px) { .appbody { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; } .tp-dock { width: auto; max-height: 45vh; border-left: 0; border-top: 3px solid var(--accent); } .tp-dock.collapsed { width: auto; max-height: 40px; } .tp-rail { writing-mode: horizontal-tb; height: 40px; padding: 0 14px; } }
 
 .callout.warn { border-left-color: var(--warn); } .ci-detail { margin-top: 18px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; } .ci-detail h2 { margin-top: 0; } .grid tr.sel { background: color-mix(in srgb, var(--accent) 12%, var(--card)); }
+
+.who { display: flex; align-items: center; gap: 6px; font-size: 12.5px; margin-right: 10px; } .who select { max-width: 230px; }
+.who.acting select { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); font-weight: 600; }
+.chks { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 4px; } .chk { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.matrix th, .matrix td { font-size: 12.5px; } .matrix .ctr { text-align: center; } .matrix tr.grp th { background: var(--card); text-align: left; font-size: 12px; color: var(--muted); }
+tr.off td { opacity: .6; }

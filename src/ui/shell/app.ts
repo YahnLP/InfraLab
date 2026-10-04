@@ -65,7 +65,15 @@ export function mountApp(root: HTMLElement): void {
   }, stage);
   new Dock(dockEl, store, id => canvas.focusDevice(id));
 
-  const refresh = () => { renderInspector(inspector, store.getState(), canvas.getSelection(), ihost); clock.textContent = fmtTime(sch.now); autosave(); };
+  /* ---- identité : « Agir en tant que » ---- */
+  const whoSel = h('select', { 'aria-label': 'Agir en tant que', title: 'Les droits de la personne choisie s\'appliquent à vos actions', onchange: () => { dispatch({ type: 'itsm.actAs', payload: { user: whoSel.value || null } }); } }) as HTMLSelectElement;
+  const whoBox = h('label', { class: 'who' }, h('span', { class: 'muted' }, 'Agir en tant que'), whoSel);
+  const renderWho = () => {
+    const st = store.getState(); const users = Object.values(st.management.users).filter(u => !u.disabled);
+    clear(whoSel); whoSel.append(h('option', { value: '' }, 'Formateur (tous les droits)'), ...users.map(u => h('option', { value: u.id }, `${u.name} — ${u.roles.map(r => st.management.roles[r]?.name ?? r).join(', ')}`)));
+    whoSel.value = st.actingAs ?? ''; whoBox.classList.toggle('acting', !!st.actingAs);
+  };
+  const refresh = () => { renderWho(); renderInspector(inspector, store.getState(), canvas.getSelection(), ihost); clock.textContent = fmtTime(sch.now); autosave(); };
   store.subscribe(refresh);
 
   /* ---- palette ---- */
@@ -109,7 +117,7 @@ export function mountApp(root: HTMLElement): void {
   const header = h('header', { class: 'top' },
     h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('span', null, 'InfraLab')),
     h('div', { class: 'views', role: 'tablist', 'aria-label': 'Vues' }, tabInfra, tabItsm, tabTp),
-    h('div', { class: 'grow' }),
+    h('div', { class: 'grow' }), whoBox,
     h('div', { class: 'simtime' }, h('span', { class: 'muted' }, 'Heure simulée'), clock,
       h('button', { title: 'Avancer le temps simulé d\'une heure (remontées d\'agent planifiées)', onclick: () => { advance(store, sch, HOUR); refresh(); } }, '+1 h'),
       h('button', { title: 'Avancer le temps simulé d\'un jour', onclick: () => { advance(store, sch, DAY); refresh(); } }, '+1 jour')),

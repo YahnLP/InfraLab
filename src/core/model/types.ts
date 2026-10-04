@@ -3,7 +3,7 @@
  * Deux couches : `reality` (ce qui est vrai) et `management` (ce que l'outil en sait).
  * Les entités sont enrichies jalon par jalon (M1 Infra, M2 Inventaire, M3 Tickets…).
  */
-export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'article' | 'contract' | 'license' | 'supplier' | 'relation' | 'ci' | 'site' | 'scenario';
+export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'article' | 'contract' | 'license' | 'supplier' | 'relation' | 'ci' | 'role' | 'site' | 'scenario';
 export interface EntityRef { kind: EntityKind; id: string }
 
 /* ---------------- Réalité ---------------- */
@@ -68,7 +68,9 @@ export interface Asset {
   /** Cycle de vie financier (ITAM). */
   purchasedAt?: number; warrantyEnd?: number; cost?: number;
 }
-export interface User { id: string; name: string; roles: string[]; service?: string; site?: string }
+export interface User { id: string; name: string; roles: string[]; service?: string; site?: string; /** Compte désactivé : ne peut plus agir ni recevoir de ticket. */ disabled?: boolean }
+/** Rôle : un ensemble de droits (RBAC). */
+export interface Role { id: string; name: string; description?: string; permissions: string[] }
 
 /* ---- ITAM et CMDB (M6) ---- */
 export interface Supplier { id: string; name: string; contact?: string }
@@ -114,7 +116,7 @@ export type ChangeType = 'standard' | 'normal' | 'emergency';
 export type ChangeStatus = 'draft' | 'proposed' | 'approved' | 'rejected' | 'scheduled' | 'implemented' | 'verified' | 'closed';
 export interface Change {
   id: string; ref: string; title: string; description: string; type: ChangeType; status: ChangeStatus;
-  risk?: Level; plan?: string; rollback?: string; approver?: string; assetIds: string[]; problemId?: string;
+  requestedBy?: string; risk?: Level; plan?: string; rollback?: string; approver?: string; assetIds: string[]; problemId?: string;
   scheduledAt?: number; implementedAt?: number; result?: string; createdAt: number; updatedAt: number;
 }
 export interface Article {
@@ -140,19 +142,22 @@ export interface State {
   schemaVersion: 1;
   counters: Record<string, number>;
   reality: { devices: Record<string, Device>; links: Record<string, Link>; itsmServerId: string | null };
-  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket>; problems: Record<string, Problem>; changes: Record<string, Change>; articles: Record<string, Article>; suppliers: Record<string, Supplier>; contracts: Record<string, Contract>; licenses: Record<string, License>; softwarePolicy: Record<string, SoftwarePolicy>; cis: Record<string, Ci>; relations: Record<string, Relation> };
+  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket>; problems: Record<string, Problem>; changes: Record<string, Change>; articles: Record<string, Article>; suppliers: Record<string, Supplier>; contracts: Record<string, Contract>; licenses: Record<string, License>; softwarePolicy: Record<string, SoftwarePolicy>; cis: Record<string, Ci>; relations: Record<string, Relation>; roles: Record<string, Role> };
   /** Sélection partagée entre les deux vues (« Voir dans l'infrastructure »). */
   focus: EntityRef | null;
+  /** Utilisateur « incarné » : ses droits s'appliquent aux actions. Nul = mode formateur (tous les droits). */
+  actingAs: string | null;
   /** Scénario en cours, ou null en mode libre. */
   session: Session | null;
 }
 
+import { defaultRoles } from './rbac';
 export function emptyState(): State {
   return {
     schemaVersion: 1, counters: {},
     reality: { devices: {}, links: {}, itsmServerId: null },
-    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {}, suppliers: {}, contracts: {}, licenses: {}, softwarePolicy: {}, cis: {}, relations: {} },
-    focus: null, session: null,
+    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {}, suppliers: {}, contracts: {}, licenses: {}, softwarePolicy: {}, cis: {}, relations: {}, roles: defaultRoles() },
+    focus: null, actingAs: null, session: null,
   };
 }
 

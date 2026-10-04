@@ -1,6 +1,6 @@
 import type { DomainEvent, State } from '../core';
 import { agentHealth, assetForDevice, driftReport } from '../inventory';
-import { contractState, forbiddenInstalls, licenseReport, licensesForSoftware, slaOf, ticketPriority } from '../itsm';
+import { isOpen, contractState, forbiddenInstalls, licenseReport, licensesForSoftware, slaOf, ticketPriority } from '../itsm';
 import { resolveRefs } from './resolve';
 import type { Check } from './types';
 
@@ -73,6 +73,14 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
       if (c.status && x.status !== c.status) return false; if (c.category && x.category !== c.category) return false; if (c.sourceTicket && x.sourceTicketId !== c.sourceTicket) return false;
       return c.minTickets === undefined || Object.values(st.management.tickets).filter(t => t.articleIds?.includes(x.id)).length >= c.minTickets;
     }
+    case 'acting': return st.actingAs === c.user;
+    case 'actedAs': return events.some(e => e.type === 'ActorChanged' && e.payload['user'] === c.user);
+    case 'didAs': return events.some(e => e.type === c.type && e.actorId === c.user && Object.entries(c.payload ?? {}).every(([k, v]) => e.payload[k] === v));
+    case 'userActive': return !!st.management.users[c.user] && !st.management.users[c.user]!.disabled === c.value;
+    case 'userRoles': { const u = st.management.users[c.user]; return !!u && (c.has ?? []).every(r => u.roles.includes(r)) && (c.lacks ?? []).every(r => !u.roles.includes(r)); }
+    case 'rolePerm': return !!st.management.roles[c.role] && st.management.roles[c.role]!.permissions.includes(c.permission) === c.value;
+    case 'roleExists': { const r = st.management.roles[c.role]; return !!r && (c.has ?? []).every(x => r.permissions.includes(x)) && (c.lacks ?? []).every(x => !r.permissions.includes(x)); }
+    case 'noOpenAssigned': return !Object.values(st.management.tickets).some(t => t.assignee === c.user && isOpen(t));
     case 'event': return events.some(e => e.type === c.type && (!c.subject || e.subject.id === c.subject));
     case 'all': return c.of.every(x => runCheck(st, events, x));
   }
