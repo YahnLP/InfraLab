@@ -6,7 +6,7 @@ function makeStore() {
   store.registerCommand('infra.addDevice', (ctx, p) => {
     const id = nextId(ctx.state.counters, 'dev');
     ctx.state.reality.devices[id] = {
-      id, name: String(p.name), kind: 'workstation', powered: true, pos: { x: 0, y: 0 },
+      id, name: String(p.name), kind: 'workstation', powered: true, online: false, ports: [], pos: { x: 0, y: 0 },
       nics: [], software: [], agent: { state: 'none', intervalMs: 0, errors: [] },
     };
     ctx.emit('DeviceAdded', { kind: 'device', id }, { name: p.name });

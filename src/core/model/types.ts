@@ -19,8 +19,13 @@ export interface AgentRuntime {
   lastRun?: number; nextRun?: number; errors: string[];
 }
 
+export interface Port { id: string; label: string }
+
 export interface Device {
   id: string; name: string; kind: DeviceKind; powered: boolean;
+  /** Joignable par l'outil (dérivé, maintenu uniquement par la synchronisation de joignabilité). */
+  online: boolean;
+  ports: Port[];
   site?: string; room?: string; pos: { x: number; y: number };
   nics: Nic[];
   hardware?: { cpu?: string; ramGb?: number; disks?: { type: 'ssd' | 'hdd'; gb: number }[] };
@@ -48,7 +53,7 @@ export interface User { id: string; name: string; roles: string[]; service?: str
 export interface State {
   schemaVersion: 1;
   counters: Record<string, number>;
-  reality: { devices: Record<string, Device>; links: Record<string, Link> };
+  reality: { devices: Record<string, Device>; links: Record<string, Link>; itsmServerId: string | null };
   management: { assets: Record<string, Asset>; users: Record<string, User> };
   /** Sélection partagée entre les deux vues (« Voir dans l'infrastructure »). */
   focus: EntityRef | null;
@@ -57,7 +62,7 @@ export interface State {
 export function emptyState(): State {
   return {
     schemaVersion: 1, counters: {},
-    reality: { devices: {}, links: {} },
+    reality: { devices: {}, links: {}, itsmServerId: null },
     management: { assets: {}, users: {} },
     focus: null,
   };

@@ -1,0 +1,16 @@
+/** Catalogue des événements d'infrastructure (cf. ARCHITECTURE.md §5.2). */
+export const EV = {
+  DeviceAdded: 'DeviceAdded',
+  DeviceRemoved: 'DeviceRemoved',
+  DeviceMoved: 'DeviceMoved',
+  DeviceReplaced: 'DeviceReplaced',
+  CableConnected: 'CableConnected',
+  CableDisconnected: 'CableDisconnected',
+  DevicePoweredOn: 'DevicePoweredOn',
+  DevicePoweredOff: 'DevicePoweredOff',
+  DeviceOnline: 'DeviceOnline',
+  DeviceOffline: 'DeviceOffline',
+  IPAddressChanged: 'IPAddressChanged',
+  HardwareChanged: 'HardwareChanged',
+  ItsmServerSet: 'ItsmServerSet',
+} as const;
