@@ -3,7 +3,7 @@
  * Deux couches : `reality` (ce qui est vrai) et `management` (ce que l'outil en sait).
  * Les entités sont enrichies jalon par jalon (M1 Infra, M2 Inventaire, M3 Tickets…).
  */
-export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'ci' | 'site' | 'scenario';
+export type EntityKind = 'device' | 'link' | 'user' | 'asset' | 'ticket' | 'problem' | 'change' | 'article' | 'ci' | 'site' | 'scenario';
 export interface EntityRef { kind: EntityKind; id: string }
 
 /* ---------------- Réalité ---------------- */
@@ -83,7 +83,32 @@ export interface Ticket {
   assetIds: string[];
   comments: TicketComment[]; solution?: string;
   createdAt: number; updatedAt: number; resolvedAt?: number; closedAt?: number;
+  /** Première prise en charge (démarre la preuve de réactivité du SLA). */
+  respondedAt?: number;
+  /** Temps passé « en attente » : l'horloge du SLA est suspendue. */
+  pausedMs?: number; pausedSince?: number;
+  problemId?: string; articleIds?: string[];
 }
+
+/* ---- ITIL (M5) ---- */
+export type ProblemStatus = 'new' | 'analysis' | 'known_error' | 'resolved' | 'closed';
+export interface Problem {
+  id: string; ref: string; title: string; description: string; status: ProblemStatus;
+  rootCause?: string; workaround?: string; permanentFix?: string;
+  ticketIds: string[]; assetIds: string[]; createdAt: number; updatedAt: number;
+}
+export type ChangeType = 'standard' | 'normal' | 'emergency';
+export type ChangeStatus = 'draft' | 'proposed' | 'approved' | 'rejected' | 'scheduled' | 'implemented' | 'verified' | 'closed';
+export interface Change {
+  id: string; ref: string; title: string; description: string; type: ChangeType; status: ChangeStatus;
+  risk?: Level; plan?: string; rollback?: string; approver?: string; assetIds: string[]; problemId?: string;
+  scheduledAt?: number; implementedAt?: number; result?: string; createdAt: number; updatedAt: number;
+}
+export interface Article {
+  id: string; ref: string; title: string; category?: string; symptoms: string; cause: string; solution: string;
+  status: 'draft' | 'published'; sourceTicketId?: string; createdAt: number; updatedAt: number;
+}
+
 
 /* ---- Session de TP (M4) ---- */
 export interface Session {
@@ -98,7 +123,7 @@ export interface State {
   schemaVersion: 1;
   counters: Record<string, number>;
   reality: { devices: Record<string, Device>; links: Record<string, Link>; itsmServerId: string | null };
-  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket> };
+  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket>; problems: Record<string, Problem>; changes: Record<string, Change>; articles: Record<string, Article> };
   /** Sélection partagée entre les deux vues (« Voir dans l'infrastructure »). */
   focus: EntityRef | null;
   /** Scénario en cours, ou null en mode libre. */
@@ -109,7 +134,7 @@ export function emptyState(): State {
   return {
     schemaVersion: 1, counters: {},
     reality: { devices: {}, links: {}, itsmServerId: null },
-    management: { assets: {}, users: {}, tickets: {} },
+    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {} },
     focus: null, session: null,
   };
 }

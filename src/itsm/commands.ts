@@ -1,6 +1,7 @@
 import { CommandError, nextId, type Level, type Store, type Ticket } from '../core';
 import { IEV } from '../inventory/events';
 import { TEV } from './events';
+import { registerItilCommands } from './itil-commands';
 import { TAXONOMY } from './taxonomy';
 import { TRANSITIONS, blocker } from './workflow';
 
@@ -8,6 +9,7 @@ const LEVELS: Level[] = ['low', 'medium', 'high'];
 
 /** Commandes de gestion (couche `management`). M2 : utilisateurs et saisie des données déclarées. */
 export function registerItsmCommands(store: Store): void {
+  registerItilCommands(store);
   store.registerCommand('itsm.addUser', (ctx, p) => {
     const name = String(p['name'] ?? '').trim(); if (!name) throw new CommandError('bad_name', 'Le nom est obligatoire');
     const id = nextId(ctx.state.counters, 'usr');
@@ -97,6 +99,9 @@ export function registerItsmCommands(store: Store): void {
     if (!tr) throw new CommandError('bad_transition', `Passage impossible : ${t.status} → ${to}`);
     const b = blocker(t, tr, ctx.state); if (b) throw new CommandError('guard_failed', b);
     const from = t.status; t.status = tr.to; touch(t, ctx.now);
+    if (tr.to === 'in_progress' && t.respondedAt === undefined) t.respondedAt = ctx.now;
+    if (tr.to === 'pending') t.pausedSince = ctx.now;
+    if (from === 'pending' && t.pausedSince !== undefined) { t.pausedMs = (t.pausedMs ?? 0) + (ctx.now - t.pausedSince); delete t.pausedSince; }
     if (tr.to === 'resolved') t.resolvedAt = ctx.now; if (tr.to === 'closed') t.closedAt = ctx.now;
     if (from === 'resolved' && tr.to === 'in_progress') delete t.resolvedAt;
     ctx.emit(TEV.TicketStatusChanged, { kind: 'ticket', id: t.id }, { from, to: tr.to });
