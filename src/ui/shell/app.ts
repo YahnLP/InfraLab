@@ -42,7 +42,7 @@ export function mountApp(root: HTMLElement): void {
   const itsmEl = h('div', { class: 'itsm', hidden: true });
   const workEl = h('main', { class: 'work' });
   const tpEl = h('div', { class: 'tpview', hidden: true });
-  const tpPanelEl = h('aside', { class: 'tp-panel', 'aria-label': 'Travail pratique en cours', hidden: true });
+  const tpPanelEl = h('aside', { class: 'tp-dock', 'aria-label': 'Travail pratique en cours', hidden: true });
 
   const toast = (msg: string, kind: 'info' | 'err' = 'info') => {
     const t = h('div', { class: `toast ${kind}`, role: kind === 'err' ? 'alert' : 'status' }, msg); toastBox.append(t);
@@ -118,7 +118,7 @@ export function mountApp(root: HTMLElement): void {
     h('button', { onclick: () => confirm('Effacer tout le schéma ?', () => { store.restore({ state: emptyState(), log: [] }); sch.now = 0; canvas.select(null); refresh(); }) }, 'Nouveau'));
 
   workEl.append(palette, h('div', { class: 'center' }, stage, hint, dockEl), inspector);
-  root.append(header, workEl, itsmEl, tpEl, tpPanelEl, toastBox, dialog);
+  root.append(header, h('div', { class: 'appbody' }, h('div', { class: 'viewport' }, workEl, itsmEl, tpEl), tpPanelEl), toastBox, dialog);
 
   window.addEventListener('keydown', e => {
     const t = e.target as HTMLElement; if (t.closest('input, textarea, select, dialog')) return;

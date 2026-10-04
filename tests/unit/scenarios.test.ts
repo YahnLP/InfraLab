@@ -20,6 +20,10 @@ describe('Qualité des TP (auto-test de chaque scénario)', () => {
         const ids = new Set(sc.objectives.map(o => o.id));
         for (const h of sc.hints) expect(ids.has(h.for)).toBe(true);
         for (const o of sc.objectives) for (const r of o.requires ?? []) expect(ids.has(r)).toBe(true);
+        // chaque objectif appartient à une seule étape ; chaque étape a cours, tâches et bilan
+        const owned = sc.stages.flatMap(g => g.objectives); expect([...owned].sort()).toEqual([...ids].sort());
+        for (const g of sc.stages) { expect(g.lesson.length).toBeGreaterThan(0); expect(g.debrief.length).toBeGreaterThan(0); expect(g.objectives.length).toBeGreaterThan(0); }
+        for (const o of sc.objectives) { expect(!!o.check !== !!o.question).toBe(true); if (o.question) { expect(o.question.choices.length).toBeGreaterThanOrEqual(3); expect(o.question.correct).toBeLessThan(o.question.choices.length); } }
         expect(sc.skills.length).toBeGreaterThan(0); expect(sc.solutionText.length).toBeGreaterThan(0);
       });
       it('aucun objectif n\'est atteint à l\'état initial', () => {
@@ -42,6 +46,32 @@ describe('Qualité des TP (auto-test de chaque scénario)', () => {
       });
     });
   }
+});
+
+describe('Questions et étapes', () => {
+  const sc = SCENARIOS.find(s => s.number === 19)!;
+  it('une mauvaise réponse coûte un point d\'autonomie, une bonne est enregistrée', () => {
+    const { sch, store } = lab(); startScenario(store, sch, sc);
+    expect(store.dispatch({ type: 'scenario.answer', payload: { objective: 'how', choice: 0 } }).ok).toBe(true);
+    expect(evaluate(sc, store.getState(), store.getLog(), sch.now).objectives.find(o => o.id === 'how')!.done).toBe(false);
+    store.dispatch({ type: 'scenario.answer', payload: { objective: 'how', choice: 1 } });
+    const ev = evaluate(sc, store.getState(), store.getLog(), sch.now);
+    expect(ev.objectives.find(o => o.id === 'how')!.done).toBe(true); expect(ev.score.autonomy).toBe(9);
+    expect(store.dispatch({ type: 'scenario.answer', payload: { objective: 'how', choice: 1 } }).error?.code).toBe('already');
+    expect(store.dispatch({ type: 'scenario.answer', payload: { objective: 'links', choice: 1 } }).error?.code).toBe('no_question');
+  });
+  it('la chaîne complète est exigée : fermer les tickets sans vérification ni solution ne suffit pas', () => {
+    const { sch, store } = lab(); startScenario(store, sch, sc);
+    runSteps(store, sch, [{ do: 'infra.powerOn', args: { id: '@dev:SW02' } }]);
+    const ev = evaluate(sc, store.getState(), store.getLog(), sch.now);
+    expect(ev.objectives.find(o => o.id === 'online')!.done).toBe(true); expect(ev.objectives.find(o => o.id === 'closed')!.done).toBe(false);
+    expect(ev.stages.map(g => g.done)).toEqual([false, false, false, false]);
+  });
+  it('on avance d\'étape en étape, pas au-delà de la dernière', () => {
+    const { sch, store } = lab(); startScenario(store, sch, sc);
+    for (let i = 0; i < sc.stages.length - 1; i++) expect(store.dispatch({ type: 'scenario.advance' }).ok).toBe(true);
+    expect(store.getState().session!.stage).toBe(3); expect(store.dispatch({ type: 'scenario.advance' }).error?.code).toBe('last_stage');
+  });
 });
 
 describe('Session de TP', () => {

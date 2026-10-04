@@ -88,23 +88,35 @@ ok((await page.locator('.itsm-page .asset-head').textContent()).includes('Clos')
 await page.screenshot({ path: `${shots}/m3-ticket.png` });
 await page.getByRole('tab', { name: 'Infrastructure' }).click();
 
-// M4 : TP 16 jouable par l'interface
+// M4 : TP 16 par l'interface (étapes, cours, questions, bilans)
 await page.getByRole('tab', { name: 'TP' }).click();
-ok(await page.locator('.tp-card').count() >= 7, 'catalogue : au moins 7 TP');
+ok(await page.locator('.tp-card').count() >= 11, 'catalogue : au moins 11 TP');
 await page.locator('.tp-card', { hasText: 'PC déconnecté' }).getByRole('button', { name: 'Démarrer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
-ok(await page.locator('.tp-panel:not([hidden])').count() === 1 && (await page.locator('.tp-head').textContent()).includes('0/6'), 'panneau de TP : 0/6 objectifs');
+ok(await page.locator('.tp-dock:not([hidden])').count() === 1 && await page.locator('.tp-steps li').count() === 4, 'colonne de TP : 4 étapes');
+ok((await page.locator('.tp-dock .tp-ctx').textContent()).includes('service desk'), 'mise en situation : explique comment le ticket est arrivé');
+ok(await page.locator('.tp-lesson p').count() >= 2, 'cours affiché avant la pratique');
+const box0 = await page.locator('.canvas').boundingBox(); const dock0 = await page.locator('.tp-dock').boundingBox();
+ok(box0.x + box0.width <= dock0.x + 1, 'la colonne de TP ne recouvre pas le schéma');
 ok(await page.locator('.node.down').count() >= 1, 'décor appliqué : le poste d\'Alice est hors ligne');
-await page.getByRole('button', { name: /Indice \(0\/3\)/ }).first().click();
-ok(await page.locator('.tp-hints li').count() === 1, 'un indice révélé');
-await page.evaluate(() => { const { store } = window.infralab; const st = store.getState(); const pc = Object.values(st.reality.devices).find(d => d.name === 'PC-COMPTA-01'); const sw = Object.values(st.reality.devices).find(d => d.name === 'SW-SIEGE-01'); store.dispatch({ type: 'infra.connect', payload: { aDevice: pc.id, aPort: 'eth0', bDevice: sw.id, bPort: 'port3' } }); });
-ok((await page.locator('.tp-head').textContent()).includes('2/6'), 'reconnecter : objectifs « poste en ligne » et « agent » atteints');
-await page.getByRole('button', { name: 'Voir la solution' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
-ok(await page.locator('.tp-panel .callout').count() === 1, 'solution affichée sur demande');
+const run = (js) => page.evaluate(js);
+await page.locator('.tp-q .choice').nth(0).click(); ok(await page.locator('.fb.ko').count() === 1, 'mauvaise réponse : retour, sans donner la solution');
+await page.locator('.tp-q .choice').nth(1).click(); ok(await page.locator('.fb.ok').count() === 1, 'bonne réponse : explication affichée');
+await run(() => { const { store } = window.infralab; const st = store.getState(); const t = Object.values(st.management.tickets)[0]; const a = Object.values(st.management.assets).find(x => x.name === 'PC-COMPTA-01');
+  store.dispatch({ type: 'itsm.linkAsset', payload: { id: t.id, asset: a.id } }); store.dispatch({ type: 'itsm.updateTicket', payload: { id: t.id, fields: { category: 'Réseau', subcategory: 'Poste sans réseau', impact: 'low', urgency: 'medium' } } }); });
+ok(await page.locator('.tp-debrief').count() === 1, 'étape 1 terminée : bilan affiché');
+await page.getByRole('button', { name: 'Étape suivante' }).click();
+ok((await page.locator('.tp-lesson h3').textContent()).includes('Étape 2/4'), 'étape suivante : nouveau cours');
+await page.getByRole('button', { name: 'Lire en grand' }).click(); ok(await page.locator('dialog.reader[open]').count() === 1, 'lecture du cours en grand');
+await page.locator('dialog.reader').getByRole('button', { name: 'Fermer' }).click();
+await page.getByRole('button', { name: 'Replier le panneau' }).click(); ok(await page.locator('.tp-rail').count() === 1, 'panneau replié en rail');
+await page.locator('.tp-rail').click();
 await page.screenshot({ path: `${shots}/m4-tp.png` });
+await page.getByRole('button', { name: 'Solution', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+ok(await page.locator('.tp-dock .callout').count() === 1, 'solution affichée sur demande');
 await page.getByRole('button', { name: 'Terminer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 ok((await page.locator('.tp-score').textContent()).includes('/ 100'), 'bilan avec score');
 await page.getByRole('button', { name: 'Quitter', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
-ok(await page.locator('.tp-panel:not([hidden])').count() === 0, 'quitter le TP : retour au mode libre');
+ok(await page.locator('.tp-dock:not([hidden])').count() === 0, 'quitter le TP : retour au mode libre');
 
 // M5 : ITIL dans l'interface
 await page.getByRole('tab', { name: 'ITSM' }).click();

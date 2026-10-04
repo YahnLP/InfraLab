@@ -23,10 +23,15 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
       if (c.urgency && t.urgency !== c.urgency) return false;
       if (c.priority && ticketPriority(t) !== c.priority) return false;
       if (c.assignee && t.assignee !== c.assignee) return false;
+      if (c.solutionMin !== undefined && (t.solution?.trim().length ?? 0) < c.solutionMin) return false;
+      if (c.minComments !== undefined && t.comments.length < c.minComments) return false;
+      if (c.subcategory && t.subcategory !== c.subcategory) return false;
+      if (c.kind && t.kind !== c.kind) return false;
       if (c.hasSolution !== undefined && !!t.solution?.trim() !== c.hasSolution) return false;
       if (c.linkedDevice) { const a = assetForDevice(st, c.linkedDevice); if (!a || !t.assetIds.includes(a.id)) return false; }
       return true;
     }
+    case 'answer': return !!st.session?.answers[c.question]?.correct;
     case 'sla': { const t = st.management.tickets[c.ticket]; const sl = t && slaOf(t, now); return !!sl && (!c.respond || sl.respond.state === c.respond) && (!c.resolve || sl.resolve.state === c.resolve); }
     case 'problem': {
       const x = st.management.problems[c.ref]; if (!x) return false;

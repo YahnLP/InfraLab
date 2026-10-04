@@ -16,23 +16,31 @@ export type Check =
   | { k: 'assetExists'; device: Ref }
   | { k: 'assetInventoried'; device: Ref }
   | { k: 'assetInSync'; device: Ref }
-  | { k: 'ticket'; ref: Ref; status?: TicketStatus; category?: string; impact?: Level; urgency?: Level; priority?: 1 | 2 | 3 | 4; linkedDevice?: Ref; hasSolution?: boolean; qualified?: boolean; assignee?: Ref }
+  | { k: 'ticket'; ref: Ref; status?: TicketStatus; category?: string; impact?: Level; urgency?: Level; priority?: 1 | 2 | 3 | 4; linkedDevice?: Ref; hasSolution?: boolean; solutionMin?: number; minComments?: number; subcategory?: string; kind?: 'incident' | 'request'; qualified?: boolean; assignee?: Ref }
   | { k: 'sla'; ticket: Ref; respond?: SlaState; resolve?: SlaState }
   | { k: 'problem'; ref: Ref; status?: ProblemStatus; reached?: ProblemStatus; minTickets?: number; hasRootCause?: boolean; hasWorkaround?: boolean; hasFix?: boolean }
   | { k: 'change'; ref: Ref; status?: ChangeStatus; reached?: ChangeStatus; type?: ChangeType; linkedDevice?: Ref; linkedAsset?: Ref; approver?: Ref }
   | { k: 'article'; ref: Ref; status?: 'draft' | 'published'; category?: string; sourceTicket?: Ref; minTickets?: number }
+  | { k: 'answer'; question: string }
   | { k: 'event'; type: string; subject?: Ref }
   | { k: 'all'; of: Check[] };
 
 export interface Step { do?: string; args?: Record<string, unknown>; advance?: number }
-export interface Objective { id: string; label: string; check: Check; requires?: string[] }
+/** Question de compréhension : vérifie qu'on a compris, pas seulement cliqué. */
+export interface Question { prompt: string; choices: string[]; correct: number; explain: string }
+/** Un objectif est soit un état à atteindre (`check`), soit une question (`question`). Son libellé décrit un résultat, jamais la méthode. */
+export interface Objective { id: string; label: string; check?: Check; question?: Question; requires?: string[] }
+/** Étape pédagogique : un cours court, des tâches, puis un bilan. Alterne l'apport de connaissances et la pratique. */
+export interface Stage { id: string; title: string; lesson: string[]; objectives: string[]; debrief: string[] }
 export interface Hint { for: string; levels: string[] }
 
 export interface Scenario {
   id: string; number: number; title: string; level: number; levelLabel: string; difficulty: 1 | 2 | 3; duration: string;
   /** « Compétence travaillée » ou « élément de preuve possible » : jamais « validée ». */
   skills: { ref: string; kind: 'worked' | 'evidence_possible' }[];
+  /** Mise en situation : le contexte, y compris la façon dont les tickets sont arrivés. */
   context: string;
+  stages: Stage[];
   /** Décor : suite de commandes rejouable, appliquée après le SI NovaTech de base. */
   setup: Step[];
   objectives: Objective[];

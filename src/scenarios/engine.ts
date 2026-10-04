@@ -8,8 +8,9 @@ import type { Scenario, Step } from './types';
 const HINT_COST = 2; // points perdus par niveau d'indice (sur les 10 points « sans aide »)
 
 export interface ObjectiveStatus { id: string; label: string; done: boolean; locked: boolean }
+export interface StageStatus { id: string; title: string; done: boolean; objectiveIds: string[] }
 export interface Evaluation {
-  objectives: ObjectiveStatus[]; doneCount: number; complete: boolean; violations: string[];
+  objectives: ObjectiveStatus[]; stages: StageStatus[]; doneCount: number; complete: boolean; violations: string[];
   score: { objectives: number; quality: number; autonomy: number; total: number };
 }
 
@@ -37,13 +38,14 @@ export function startScenario(store: Store, sch: Scheduler, sc: Scenario, mode: 
 export function evaluate(sc: Scenario, st: Readonly<State>, log: readonly import('../core').DomainEvent[], now = 0): Evaluation {
   const mine = st.session ? log.slice(st.session.logStart) : log;
   const done = new Map<string, boolean>();
-  for (const o of sc.objectives) done.set(o.id, runCheck(st, mine, o.check, now) && (o.requires ?? []).every(r => done.get(r)));
+  for (const o of sc.objectives) done.set(o.id, (o.question ? !!st.session?.answers[o.id]?.correct : !!o.check && runCheck(st, mine, o.check, now)) && (o.requires ?? []).every(r => done.get(r)));
   const objectives = sc.objectives.map(o => ({ id: o.id, label: o.label, done: !!done.get(o.id), locked: (o.requires ?? []).some(r => !done.get(r)) }));
+  const stages = sc.stages.map(g => ({ id: g.id, title: g.title, objectiveIds: g.objectives, done: g.objectives.every(i => done.get(i)) }));
   const doneCount = objectives.filter(o => o.done).length;
   const violations = (sc.forbid ?? []).filter(f => mine.some(e => e.type === f.event)).map(f => f.message);
   const hintLevels = Object.values(st.session?.hints ?? {}).reduce((a, b) => a + b, 0);
   const o = Math.round(70 * doneCount / sc.objectives.length);
   const q = Math.max(0, 20 - 10 * violations.length);
-  const a = st.session?.solutionViewed ? 0 : Math.max(0, 10 - HINT_COST * hintLevels);
-  return { objectives, doneCount, complete: doneCount === sc.objectives.length, violations, score: { objectives: o, quality: q, autonomy: a, total: o + q + a } };
+  const a = st.session?.solutionViewed ? 0 : Math.max(0, 10 - HINT_COST * hintLevels - (st.session?.wrong ?? 0));
+  return { objectives, stages, doneCount, complete: doneCount === sc.objectives.length, violations, score: { objectives: o, quality: q, autonomy: a, total: o + q + a } };
 }

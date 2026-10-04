@@ -116,6 +116,10 @@ export interface Session {
   /** Les événements du journal à partir de cet index sont ceux du joueur (le décor précède). */
   logStart: number;
   hints: Record<string, number>; solutionViewed: boolean; finishedAt?: number;
+  /** Étape pédagogique en cours (les étapes suivantes restent fermées tant qu'on n'a pas validé celle-ci). */
+  stage: number;
+  /** Réponses aux questions de compréhension (dernière tentative) et nombre de mauvaises réponses. */
+  answers: Record<string, { choice: number; correct: boolean }>; wrong: number;
 }
 
 /* ---------------- État global ---------------- */
