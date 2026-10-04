@@ -1,2 +1,4 @@
-// Point d'entrée. L'interface arrive aux jalons M1 (Infrastructure) et M3 (ITSM).
-export {};
+import './ui/styles.css';
+import { mountApp } from './ui/shell/app';
+
+mountApp(document.getElementById('app')!);
