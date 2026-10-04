@@ -1,5 +1,5 @@
 import type { Level, State, Ticket, TicketKind } from '../../core';
-import { KIND_LABEL, LEVEL_LABEL, PRIORITY_LABEL, STATUS_LABEL, TAXONOMY, blocker, byQueueOrder, isOpen, ticketPriority, transitionsFrom } from '../../itsm';
+import { SLA_LABEL, fmtDuration, slaOf, type SlaClock, KIND_LABEL, LEVEL_LABEL, PRIORITY_LABEL, STATUS_LABEL, TAXONOMY, blocker, byQueueOrder, isOpen, ticketPriority, transitionsFrom } from '../../itsm';
 import { h } from '../kit/dom';
 import { EVENT_LABEL, ago, fmtTime } from '../shell/labels';
 import type { ItsmHost, Route } from './view';
@@ -14,6 +14,8 @@ const assetName = (st: Readonly<State>, id: string) => st.management.assets[id]?
 
 const FIELD_LABEL: Record<string, string> = { title: 'titre', description: 'description', category: 'catégorie', subcategory: 'sous-catégorie', impact: 'impact', urgency: 'urgence', assignee: 'assigné', solution: 'solution' };
 
+const slaPill = (k: SlaClock) => h('span', { class: `pill ${k.state === 'breached' ? 'down' : k.state === 'at_risk' ? 'warn' : k.state === 'met' ? 'on' : 'off'}`, title: `Cible ${fmtDuration(k.target)}` }, `${SLA_LABEL[k.state]}${k.state === 'running' || k.state === 'at_risk' ? ` · reste ${fmtDuration(k.remaining)}` : k.state === 'breached' ? ` · ${fmtDuration(k.remaining)}` : ''}`);
+
 export type TicketFilter = { kind?: TicketKind; scope?: 'open' | 'all' };
 
 export function ticketList(c: Ctx, f: TicketFilter): HTMLElement {
@@ -27,10 +29,10 @@ export function ticketList(c: Ctx, f: TicketFilter): HTMLElement {
   return h('section', null, h('h1', null, title),
     h('div', { class: 'chips' }, chip('open', 'À traiter'), chip('all', 'Tous (y compris résolus et clos)'), h('span', { class: 'grow' }),
       h('button', { class: 'primary', onclick: () => c.go({ page: 'newticket' }) }, 'Nouveau ticket')),
-    list.length ? h('table', { class: 'grid' }, h('thead', null, h('tr', null, ...['Réf.', 'Titre', 'Demandeur', 'Statut', 'Priorité', 'Assigné à', 'Actifs', 'Mis à jour'].map(x => h('th', null, x)))),
+    list.length ? h('table', { class: 'grid' }, h('thead', null, h('tr', null, ...['Réf.', 'Titre', 'Demandeur', 'Statut', 'Priorité', 'Assigné à', 'SLA résolution', 'Actifs', 'Mis à jour'].map(x => h('th', null, x)))),
       h('tbody', null, ...list.map(t => h('tr', { class: 'row', tabindex: 0, onclick: () => c.go({ page: 'ticket', id: t.id }), onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter') c.go({ page: 'ticket', id: t.id }); } },
         h('td', null, h('code', null, t.ref)), h('td', null, h('b', null, t.title)), h('td', null, userName(st, t.requester)), h('td', null, statusPill(t)), h('td', null, prioPill(t)),
-        h('td', null, userName(st, t.assignee)), h('td', null, t.assetIds.map(a => assetName(st, a)).join(', ') || h('span', { class: 'muted' }, '—')), h('td', null, ago(c.host.now(), t.updatedAt)))))
+        h('td', null, userName(st, t.assignee)), h('td', null, (() => { const sl = slaOf(t, c.host.now()); return sl ? slaPill(sl.resolve) : h('span', { class: 'muted' }, '—'); })()), h('td', null, t.assetIds.map(a => assetName(st, a)).join(', ') || h('span', { class: 'muted' }, '—')), h('td', null, ago(c.host.now(), t.updatedAt)))))
     ) : h('p', { class: 'empty' }, scope === 'open' ? 'Aucun ticket à traiter. Les utilisateurs signalent un incident ou font une demande : créez un ticket pour jouer ce rôle.' : 'Aucun ticket.'),
     h('aside', { class: 'realworld' }, h('strong', null, 'Dans les outils réels'), ' incident = ticket de type Incident ; demande = Service Request. La file est triée par priorité : P1 d\'abord (ServiceNow, GLPI, Jira Service Management…).'));
 }
@@ -98,10 +100,26 @@ export function ticketPage(c: Ctx, id: string): HTMLElement {
             locked ? null : h('button', { class: 'link', onclick: () => c.host.dispatch({ type: 'itsm.unlinkAsset', payload: { id: t.id, asset: a } }) }, 'Délier')); }))
           : h('p', { class: 'muted' }, 'Aucun actif lié. Sans lien, impossible de savoir quel équipement est concerné ni de retrouver l\'historique du poste.'),
         locked ? null : linkSel,
+        h('h2', null, 'SLA'),
+        (() => { const sl = slaOf(t, c.host.now()); return sl ? h('div', null, h('p', null, h('b', null, 'Prise en charge : '), slaPill(sl.respond)), h('p', null, h('b', null, 'Résolution : '), slaPill(sl.resolve)), h('p', { class: 'muted' }, 'L\'horloge s\'arrête en « en attente » et à la résolution. Avancez l\'heure simulée pour la voir courir.')) : h('p', { class: 'muted' }, 'Le SLA dépend de la priorité : qualifiez le ticket.'); })(),
         h('h2', null, 'Solution'), sol,
         locked ? null : h('div', { class: 'actions' }, h('button', { onclick: () => upd({ solution: sol.value }) }, 'Enregistrer la solution'))),
       h('div', null,
         h('h2', null, 'Étape suivante'), trs.length ? h('div', { class: 'trs' }, ...trs) : h('p', { class: 'muted' }, 'Ticket clos : il reste consultable, mais plus modifiable (sauf commentaires).'),
+        h('h2', null, 'Problème'),
+        t.problemId ? h('p', null, 'Rattaché à ', h('button', { class: 'link', onclick: () => c.go({ page: 'problem', id: t.problemId! }) }, st.management.problems[t.problemId]?.ref ?? t.problemId))
+          : h('div', { class: 'actions' }, h('button', { onclick: () => { if (c.host.dispatch({ type: 'itsm.createProblem', payload: { title: t.title, tickets: [t.id] } })) { const all = Object.values(c.host.store.getState().management.problems); c.go({ page: 'problem', id: all[all.length - 1]!.id }); } } }, 'Ouvrir un problème depuis ce ticket')),
+        h('h2', null, 'Base de connaissances'),
+        (() => {
+          const pub = Object.values(st.management.articles).filter(a => a.status === 'published' && !t.articleIds?.includes(a.id));
+          const sug = pub.filter(a => a.category && a.category === t.category); const rest = pub.filter(a => !sug.includes(a));
+          const own = Object.values(st.management.articles).filter(a => a.sourceTicketId === t.id);
+          const asel = h('select', { 'aria-label': 'Associer un article' }, h('option', { value: '' }, sug.length ? `+ Associer un article (${sug.length} suggéré(s) pour « ${t.category} »)` : '+ Associer un article publié…'), ...[...sug, ...rest].map(a => h('option', { value: a.id }, `${a.ref} — ${a.title}`)));
+          asel.onchange = () => { if (asel.value) c.host.dispatch({ type: 'itsm.linkArticle', payload: { article: asel.value, ticket: t.id } }); };
+          return h('div', null, (t.articleIds ?? []).length ? h('ul', { class: 'tkl' }, ...(t.articleIds ?? []).map(i => h('li', null, h('button', { class: 'link', onclick: () => c.go({ page: 'article', id: i }) }, st.management.articles[i]?.ref ?? i), ` ${st.management.articles[i]?.title ?? ''}`))) : null,
+            pub.length ? asel : null,
+            own.length ? h('p', null, 'Article rédigé : ', ...own.map(a => h('button', { class: 'link', onclick: () => c.go({ page: 'article', id: a.id }) }, a.ref))) : h('div', { class: 'actions' }, h('button', { onclick: () => { if (c.host.dispatch({ type: 'itsm.createArticle', payload: { ticket: t.id } })) { const all = Object.values(c.host.store.getState().management.articles); c.go({ page: 'article', id: all[all.length - 1]!.id }); } } }, 'Rédiger un article depuis ce ticket')));
+        })(),
         h('h2', null, 'Commentaires'),
         t.comments.length ? h('ul', { class: 'cmts' }, ...[...t.comments].reverse().map(m => h('li', null, h('time', null, fmtTime(m.t)), ' ', m.text))) : null,
         cmt, h('div', { class: 'actions' }, h('button', { onclick: () => { if (c.host.dispatch({ type: 'itsm.addComment', payload: { id: t.id, text: cmt.value } })) cmt.value = ''; } }, 'Commenter')),

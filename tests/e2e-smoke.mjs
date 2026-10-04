@@ -106,6 +106,26 @@ ok((await page.locator('.tp-score').textContent()).includes('/ 100'), 'bilan ave
 await page.getByRole('button', { name: 'Quitter', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 ok(await page.locator('.tp-panel:not([hidden])').count() === 0, 'quitter le TP : retour au mode libre');
 
+// M5 : ITIL dans l'interface
+await page.getByRole('tab', { name: 'ITSM' }).click();
+await page.getByRole('button', { name: 'Problèmes', exact: true }).click();
+await page.getByLabel('Titre du problème').fill('Défaillance du switch SW02'); await page.getByRole('button', { name: 'Créer', exact: true }).click();
+ok((await page.locator('.itsm-page h1').textContent()).includes('SW02'), 'problème créé, fiche ouverte');
+await page.getByRole('button', { name: /Lancer l'analyse/ }).click({ force: true });
+ok((await page.locator('.toast.err').last().textContent()).includes('incident'), 'analyse refusée sans incident rattaché, avec explication');
+await page.getByRole('button', { name: 'Changements', exact: true }).click();
+await page.getByLabel('Titre du changement').fill('Remplacement de SW02'); await page.getByRole('button', { name: 'Créer', exact: true }).click();
+await page.getByRole('button', { name: /Soumettre/ }).click({ force: true });
+ok((await page.locator('.toast.err').last().textContent()).includes('risque'), 'changement : soumission refusée sans risque');
+await page.getByRole('button', { name: 'Base de connaissances', exact: true }).click();
+ok((await page.locator('.itsm-page .empty').count()) === 1, 'base de connaissances vide au départ');
+await page.getByRole('button', { name: 'Tickets', exact: true }).click(); await page.getByRole('button', { name: 'Nouveau ticket' }).click();
+await page.locator('select[name=requester]').selectOption({ index: 1 }); await page.locator('input[name=title]').fill('Panne générale'); await page.getByRole('button', { name: 'Créer le ticket' }).click();
+await page.getByLabel('Catégorie', { exact: true }).selectOption('Réseau'); await page.getByLabel('Impact').selectOption('high'); await page.getByLabel('Urgence').selectOption('high');
+ok((await page.locator('.itsm-page').textContent()).includes('reste'), 'SLA affiché avec le temps restant (P1)');
+await page.screenshot({ path: `${shots}/m5-sla.png` });
+await page.getByRole('tab', { name: 'Infrastructure' }).click();
+
 // pose par glisser-déposer + câblage
 await page.getByRole('button', { name: 'Nouveau', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 const box = await page.locator('.canvas').boundingBox();

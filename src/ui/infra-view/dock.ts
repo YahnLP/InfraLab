@@ -1,5 +1,5 @@
-import type { DomainEvent, Store, TicketStatus } from '../../core';
-import { STATUS_LABEL } from '../../itsm';
+import type { ChangeStatus, DomainEvent, ProblemStatus, Store, TicketStatus } from '../../core';
+import { CHANGE_STATUS_LABEL, PROBLEM_STATUS_LABEL, STATUS_LABEL } from '../../itsm';
 import { getScenario } from '../../scenarios';
 import { clear, h } from '../kit/dom';
 import type { OfflineReason } from '../../infra';
@@ -12,7 +12,7 @@ export class Dock {
   constructor(private root: HTMLElement, private store: Store, private onFocus: (deviceId: string) => void) {
     store.subscribe(() => this.render()); this.render();
   }
-  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.tickets[id]?.ref ?? (id.startsWith('tp-') ? `TP ${getScenario(id)?.number ?? ''}` : undefined) ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
+  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.tickets[id]?.ref ?? st.management.problems[id]?.ref ?? st.management.changes[id]?.ref ?? st.management.articles[id]?.ref ?? (id.startsWith('tp-') ? `TP ${getScenario(id)?.number ?? ''}` : undefined) ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
   private describe(e: DomainEvent): string {
     const p = e.payload as Record<string, any>;
     switch (e.type) {
@@ -26,6 +26,8 @@ export class Dock {
       case 'NetworkDiscoveryCompleted': return `${p['cidr']} : ${p['found']} trouvé(s), ${p['created']} nouveau(x)`;
       case 'AssetMatched': return `par ${p['by']}`;
       case 'TicketStatusChanged': return `${STATUS_LABEL[p['from'] as TicketStatus]} → ${STATUS_LABEL[p['to'] as TicketStatus]}`;
+      case 'ProblemStatusChanged': return `${PROBLEM_STATUS_LABEL[p['from'] as ProblemStatus]} → ${PROBLEM_STATUS_LABEL[p['to'] as ProblemStatus]}`;
+      case 'ChangeStatusChanged': return `${CHANGE_STATUS_LABEL[p['from'] as ChangeStatus]} → ${CHANGE_STATUS_LABEL[p['to'] as ChangeStatus]}`;
       case 'TicketCreated': return String(p['title'] ?? '');
       case 'SoftwareInstalled': case 'SoftwareRemoved': return String(p['softwareId']);
       default: return '';

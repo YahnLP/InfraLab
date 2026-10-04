@@ -103,7 +103,7 @@ export function mountApp(root: HTMLElement): void {
     },
   };
   function showTp(): void { show(2); renderTpCatalog(tpEl, tpHost); }
-  new TpPanel(tpPanelEl, store, { dispatch, confirm, restart: () => { const id = store.getState().session; const sc = id && SCENARIOS_BY_ID(id.scenarioId); if (sc && id) { startScenario(store, sch, sc, id.mode); canvas.select(null); canvas.fit(); refresh(); } } });
+  new TpPanel(tpPanelEl, store, { dispatch, confirm, restart: () => { const id = store.getState().session; const sc = id && SCENARIOS_BY_ID(id.scenarioId); if (sc && id) { startScenario(store, sch, sc, id.mode); canvas.select(null); canvas.fit(); refresh(); } } }, () => sch.now);
 
   /* ---- en-tête ---- */
   const header = h('header', { class: 'top' },

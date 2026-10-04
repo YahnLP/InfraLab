@@ -7,12 +7,12 @@ export interface PanelHost { dispatch(c: { type: string; payload?: Record<string
 /** Panneau de TP : objectifs, indices, solution, bilan. Toujours visible pendant un TP, quelle que soit la vue. */
 export class TpPanel {
   private collapsed = false;
-  constructor(private root: HTMLElement, private store: Store, private host: PanelHost) { store.subscribe(() => this.render()); this.render(); }
+  constructor(private root: HTMLElement, private store: Store, private host: PanelHost, private now: () => number) { store.subscribe(() => this.render()); this.render(); }
 
   render(): void {
     const st = this.store.getState(); const s = st.session; const sc = s && getScenario(s.scenarioId);
     clear(this.root); this.root.hidden = !s || !sc; if (!s || !sc) return;
-    const ev = evaluate(sc, st, this.store.getLog()); const done = s.finishedAt !== undefined; const exam = s.mode === 'exam';
+    const ev = evaluate(sc, st, this.store.getLog(), this.now()); const done = s.finishedAt !== undefined; const exam = s.mode === 'exam';
     const head = h('button', { class: 'tp-head', 'aria-expanded': String(!this.collapsed), onclick: () => { this.collapsed = !this.collapsed; this.render(); } },
       h('b', null, `TP ${sc.number} — ${sc.title}`), exam ? h('span', { class: 'pill warn' }, 'Examen') : null,
       h('span', { class: 'muted' }, `${ev.doneCount}/${sc.objectives.length}`), h('span', { 'aria-hidden': 'true' }, this.collapsed ? '▴' : '▾'));

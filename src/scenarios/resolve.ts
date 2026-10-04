@@ -1,6 +1,6 @@
 import type { State } from '../core';
 
-/** Résout `@dev:`, `@usr:`, `@ast:`, `@tkt:` dans une valeur (récursif sur objets et tableaux). */
+/** Résout `@dev:`, `@usr:`, `@ast:`, `@tkt:`, `@prb:`, `@chg:`, `@kb:` dans une valeur (récursif sur objets et tableaux). */
 export function resolveRefs<T>(st: Readonly<State>, v: T): T {
   if (typeof v === 'string' && v.startsWith('@')) return resolveOne(st, v) as unknown as T;
   if (Array.isArray(v)) return v.map(x => resolveRefs(st, x)) as unknown as T;
@@ -14,6 +14,9 @@ function resolveOne(st: Readonly<State>, ref: string): string {
   const found = kind === 'dev' ? Object.values(st.reality.devices).find(d => d.name === key)
     : kind === 'usr' ? Object.values(st.management.users).find(u => u.name.startsWith(key))
     : kind === 'ast' ? Object.values(st.management.assets).find(a => a.name === key)
-    : kind === 'tkt' ? Object.values(st.management.tickets).find(t => t.ref === key) : undefined;
+    : kind === 'tkt' ? Object.values(st.management.tickets).find(t => t.ref === key)
+    : kind === 'prb' ? Object.values(st.management.problems).find(t => t.ref === key)
+    : kind === 'chg' ? Object.values(st.management.changes).find(t => t.ref === key)
+    : kind === 'kb' ? Object.values(st.management.articles).find(t => t.ref === key) : undefined;
   return found ? found.id : `?${ref}`; // référence introuvable : la commande échouera clairement
 }

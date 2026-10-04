@@ -34,10 +34,10 @@ export function startScenario(store: Store, sch: Scheduler, sc: Scenario, mode: 
   if (!r.ok) throw r.error;
 }
 
-export function evaluate(sc: Scenario, st: Readonly<State>, log: readonly import('../core').DomainEvent[]): Evaluation {
+export function evaluate(sc: Scenario, st: Readonly<State>, log: readonly import('../core').DomainEvent[], now = 0): Evaluation {
   const mine = st.session ? log.slice(st.session.logStart) : log;
   const done = new Map<string, boolean>();
-  for (const o of sc.objectives) done.set(o.id, runCheck(st, mine, o.check) && (o.requires ?? []).every(r => done.get(r)));
+  for (const o of sc.objectives) done.set(o.id, runCheck(st, mine, o.check, now) && (o.requires ?? []).every(r => done.get(r)));
   const objectives = sc.objectives.map(o => ({ id: o.id, label: o.label, done: !!done.get(o.id), locked: (o.requires ?? []).some(r => !done.get(r)) }));
   const doneCount = objectives.filter(o => o.done).length;
   const violations = (sc.forbid ?? []).filter(f => mine.some(e => e.type === f.event)).map(f => f.message);

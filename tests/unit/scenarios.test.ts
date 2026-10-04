@@ -24,13 +24,13 @@ describe('Qualité des TP (auto-test de chaque scénario)', () => {
       });
       it('aucun objectif n\'est atteint à l\'état initial', () => {
         const { sch, store } = lab(); startScenario(store, sch, sc);
-        const ev = evaluate(sc, store.getState(), store.getLog());
+        const ev = evaluate(sc, store.getState(), store.getLog(), sch.now);
         expect(ev.objectives.filter(o => o.done).map(o => o.id)).toEqual([]);
       });
       it('la solution rejouable atteint tous les objectifs, sans violation', () => {
         const { sch, store } = lab(); startScenario(store, sch, sc);
         runSteps(store, sch, sc.solution);
-        const ev = evaluate(sc, store.getState(), store.getLog());
+        const ev = evaluate(sc, store.getState(), store.getLog(), sch.now);
         expect(ev.objectives.filter(o => !o.done).map(o => o.id)).toEqual([]);
         expect(ev.violations).toEqual([]); expect(ev.complete).toBe(true); expect(ev.score.total).toBe(100);
       });
@@ -51,9 +51,9 @@ describe('Session de TP', () => {
     expect(store.dispatch({ type: 'scenario.hint', payload: { objective: 'fix' } }).ok).toBe(true);
     expect(store.dispatch({ type: 'scenario.hint', payload: { objective: 'doc' } }).ok).toBe(true);
     runSteps(store, sch, sc.solution);
-    expect(evaluate(sc, store.getState(), store.getLog()).score).toMatchObject({ autonomy: 6, total: 96 });
+    expect(evaluate(sc, store.getState(), store.getLog(), sch.now).score).toMatchObject({ autonomy: 6, total: 96 });
     store.dispatch({ type: 'scenario.revealSolution' });
-    expect(evaluate(sc, store.getState(), store.getLog()).score.autonomy).toBe(0);
+    expect(evaluate(sc, store.getState(), store.getLog(), sch.now).score.autonomy).toBe(0);
     expect(store.dispatch({ type: 'scenario.hint', payload: { objective: 'doc' } }).error?.code).toBe('no_more_hints');
   });
   it('mode examen : ni indice, ni solution', () => {
@@ -64,7 +64,7 @@ describe('Session de TP', () => {
   it('une violation (remplacer un équipement) coûte des points de qualité', () => {
     const { sch, store } = lab(); startScenario(store, sch, sc);
     runSteps(store, sch, [{ do: 'infra.replaceDevice', args: { id: '@dev:PC21' } }, ...sc.solution]);
-    const ev = evaluate(sc, store.getState(), store.getLog());
+    const ev = evaluate(sc, store.getState(), store.getLog(), sch.now);
     expect(ev.violations).toHaveLength(1); expect(ev.score.quality).toBe(10);
   });
   it('terminer puis quitter', () => {

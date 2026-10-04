@@ -3,12 +3,14 @@ import { CATALOG, computeReachability } from '../../infra';
 import { FRESHNESS_LABEL, HEALTH_LABEL, agentHealth, assetFreshness, driftReport } from '../../inventory';
 import { clear, h } from '../kit/dom';
 import { EVENT_LABEL, ago, fmtTime } from '../shell/labels';
-import { isOpen, ticketPriority, ticketsForAsset } from '../../itsm';
+import { isOpen, slaOf, ticketPriority, ticketsForAsset } from '../../itsm';
+import { articlePage, changeList, changePage, kbList, problemList, problemPage } from './itil';
 import { newTicketPage, ticketList, ticketPage } from './tickets';
 
 export type Route =
   | { page: 'dashboard' } | { page: 'parc'; filter?: 'all' | 'discovered' | 'inventoried' | 'never' }
   | { page: 'tickets'; kind?: 'incident' | 'request'; scope?: 'open' | 'all' } | { page: 'ticket'; id: string } | { page: 'newticket'; assetId?: string }
+  | { page: 'problems' } | { page: 'problem'; id: string } | { page: 'changes'; forProblem?: string } | { page: 'change'; id: string } | { page: 'kb' } | { page: 'article'; id: string }
   | { page: 'asset'; id: string } | { page: 'agents' } | { page: 'discovery' } | { page: 'users' } | { page: 'logs' };
 
 export interface ItsmHost {
@@ -19,7 +21,8 @@ export interface ItsmHost {
 
 const NAV: { page: Route['page']; label: string; group?: string; route?: Route }[] = [
   { page: 'dashboard', label: 'Tableau de bord' },
-  { page: 'tickets', label: 'Tickets', group: 'Support', route: { page: 'tickets' } }, { page: 'tickets', label: 'Incidents', group: 'Support', route: { page: 'tickets', kind: 'incident' } }, { page: 'tickets', label: 'Demandes', group: 'Support', route: { page: 'tickets', kind: 'request' } }, { page: 'parc', label: 'Parc', group: 'Parc' },
+  { page: 'tickets', label: 'Tickets', group: 'Support', route: { page: 'tickets' } }, { page: 'tickets', label: 'Incidents', group: 'Support', route: { page: 'tickets', kind: 'incident' } }, { page: 'tickets', label: 'Demandes', group: 'Support', route: { page: 'tickets', kind: 'request' } }, { page: 'problems', label: 'Problèmes', group: 'ITIL' }, { page: 'changes', label: 'Changements', group: 'ITIL' }, { page: 'kb', label: 'Base de connaissances', group: 'ITIL' },
+  { page: 'parc', label: 'Parc', group: 'Parc' },
   { page: 'agents', label: 'Agents', group: 'Inventaire' }, { page: 'discovery', label: 'Découverte réseau', group: 'Inventaire' },
   { page: 'users', label: 'Utilisateurs', group: 'Organisation' }, { page: 'logs', label: 'Journaux', group: 'Administration' },
 ];
@@ -45,13 +48,13 @@ export class ItsmView {
     for (const n of NAV) {
       if (n.group !== group) { group = n.group ?? ''; if (group) this.nav.append(h('h3', null, group)); }
       const r = this.route; const nr = n.route ?? { page: n.page } as Route;
-      const on = r.page === 'ticket' || r.page === 'newticket' ? nr.page === 'tickets' && !('kind' in nr) : r.page === 'tickets' ? nr.page === 'tickets' && (nr as { kind?: string }).kind === r.kind : r.page === n.page || (r.page === 'asset' && n.page === 'parc');
+      const on = r.page === 'problem' ? n.page === 'problems' : r.page === 'change' ? n.page === 'changes' : r.page === 'article' ? n.page === 'kb' : r.page === 'ticket' || r.page === 'newticket' ? nr.page === 'tickets' && !('kind' in nr) : r.page === 'tickets' ? nr.page === 'tickets' && (nr as { kind?: string }).kind === r.kind : r.page === n.page || (r.page === 'asset' && n.page === 'parc');
       this.nav.append(h('button', { class: on ? 'on' : '', 'aria-current': on ? 'page' : null, onclick: () => this.go(nr) }, n.label));
     }
     clear(this.page);
     const r = this.route;
     const c = { st: this.st, host: this.host, go: (x: Route) => this.go(x) };
-    this.page.append(r.page === 'tickets' ? ticketList(c, r) : r.page === 'ticket' ? ticketPage(c, r.id) : r.page === 'newticket' ? newTicketPage(c, r.assetId) : r.page === 'dashboard' ? this.dashboard() : r.page === 'parc' ? this.parc(r.filter ?? 'all') : r.page === 'asset' ? this.asset(r.id)
+    this.page.append(r.page === 'problems' ? problemList(c) : r.page === 'problem' ? problemPage(c, r.id) : r.page === 'changes' ? changeList(c, r.forProblem) : r.page === 'change' ? changePage(c, r.id) : r.page === 'kb' ? kbList(c) : r.page === 'article' ? articlePage(c, r.id) : r.page === 'tickets' ? ticketList(c, r) : r.page === 'ticket' ? ticketPage(c, r.id) : r.page === 'newticket' ? newTicketPage(c, r.assetId) : r.page === 'dashboard' ? this.dashboard() : r.page === 'parc' ? this.parc(r.filter ?? 'all') : r.page === 'asset' ? this.asset(r.id)
       : r.page === 'agents' ? this.agents() : r.page === 'discovery' ? this.discovery() : r.page === 'users' ? this.users() : this.logs());
   }
 
@@ -72,10 +75,11 @@ export class ItsmView {
     const unknown = this.unknownDevices();
     const open = Object.values(this.st.management.tickets).filter(isOpen);
     const urgent = open.filter(t => (ticketPriority(t) ?? 9) <= 2); const toQualify = open.filter(t => t.status === 'new');
+    const breached = open.filter(t => { const sl = slaOf(t, now); return sl && (sl.respond.state === 'breached' || sl.resolve.state === 'breached'); });
     const tile = (n: number, label: string, to: Route, warn = false) => h('button', { class: `tile${warn && n > 0 ? ' warn' : ''}`, onclick: () => this.go(to) }, h('b', null, String(n)), h('span', null, label));
     return h('section', null, h('h1', null, 'Tableau de bord'),
       h('div', { class: 'tiles' },
-        tile(open.length, 'tickets à traiter', { page: 'tickets' }), tile(toQualify.length, 'tickets à qualifier', { page: 'tickets' }, true), tile(urgent.length, 'tickets P1 / P2', { page: 'tickets' }, true),
+        tile(open.length, 'tickets à traiter', { page: 'tickets' }), tile(toQualify.length, 'tickets à qualifier', { page: 'tickets' }, true), tile(urgent.length, 'tickets P1 / P2', { page: 'tickets' }, true), tile(breached.length, 'SLA dépassés', { page: 'tickets' }, true),
         tile(a.length, 'actifs connus de l\'outil', { page: 'parc' }),
         tile(disc.length, 'découverts, pas inventoriés', { page: 'parc', filter: 'never' }, true),
         tile(inv.length, 'inventoriés par un agent', { page: 'parc', filter: 'inventoried' }),
@@ -198,7 +202,7 @@ export class ItsmView {
 
   private logs(): HTMLElement {
     const log = [...this.host.store.getLog()].reverse().slice(0, 300); const st = this.st;
-    const nm = (id: string) => st.management.tickets[id]?.ref ?? st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? id;
+    const nm = (id: string) => st.management.tickets[id]?.ref ?? st.management.problems[id]?.ref ?? st.management.changes[id]?.ref ?? st.management.articles[id]?.ref ?? st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? id;
     return h('section', null, h('h1', null, 'Journaux'),
       log.length ? h('table', { class: 'grid small' }, h('thead', null, h('tr', null, ...['Heure simulée', 'Événement', 'Objet', 'Origine'].map(t => h('th', null, t)))),
         h('tbody', null, ...log.map(e => h('tr', null, h('td', null, h('code', null, fmtTime(e.t))), h('td', null, EVENT_LABEL[e.type] ?? e.type), h('td', null, nm(e.subject.id)), h('td', null, e.actor === 'user' ? 'utilisateur' : e.actor === 'agent' ? 'agent' : 'système'))))) : h('p', { class: 'empty' }, 'Aucun événement.'),
