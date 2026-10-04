@@ -1,5 +1,6 @@
 import { CommandError, IP, MAC, nextId, type CommandContext, type Device, type DeviceKind, type Store } from '../core';
 import { CATALOG, portsOf } from './catalog';
+import { SOFTWARE } from './software';
 import { computeReachability, linksOf, portInUse } from './connectivity';
 import { EV } from './events';
 
@@ -30,10 +31,11 @@ function makeDevice(ctx: CommandContext, kind: DeviceKind, name: string | undefi
   return {
     id, name: name ?? `${spec.prefix}-${nameCounter}`, kind, powered: true, online: false, ports,
     pos: { x, y },
-    nics: ports.filter(p => spec.role === 'endpoint').map(p => ({ id: p.id, mac: MAC.make(spec.oui, ctx.state.counters['mac'] = (ctx.state.counters['mac'] ?? 0) + 1) })),
+    nics: (spec.role === 'endpoint' ? ports.map(p => p.id) : spec.role === 'internet' ? [] : ['mgmt'])
+      .map(nid => ({ id: nid, mac: MAC.make(spec.oui, ctx.state.counters['mac'] = (ctx.state.counters['mac'] ?? 0) + 1) })),
     ...(spec.hardware ? { hardware: structuredClone(spec.hardware) } : {}),
     ...(spec.os ? { os: { ...spec.os } } : {}),
-    software: [], agent: { state: 'none', intervalMs: 0, errors: [] },
+    software: [], agent: { state: 'none', intervalMs: 0, errors: [], logs: [] },
   };
 }
 
@@ -129,6 +131,28 @@ export function registerInfraCommands(store: Store): void {
     ctx.emit(EV.HardwareChanged, ref(d.id), { component: 'ram', before, after: d.hardware.ramGb });
   });
 
+  store.registerCommand('infra.installSoftware', (ctx, p) => {
+    const d = dev(ctx, p['id']); const softwareId = String(p['softwareId']);
+    if (!SOFTWARE[softwareId]) throw new CommandError('software_unknown', `Logiciel inconnu : ${softwareId}`);
+    if (!CATALOG[d.kind].agentCapable) throw new CommandError('no_software', `${d.name} n'accepte pas l'installation de logiciels`);
+    if (d.software.some(x => x.softwareId === softwareId)) throw new CommandError('already_installed', `${SOFTWARE[softwareId]!.name} est déjà installé sur ${d.name}`);
+    const version = String(p['version'] ?? SOFTWARE[softwareId]!.version);
+    d.software.push({ softwareId, version });
+    ctx.emit(EV.SoftwareInstalled, ref(d.id), { softwareId, version });
+  });
+  store.registerCommand('infra.uninstallSoftware', (ctx, p) => {
+    const d = dev(ctx, p['id']); const i = d.software.findIndex(x => x.softwareId === String(p['softwareId']));
+    if (i < 0) throw new CommandError('not_installed', 'Logiciel non installé');
+    const [gone] = d.software.splice(i, 1);
+    ctx.emit(EV.SoftwareRemoved, ref(d.id), { softwareId: gone!.softwareId });
+  });
+  store.registerCommand('infra.setLoggedUser', (ctx, p) => {
+    const d = dev(ctx, p['id']); const u = p['user'] ? String(p['user']) : undefined;
+    if (u !== undefined && !ctx.state.management.users[u]) throw new CommandError('user_not_found', `Utilisateur inconnu : ${u}`);
+    if (u === undefined) delete d.loggedUser; else d.loggedUser = u;
+    ctx.emit(EV.UserSessionChanged, ref(d.id), { user: u ?? null });
+  });
+
   store.registerCommand('infra.setItsmServer', (ctx, p) => {
     const d = dev(ctx, p['id']);
     ctx.state.reality.itsmServerId = d.id;
@@ -142,6 +166,7 @@ export function registerInfraCommands(store: Store): void {
     const fresh = makeDevice(ctx, old.kind, old.name, old.pos.x, old.pos.y);
     if (old.site) fresh.site = old.site; if (old.room) fresh.room = old.room;
     fresh.nics.forEach(n => { const o = old.nics.find(x => x.id === n.id); if (o) { if (o.ip) n.ip = o.ip; if (o.mask !== undefined) n.mask = o.mask; if (o.gw) n.gw = o.gw; if (o.vlan !== undefined) n.vlan = o.vlan; } });
+    fresh.software = structuredClone(old.software); // simplification : le disque est cloné, les logiciels suivent
     ctx.state.reality.devices[fresh.id] = fresh;
     for (const l of Object.values(ctx.state.reality.links)) {
       for (const end of [l.a, l.b]) if (end.device === old.id) {

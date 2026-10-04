@@ -13,4 +13,7 @@ export const EV = {
   IPAddressChanged: 'IPAddressChanged',
   HardwareChanged: 'HardwareChanged',
   ItsmServerSet: 'ItsmServerSet',
+  SoftwareInstalled: 'SoftwareInstalled',
+  SoftwareRemoved: 'SoftwareRemoved',
+  UserSessionChanged: 'UserSessionChanged',
 } as const;

@@ -17,6 +17,7 @@ export type AgentState = 'none' | 'stopped' | 'running';
 export interface AgentRuntime {
   state: AgentState; version?: string; serverUrl?: string; intervalMs: number;
   lastRun?: number; nextRun?: number; errors: string[];
+  logs: { t: number; level: 'info' | 'warn' | 'error'; msg: string }[];
 }
 
 export interface Port { id: string; label: string }
@@ -40,12 +41,30 @@ export interface Link { id: string; a: PortRef; b: PortRef; medium: 'copper' | '
 
 /* ---------------- Gestion ---------------- */
 export type Provenance = 'manual' | 'agent' | 'discovery' | 'import' | 'scenario';
+
+/** Ce que l'agent remonte : lu sur l'équipement réel, jamais saisi à la main. */
+export interface InventoryReport {
+  hostname: string; agentVersion: string;
+  os?: { name: string; version: string }; cpu?: string; ramGb?: number; disks?: { type: 'ssd' | 'hdd'; gb: number }[];
+  ips: string[]; macs: string[];
+  software: { softwareId: string; version: string }[];
+  loggedUser?: string;
+}
+
 export interface Asset {
-  id: string; deviceId?: string;
+  id: string; name: string;
+  /** Jointure interne du simulateur avec l'équipement réel (l'outil, lui, ne connaît que l'identité ci-dessous). */
+  deviceId?: string;
   status: 'discovered' | 'in_use' | 'stock' | 'repair' | 'retired';
-  inventoryNo?: string; serial?: string; vendor?: string; model?: string;
-  assignedTo?: string; service?: string;
-  observed?: { t: number; source: Provenance; data: Record<string, unknown> };
+  createdAt: number;
+  /** Identité utilisée pour le rapprochement : MAC d'abord, puis nom d'hôte, puis IP. */
+  identity: { macs: string[]; hostname?: string; ips: string[] };
+  /** Dernière observation par la découverte réseau (informations partielles). */
+  discovery?: { t: number; ip: string; mac: string; hostname: string; vendor: string };
+  /** Dernier inventaire remonté par un agent (informations détaillées). */
+  observed?: { t: number; source: Provenance; data: InventoryReport };
+  /** Données déclarées (saisie manuelle). */
+  inventoryNo?: string; serial?: string; vendor?: string; model?: string; assignedTo?: string; service?: string;
 }
 export interface User { id: string; name: string; roles: string[]; service?: string; site?: string }
 

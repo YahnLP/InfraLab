@@ -7,7 +7,7 @@ function makeStore() {
     const id = nextId(ctx.state.counters, 'dev');
     ctx.state.reality.devices[id] = {
       id, name: String(p.name), kind: 'workstation', powered: true, online: false, ports: [], pos: { x: 0, y: 0 },
-      nics: [], software: [], agent: { state: 'none', intervalMs: 0, errors: [] },
+      nics: [], software: [], agent: { state: 'none', intervalMs: 0, errors: [], logs: [] },
     };
     ctx.emit('DeviceAdded', { kind: 'device', id }, { name: p.name });
   });
