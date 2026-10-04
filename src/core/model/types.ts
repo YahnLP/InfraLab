@@ -68,12 +68,29 @@ export interface Asset {
 }
 export interface User { id: string; name: string; roles: string[]; service?: string; site?: string }
 
+/* ---- Tickets (M3) ---- */
+export type TicketKind = 'incident' | 'request';
+export type Level = 'low' | 'medium' | 'high';
+export type TicketStatus = 'new' | 'qualified' | 'assigned' | 'in_progress' | 'pending' | 'resolved' | 'closed';
+export interface TicketComment { t: number; author: string; text: string }
+export interface Ticket {
+  id: string; ref: string; kind: TicketKind; title: string; description: string;
+  /** Identifiant de l'utilisateur qui demande. */
+  requester: string;
+  category?: string; subcategory?: string; impact?: Level; urgency?: Level;
+  status: TicketStatus; assignee?: string;
+  /** Actifs concernés (CI plus tard) : lien entre le ticket et l'inventaire. */
+  assetIds: string[];
+  comments: TicketComment[]; solution?: string;
+  createdAt: number; updatedAt: number; resolvedAt?: number; closedAt?: number;
+}
+
 /* ---------------- État global ---------------- */
 export interface State {
   schemaVersion: 1;
   counters: Record<string, number>;
   reality: { devices: Record<string, Device>; links: Record<string, Link>; itsmServerId: string | null };
-  management: { assets: Record<string, Asset>; users: Record<string, User> };
+  management: { assets: Record<string, Asset>; users: Record<string, User>; tickets: Record<string, Ticket> };
   /** Sélection partagée entre les deux vues (« Voir dans l'infrastructure »). */
   focus: EntityRef | null;
 }
@@ -82,7 +99,7 @@ export function emptyState(): State {
   return {
     schemaVersion: 1, counters: {},
     reality: { devices: {}, links: {}, itsmServerId: null },
-    management: { assets: {}, users: {} },
+    management: { assets: {}, users: {}, tickets: {} },
     focus: null,
   };
 }
