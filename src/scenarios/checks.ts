@@ -58,6 +58,9 @@ export function runCheck(st: Readonly<State>, events: readonly DomainEvent[], ra
     case 'ci': { const x = st.management.cis[c.name]; return !!x && (!c.ciKind || x.kind === c.ciKind) && (c.withAsset === undefined || !!x.assetId === c.withAsset); }
     case 'relation': return Object.values(st.management.relations).some(r => r.from === c.from && r.to === c.to && (!c.type || r.type === c.type));
     case 'answer': return !!st.session?.answers[c.question]?.correct;
+    case 'escalated': { const t = st.management.tickets[c.ref]; if (!t) return false; return events.some(e => e.type === 'TicketEscalated' && e.subject.id === t.id && (!c.kind || e.payload['kind'] === c.kind) && (!c.toLevel || e.payload['toLevel'] === c.toLevel) && (!c.group || st.management.groups[String(e.payload['group'])]?.name === c.group) && (!c.by || e.actorId === c.by)); }
+    case 'ticketLevel': { const t = st.management.tickets[c.ref]; return !!t && (t.level ?? 1) === c.level; }
+    case 'clock': return !!st.session && now - st.session.startedAt >= c.atLeast;
     case 'sla': { const t = st.management.tickets[c.ticket]; const sl = t && slaOf(t, now, st.management.settings.slaCalendar); return !!sl && (!c.respond || sl.respond.state === c.respond) && (!c.resolve || sl.resolve.state === c.resolve) && (!c.resolveNot || sl.resolve.state !== c.resolveNot); }
     case 'problem': {
       const x = st.management.problems[c.ref]; if (!x) return false;

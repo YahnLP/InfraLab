@@ -39,7 +39,7 @@ sessions: [
 ["Séance 1 (2 h)", "Découverte : chapitre 1, TD 1 et 2, TP 1 à 3."],
 ["Séance 2 (2 h)", "Inventaire : chapitre 2, TD 3, TP 4 à 7."],
 ["Séance 3 (2 h)", "Inventaire (suite) : TD 4, TP 8 à 10."],
-["Séance 4 (2 h)", "Service desk : chapitre 3, TD 5 et 6, TP 11 à 14, 42."],
+["Séance 4 (2 h)", "Service desk : chapitre 3, TD 5 et 6, TP 11 à 14, 42, 47 et 48."],
 ["Séance 5 (2 h)", "Incidents techniques : chapitre 4, TD 7, TP 15 à 18."],
 ["Séance 6 (2 h)", "Incident majeur : TD 8, TP 19, 20 et 43."],
 ["Séance 7 (2 h)", "ITIL approfondi : chapitre 5, TD 9 à 11, TP 21 à 25, 41 et 44."],

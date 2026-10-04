@@ -17,6 +17,9 @@ export type Check =
   | { k: 'assetInventoried'; device: Ref }
   | { k: 'assetInSync'; device: Ref }
   | { k: 'ticket'; ref: Ref; status?: TicketStatus; category?: string; impact?: Level; urgency?: Level; priority?: 1 | 2 | 3 | 4; linkedDevice?: Ref; hasSolution?: boolean; solutionMin?: number; minComments?: number; subcategory?: string; kind?: 'incident' | 'request'; qualified?: boolean; assignee?: Ref; reached?: TicketStatus; requester?: Ref; descMin?: number; linkedAsset?: Ref; noOtherAsset?: boolean }
+  | { k: 'escalated'; ref: Ref; kind?: 'functional' | 'hierarchical'; toLevel?: 2 | 3; group?: string; by?: Ref }
+  | { k: 'ticketLevel'; ref: Ref; level: 1 | 2 | 3 }
+  | { k: 'clock'; atLeast: number }
   | { k: 'sla'; ticket: Ref; respond?: SlaState; resolve?: SlaState; resolveNot?: SlaState }
   | { k: 'problem'; ref: Ref; status?: ProblemStatus; reached?: ProblemStatus; minTickets?: number; hasRootCause?: boolean; hasWorkaround?: boolean; hasFix?: boolean }
   | { k: 'change'; ref: Ref; status?: ChangeStatus; reached?: ChangeStatus; type?: ChangeType; linkedDevice?: Ref; linkedAsset?: Ref; approver?: Ref }

@@ -231,6 +231,12 @@ await p2.getByRole('button', { name: 'Aide' }).click(); await p2.getByRole('tab'
 ok(await p2.locator('dialog.help a[href="https://yahnlp.github.io/simulateur-reseau/"]').count() === 1 && await p2.locator('dialog.help a[href="https://yahnlp.github.io/DockerLab/"]').count() === 1, 'aide : liens vers Simulateur Réseau et Docker Lab');
 await p2.keyboard.press('Escape');
 await p2.screenshot({ path: `${shots}/m9-entete.png` });
+// Escalade des tickets (TP 47) : la section existe et refuse tant que le ticket n'est pas qualifié
+await page.getByRole('tab', { name: 'TP' }).click();
+await page.locator('.tp-card', { hasText: 'Passer la main' }).getByRole('button', { name: 'Démarrer' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+await page.getByRole('tab', { name: 'ITSM' }).click();
+await page.getByRole('button', { name: /Tickets|Incidents/ }).first().click().catch(() => {}); await page.locator('tr.row', { hasText: 'Partage compta inaccessible' }).click();
+ok(await page.getByRole('heading', { name: 'Escalade' }).count() === 1 && await page.getByText("Qualifiez d'abord le ticket pour pouvoir l'escalader.").count() === 1, 'escalade : section présente, refusée avant qualification');
 ok(e2.length === 0, 'aucune erreur page 2 : ' + e2.join(' | '));
 ok(errors.length === 0, 'aucune erreur console : ' + errors.join(' | '));
 await browser.close();

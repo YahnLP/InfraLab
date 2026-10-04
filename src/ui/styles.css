@@ -237,3 +237,4 @@ dialog.help::backdrop { background: rgba(10,16,22,.45); }
 .covtable { border-collapse: collapse; width: 100%; font-size: 13px; } .covtable th, .covtable td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; } .covtable thead th { background: var(--panel); } .covtable tbody th { font-weight: 500; }
 
 .tp-time { border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 8px; padding: 8px 12px; margin: 10px 0; background: var(--card); } .tp-time h3 { margin: 0 0 4px; font-size: 14px; } .tp-time p { margin: 4px 0; } .tp-fired { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.warn-note { margin: 6px 0; padding: 6px 10px; border-left: 4px solid var(--warn); background: var(--card); color: var(--warn); font-weight: 600; }

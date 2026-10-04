@@ -105,8 +105,8 @@ describe('Session de TP', () => {
 });
 
 describe('Catalogue complet', () => {
-  it('contient les 46 TP numérotés de 1 à 46, dans l\'ordre', () => {
-    expect(SCENARIOS.map(s => s.number)).toEqual(Array.from({ length: 46 }, (_, i) => i + 1));
+  it('contient les 48 TP numérotés de 1 à 48, dans l\'ordre', () => {
+    expect(SCENARIOS.map(s => s.number)).toEqual(Array.from({ length: 48 }, (_, i) => i + 1));
   });
   it('TP 38 : l\'impact d\'un arrêt de SRV-ITSM remonte jusqu\'au service (propriété sur laquelle repose la question)', async () => {
     const { impactOf } = await import('../../src/itsm');

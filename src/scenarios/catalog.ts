@@ -1554,6 +1554,103 @@ export const SCENARIOS: Scenario[] = [
     ],
     realWorld: 'Les outils réels appellent cela « remplaçant » (ServiceNow : délégation), « absence » ou « substitution » (GLPI), ou un accès temporaire (PIM dans Entra ID). Le principe est constant : durée bornée, traçabilité au nom de la personne qui agit, interdiction de déléguer les droits d\'administration.',
   },
+
+  /* ============================ TP 47 ============================ */
+  {
+    id: 'tp-47-escalade-fonctionnelle', number: 47, title: 'Passer la main : l\'escalade fonctionnelle', level: 3, levelLabel: level(3), difficulty: 2, duration: '40 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Exploiter et dépanner', kind: 'worked' }],
+    timeNote: 'Ce TP se joue sur la durée : un incident dure quand on n\'arrive pas à le résoudre. Cliquez sur « +1 h » sept fois (soit 7 h de temps simulé) pour que le SLA devienne « À risque », puis escaladez.',
+    context: 'Alice (Comptabilité) ne peut plus ouvrir le partage de fichiers de la compta : « Accès refusé, je suis bloquée pour la clôture ». Le service desk de niveau 1 (David) reprend l\'appel. Le niveau 2 (Samir Haddad, groupe « Support N2 ») est joignable. À vous de décider quand passer la main, et comment.',
+    stages: [
+      stage('s1', 'Escalader : de quoi parle-t-on ?', ['why'], ['Un support se structure en **niveaux** : **N1** (le service desk : premier contact, cas courants), **N2** (techniciens confirmés : diagnostic approfondi) et **N3** (experts, éditeur, fournisseur).', 'L\'**escalade fonctionnelle** consiste à transférer le ticket **au niveau supérieur** quand on n\'a pas les compétences, les droits ou le temps. L\'**escalade hiérarchique**, elle, **prévient un responsable** (voir le TP suivant) : on ne change pas de niveau, on alerte.'], ['Escalader n\'est pas un échec : c\'est faire intervenir la bonne compétence au bon moment. Ce qui est un échec, c\'est de garder un ticket qu\'on ne sait pas résoudre jusqu\'à ce que le délai soit dépassé.']),
+      stage('s2', 'Traiter au niveau 1', ['n1'], ['Qualifiez INC-0001 (catégorie « Réseau », sous-catégorie « Serveur injoignable », impact moyen, urgence élevée), attribuez-le à David et prenez-le en charge. Ajoutez un commentaire qui décrit ce que le niveau 1 a vérifié : c\'est ce que le niveau 2 lira en premier.'], ['Un ticket bien qualifié et commenté se transmet sans perte : le niveau suivant ne repose pas les mêmes questions à l\'utilisateur.']),
+      stage('s3', 'Le temps passe', ['time', 'when'], ['Le niveau 1 n\'arrive pas à avancer. Faites passer le temps (7 h) puis regardez le SLA de résolution du ticket : il est **à risque**. Cible P2 : 8 h pour résoudre.'], ['Le SLA donne un repère objectif : on escalade avant la violation, pas après.']),
+      stage('s4', 'Escalader et conclure', ['escalate', 'level', 'n2', 'solve'], ['Dans la fiche du ticket, section **Escalade**, saisissez un **motif** précis (ce qui a été essayé, ce qui bloque), choisissez le groupe « Support N2 » et escaladez au niveau 2. Le ticket repasse à « Qualifié », sans assigné : le niveau 2 doit se l\'attribuer. Samir le prend alors, trouve la cause et résout.'], ['Observez l\'historique : l\'escalade est tracée, avec son motif, son auteur et son heure. C\'est aussi une preuve à présenter lors d\'un audit de service.']),
+    ],
+    setup: [
+      { do: 'itsm.addUser', args: { name: 'Samir Haddad', service: 'Informatique', roles: ['user'] } },
+      { do: 'itsm.createGroup', args: { name: 'Support N1', members: ['@usr:David'], roles: ['technician'] } },
+      { do: 'itsm.createGroup', args: { name: 'Support N2', members: ['@usr:Samir'], roles: ['technician'] } },
+      newIncident('Partage compta inaccessible', 'Appel d\'Alice : « Accès refusé » sur le dossier partagé de la comptabilité depuis ce matin. Elle est bloquée pour la clôture.', 'Alice'),
+    ],
+    objectives: [
+      { id: 'why', label: 'Distinguer les deux types d\'escalade', question: Q('Quelle est la différence entre une escalade fonctionnelle et une escalade hiérarchique ?', ['Aucune : ce sont deux mots pour la même chose', 'La fonctionnelle transfère le ticket à un niveau de compétence supérieur ; l\'hiérarchique prévient un responsable', 'La fonctionnelle concerne les incidents, l\'hiérarchique les demandes', 'La hiérarchique résout le ticket à la place du technicien'], 1, 'Fonctionnelle : « qui peut le résoudre ? » (N1 → N2 → N3). Hiérarchique : « qui doit être au courant ? » (le responsable, pour décider ou arbitrer).') },
+      { id: 'n1', label: 'INC-0001 est qualifié P2, attribué à David et pris en charge, avec un commentaire', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), reached: 'in_progress', priority: 2, minComments: 1 }, { k: 'didAs', user: '@usr:David', type: 'TicketStatusChanged', payload: { to: 'in_progress' } }] }, requires: ['why'] },
+      { id: 'time', label: 'Le temps a passé : 7 h se sont écoulées (utilisez « +1 h »)', check: { k: 'clock', atLeast: 7 * HOUR }, requires: ['n1'] },
+      { id: 'when', label: 'Choisir le bon moment pour escalader', requires: ['time'], question: Q('Le SLA du ticket est « À risque » et le niveau 1 est bloqué. Que faites-vous ?', ['J\'attends : il reste du temps', 'J\'escalade maintenant, avec un motif précis, avant que le délai soit dépassé', 'Je clos le ticket pour faire disparaître l\'alerte', 'Je recrée un nouveau ticket pour repartir de zéro'], 1, 'Escalader tôt laisse au niveau suivant le temps d\'agir. Clore ou recréer le ticket fausse les indicateurs et fait perdre l\'historique.') },
+      { id: 'escalate', label: 'INC-0001 est escaladé au niveau 2, vers « Support N2 »', check: { k: 'escalated', ref: T(1), kind: 'functional', toLevel: 2, group: 'Support N2' }, requires: ['when'] },
+      { id: 'level', label: 'Le ticket est au niveau de support 2', check: { k: 'ticketLevel', ref: T(1), level: 2 }, requires: ['escalate'] },
+      { id: 'n2', label: 'Samir (niveau 2) a repris le ticket', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), assignee: '@usr:Samir' }, { k: 'didAs', user: '@usr:Samir', type: 'TicketStatusChanged', payload: { to: 'in_progress' } }] }, requires: ['level'] },
+      { id: 'solve', label: 'INC-0001 est résolu avec une solution documentée', check: { k: 'ticket', ref: T(1), reached: 'resolved', solutionMin: 30 }, requires: ['n2'] },
+    ],
+    hints: [
+      { for: 'n1', levels: ['Fiche du ticket : catégorie, sous-catégorie, impact, urgence, assigné, puis les boutons « Étape suivante ».', 'Impact moyen et urgence élevée donnent la priorité P2.'] },
+      { for: 'time', levels: ['La commande « +1 h » est en haut de la fenêtre, près de l\'horloge.'] },
+      { for: 'escalate', levels: ['Fiche du ticket, section « Escalade ».', 'Le motif doit faire au moins une phrase ; choisissez le groupe « Support N2 ».'] },
+      { for: 'n2', levels: ['Après l\'escalade, le ticket n\'a plus d\'assigné : « Agir en tant que » Samir, attribuez-le-lui, puis prenez-le en charge.'] },
+    ],
+    solutionText: ['Qualifier (Réseau / Serveur injoignable, impact moyen, urgence élevée), attribuer à David, prendre en charge, commenter.', 'Avancer de 7 h : le SLA est à risque.', 'Escalader au niveau 2 vers « Support N2 » avec un motif.', 'Samir s\'attribue le ticket, le prend en charge, documente la solution et résout.'],
+    solution: [
+      answer('why', 1),
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Réseau', subcategory: 'Serveur injoignable', impact: 'medium', urgency: 'high', assignee: '@usr:David' } } },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'qualified' } }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' }, as: '@usr:David' }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'in_progress' }, as: '@usr:David' },
+      { do: 'itsm.addComment', args: { id: T(1), text: 'Niveau 1 : droits vérifiés sur le compte d\'Alice, redémarrage du poste, partage testé depuis PC21 : même refus. Le problème ne vient pas du poste.' }, as: '@usr:David' },
+      { advance: 7 * HOUR }, answer('when', 1),
+      { do: 'itsm.escalate', args: { id: T(1), kind: 'functional', group: '@grp:Support N2', reason: 'Niveau 1 : poste, compte et réseau vérifiés sans résultat. Il faut regarder les permissions du serveur de fichiers.' }, as: '@usr:David' },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { assignee: '@usr:Samir' } }, as: '@usr:Samir' },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'assigned' }, as: '@usr:Samir' }, { do: 'itsm.transitionTicket', args: { id: T(1), to: 'in_progress' }, as: '@usr:Samir' },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { solution: 'Le groupe « Compta » avait été retiré des permissions du dossier partagé lors d\'un nettoyage. Droits rétablis, accès d\'Alice vérifié.' } }, as: '@usr:Samir' },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'resolved' }, as: '@usr:Samir' },
+    ],
+    realWorld: 'Les outils réels parlent de « niveaux de support » (Tier 1, 2, 3) ou de « groupes de résolution » : le ticket est réassigné à un autre groupe, avec une note de transfert. ServiceNow, GLPI ou Jira Service Management gardent l\'historique complet des réaffectations ; des règles peuvent escalader automatiquement quand un SLA approche de l\'échéance.',
+  },
+
+  /* ============================ TP 48 ============================ */
+  {
+    id: 'tp-48-escalade-hierarchique', number: 48, title: 'Prévenir le responsable : l\'escalade hiérarchique', level: 3, levelLabel: level(3), difficulty: 3, duration: '40 min',
+    skills: [{ ref: 'Répondre aux incidents et aux demandes', kind: 'worked' }, { ref: 'Gérer les habilitations', kind: 'evidence_possible' }],
+    timeNote: 'Le SLA d\'un ticket P1 est de 4 h pour résoudre. Cliquez sur « +1 h » trois fois (3 h simulées) : le SLA devient « À risque » et l\'escalade hiérarchique se justifie.',
+    context: 'Deux tickets sont arrivés ce matin. Éric Moreau (Direction) ne peut plus émettre les factures clients : l\'activité est à l\'arrêt. Bruno (Comptabilité) signale une souris qui se déconnecte. Il y a un responsable, Éric lui-même, à informer quand l\'enjeu le justifie.',
+    stages: [
+      stage('s1', 'Informer, ce n\'est pas transférer', ['diff'], ['L\'**escalade hiérarchique** prévient un **responsable** (chef de service, responsable de production, direction) pour qu\'il **décide, arbitre ou communique** : ajouter des moyens, informer les clients, valider une solution de contournement. Elle ne change pas le niveau de support du ticket.', 'Elle se justifie par un **enjeu** : priorité 1 ou 2, ou SLA à risque ou dépassé. Alerter pour tout et n\'importe quoi, c\'est noyer le responsable et perdre sa confiance.'], ['Le responsable ne répare pas : il décide. Plus votre alerte est précise, plus sa décision est rapide.']),
+      stage('s2', 'Qualifier pour mesurer l\'enjeu', ['qual'], ['Qualifiez les deux tickets. INC-0001 (facturation à l\'arrêt) : impact élevé, urgence élevée, donc P1. INC-0002 (souris) : impact faible, urgence faible, donc P4. Attribuez-les à David et prenez-les en charge.'], ['C\'est la priorité calculée qui dit si l\'on peut alerter : la qualification n\'est pas une formalité.']),
+      stage('s3', 'Alerter à bon escient', ['time', 'why2', 'alert', 'level'], ['Avancez de 3 h. Essayez d\'abord d\'alerter le responsable pour INC-0002 : l\'outil refuse et explique pourquoi. Puis alertez-le pour INC-0001 avec un motif qui dit **l\'impact** et **ce que vous attendez de lui**.'], ['Un bon message d\'escalade hiérarchique tient en trois idées : l\'impact, l\'état d\'avancement, la décision attendue.']),
+      stage('s4', 'La réponse du responsable', ['mgr', 'solve'], ['« Agir en tant que » Éric Moreau : en tant que responsable, il laisse une instruction en commentaire. Revenez ensuite à David pour résoudre INC-0001.'], ['Le responsable agit avec ses propres droits : il commente et arbitre, il ne traite pas le ticket (séparation des fonctions).']),
+    ],
+    setup: [
+      newIncident('Facturation clients impossible', 'Appel d\'Éric : plus aucune facture ne peut être émise depuis ce matin, les clients attendent leurs documents.', 'Éric'),
+      newIncident('Souris qui se déconnecte', 'Appel de Bruno : la souris sans fil se déconnecte de temps en temps.', 'Bruno'),
+    ],
+    objectives: [
+      { id: 'diff', label: 'Comprendre à quoi sert l\'escalade hiérarchique', question: Q('Quand une escalade hiérarchique est-elle justifiée ?', ['Dès que le technicien est pressé', 'Quand l\'enjeu le justifie : priorité élevée, ou SLA à risque ou dépassé', 'Pour tous les tickets, afin que le responsable soit toujours informé', 'Uniquement après la clôture du ticket'], 1, 'Elle sert à obtenir une décision ou à informer d\'un enjeu. Systématique, elle devient du bruit.') },
+      { id: 'qual', label: 'INC-0001 est P1 et INC-0002 est P4, tous deux pris en charge', check: { k: 'all', of: [{ k: 'ticket', ref: T(1), reached: 'in_progress', priority: 1 }, { k: 'ticket', ref: T(2), reached: 'in_progress', priority: 4 }] }, requires: ['diff'] },
+      { id: 'time', label: 'Trois heures se sont écoulées (utilisez « +1 h »)', check: { k: 'clock', atLeast: 3 * HOUR }, requires: ['qual'] },
+      { id: 'why2', label: 'Expliquer pourquoi INC-0002 n\'est pas alerté', requires: ['time'], question: Q('Pourquoi l\'outil refuse-t-il d\'alerter le responsable pour la souris (INC-0002) ?', ['Parce que Bruno n\'est pas important', 'Parce qu\'il n\'y a pas d\'enjeu : priorité 4 et SLA tenu', 'Parce qu\'on ne peut alerter qu\'un seul ticket par jour', 'Parce que le responsable est absent'], 1, 'Pas de priorité 1 ou 2, pas de SLA menacé : il n\'y a rien à arbitrer. Le responsable n\'a pas à être dérangé.') },
+      { id: 'alert', label: 'Le responsable est alerté pour INC-0001', check: { k: 'escalated', ref: T(1), kind: 'hierarchical' }, requires: ['why2'] },
+      { id: 'level', label: 'INC-0001 reste au niveau 1 (on a alerté, pas transféré)', check: { k: 'all', of: [{ k: 'ticketLevel', ref: T(1), level: 1 }, { k: 'ticket', ref: T(1), assignee: '@usr:David' }] }, requires: ['alert'] },
+      { id: 'mgr', label: 'Éric Moreau, responsable, a laissé une instruction (commentaire)', check: { k: 'didAs', user: '@usr:Éric', type: 'TicketCommented' }, requires: ['level'] },
+      { id: 'solve', label: 'INC-0001 est résolu avec une solution documentée', check: { k: 'ticket', ref: T(1), reached: 'resolved', solutionMin: 30 }, requires: ['mgr'] },
+    ],
+    hints: [
+      { for: 'qual', levels: ['INC-0001 : impact élevé, urgence élevée. INC-0002 : impact faible, urgence faible.'] },
+      { for: 'alert', levels: ['Fiche du ticket, section « Escalade », bouton « Alerter le responsable ».', 'Le motif dit l\'impact (qui, quoi) et ce que vous attendez du responsable.'] },
+      { for: 'mgr', levels: ['« Agir en tant que » Éric Moreau, puis ajoutez un commentaire sur INC-0001.'] },
+    ],
+    solutionText: ['Qualifier INC-0001 en P1 et INC-0002 en P4, les prendre en charge.', 'Avancer de 3 h.', 'Alerter le responsable pour INC-0001 avec un motif (impact, avancement, décision attendue).', 'Éric commente ; David résout.'],
+    solution: [
+      answer('diff', 1),
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { category: 'Logiciel', subcategory: 'Dysfonctionnement', impact: 'high', urgency: 'high', assignee: '@usr:David' } } },
+      { do: 'itsm.updateTicket', args: { id: T(2), fields: { category: 'Matériel', subcategory: 'Périphérique', impact: 'low', urgency: 'low', assignee: '@usr:David' } } },
+      ...[1, 2].flatMap(n => ['qualified', 'assigned', 'in_progress'].map((to): Step => ({ do: 'itsm.transitionTicket', args: { id: T(n), to }, as: '@usr:David' }))),
+      { advance: 3 * HOUR }, answer('why2', 1),
+      { do: 'itsm.escalate', args: { id: T(1), kind: 'hierarchical', reason: 'Toute la facturation clients est à l\'arrêt depuis 3 h, le SLA P1 est menacé. Cause non identifiée : décision attendue sur la communication aux clients et sur le renfort.' }, as: '@usr:David' },
+      { do: 'itsm.actAs', args: { user: '@usr:Éric' } },
+      { do: 'itsm.addComment', args: { id: T(1), text: 'Reçu. Je préviens les clients concernés. Priorité absolue, tenez-moi informé toutes les heures.' }, as: '@usr:Éric' },
+      { do: 'itsm.updateTicket', args: { id: T(1), fields: { solution: 'Service de facturation redémarré après libération d\'un verrou bloquant le module d\'émission. Test d\'émission réussi, clients informés.' } }, as: '@usr:David' },
+      { do: 'itsm.transitionTicket', args: { id: T(1), to: 'resolved' }, as: '@usr:David' },
+    ],
+    realWorld: 'ITIL parle d\'« escalade hiérarchique » pour informer ou obtenir une décision, par opposition à l\'« escalade fonctionnelle » qui cherche une compétence. Dans les outils réels, elle déclenche une notification ou un « incident majeur » (ServiceNow, Jira Service Management) et s\'accompagne souvent d\'un point de situation à intervalles réguliers.',
+  },
 ];
 
 SCENARIOS.sort((a, b) => a.number - b.number);

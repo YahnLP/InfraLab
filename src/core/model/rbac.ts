@@ -7,6 +7,7 @@ export const PERMISSIONS: { id: string; label: string; group: string }[] = [
   { id: 'ticket.qualify', label: 'Qualifier un ticket (catégorie, impact, urgence, actifs)', group: 'Support' },
   { id: 'ticket.assign', label: 'Attribuer un ticket à un technicien', group: 'Support' },
   { id: 'ticket.work', label: 'Traiter un ticket (prise en charge, solution, résolution)', group: 'Support' },
+  { id: 'ticket.escalate', label: 'Escalader un ticket (niveau supérieur, responsable)', group: 'Support' },
   { id: 'ticket.close', label: 'Clore un ticket', group: 'Support' },
   { id: 'problem.manage', label: 'Gérer les problèmes', group: 'ITIL' },
   { id: 'change.create', label: 'Préparer un changement', group: 'ITIL' },
@@ -27,7 +28,7 @@ export const PERMISSION_LABEL: Record<string, string> = Object.fromEntries(PERMI
 
 export const DEFAULT_ROLES: Role[] = [
   { id: 'user', name: 'Utilisateur', description: 'Signale un incident ou fait une demande.', permissions: ['ticket.create'] },
-  { id: 'technician', name: 'Technicien', description: 'Traite les tickets et intervient sur le parc et l\'infrastructure.', permissions: ['ticket.create', 'ticket.viewAll', 'ticket.qualify', 'ticket.assign', 'ticket.work', 'ticket.close', 'problem.manage', 'change.create', 'kb.write', 'asset.edit', 'asset.lifecycle', 'cmdb.edit', 'infra.edit'] },
+  { id: 'technician', name: 'Technicien', description: 'Traite les tickets et intervient sur le parc et l\'infrastructure.', permissions: ['ticket.create', 'ticket.viewAll', 'ticket.qualify', 'ticket.assign', 'ticket.work', 'ticket.escalate', 'ticket.close', 'problem.manage', 'change.create', 'kb.write', 'asset.edit', 'asset.lifecycle', 'cmdb.edit', 'infra.edit'] },
   { id: 'manager', name: 'Responsable', description: 'Pilote le service : approuve les changements, gère contrats et licences.', permissions: ['ticket.create', 'ticket.viewAll', 'ticket.assign', 'ticket.close', 'change.approve', 'itam.manage', 'audit.view'] },
   { id: 'admin', name: 'Administrateur', description: 'Gère les comptes et les droits. N\'intervient pas sur les tickets : séparation des fonctions.', permissions: ['ticket.create', 'ticket.viewAll', 'audit.view', 'admin.users', 'admin.groups', 'admin.roles', 'admin.settings'] },
 ];

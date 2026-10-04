@@ -32,7 +32,7 @@ La chaîne centrale : équipement → réseau → agent ou découverte → inven
 |---|---|---|
 | 1 — Comprendre le SI | réalité et connaissance de gestion | 1, 2, 3, 4, 5 |
 | 2 — L'inventaire | agent, découverte, rapprochement | 6, 7, 8, 9, 10 |
-| 3 — Le service desk | cycle de vie d'un ticket | 11, 12, 13, 14, 15, 42 |
+| 3 — Le service desk | cycle de vie d'un ticket | 11, 12, 13, 14, 15, 42, 47, 48 |
 | 4 — Dépanner | du symptôme à la cause | 16, 17, 18, 19, 20, 43 |
 | 5 — ITIL | SLA, problème, changement, connaissance | 21, 22, 23, 24, 25, 41, 44 |
 | 6 — Gérer le parc | logiciels, licences, contrats, cycle de vie | 26, 27, 28, 29, 30 |
@@ -40,7 +40,7 @@ La chaîne centrale : équipement → réseau → agent ou découverte → inven
 | 8 — Administrer | rôles, droits, groupes, délégations, audit | 33, 34, 35, 36, 37, 39, 45, 46 |
 | Bilan | tout assembler | 40 |
 
-Les TP 41 à 46 prolongent les séances 3, 4, 5 et 8 ; trois d'entre eux (41, 42, 43) se jouent dans le temps simulé. Les TP d'un même niveau sont indépendants : l'ordre à l'intérieur d'une séance se choisit librement. Les niveaux se suivent en difficulté croissante.
+Les TP 41 à 48 prolongent les séances 3, 4, 5 et 8 ; cinq d'entre eux (41, 42, 43, 47, 48) se jouent dans le temps simulé. Les TP d'un même niveau sont indépendants : l'ordre à l'intérieur d'une séance se choisit librement. Les niveaux se suivent en difficulté croissante.
 
 ## 4. Évaluer, sans surpromettre
 
@@ -57,7 +57,7 @@ Les TP 41 à 46 prolongent les séances 3, 4, 5 et 8 ; trois d'entre eux (41, 42
 
 ## 6. Limites connues
 
-Réseau d'entreprise simplifié (tous les sites sur le même réseau) ; SLA en continu ou en heures ouvrées (un seul calendrier, sans jours fériés) ; les groupes donnent des rôles, sans hiérarchie ; une VM suit son hyperviseur, sans haute disponibilité ; la copie automatique est locale au navigateur (vider les données du site l'efface) : faire enregistrer un fichier .infralab.json pour garder un travail.
+Réseau d'entreprise simplifié (tous les sites sur le même réseau) ; SLA en continu ou en heures ouvrées (un seul calendrier, sans jours fériés) ; l'escalade est manuelle (aucune règle automatique) ; les groupes donnent des rôles, sans hiérarchie ; une VM suit son hyperviseur, sans haute disponibilité ; la copie automatique est locale au navigateur (vider les données du site l'efface) : faire enregistrer un fichier .infralab.json pour garder un travail.
 
 ## 7. Questions fréquentes
 
@@ -66,6 +66,8 @@ Réseau d'entreprise simplifié (tous les sites sur le même réseau) ; SLA en c
 **L'élève s'est bloqué, il a perdu son travail.** *Recommencer* repart de l'état initial. Il peut consulter la solution (elle coûte les points d'autonomie).
 
 **Comment montrer qu'un droit manque ?** Choisir un utilisateur dans « Agir en tant que » et tenter l'action : le refus nomme le droit manquant et les rôles de la personne.
+
+**Comment fonctionne l'escalade ?** Sur la fiche du ticket, section « Escalade », un technicien peut escalader *fonctionnellement* (niveau N1 → N2 → N3, vers un groupe : le ticket repasse à « Qualifié », sans assigné, avec un motif obligatoire) ou *hiérarchiquement* (alerte du responsable, sans changer de niveau ; justifiée seulement par une priorité 1-2 ou un SLA à risque ou dépassé). L'outil conseille mais n'escalade jamais seul. Voir les TP 47 et 48.
 
 **Le temps est-il réglé dans les TP ?** Oui, quand il compte. L'heure simulée n'avance que sur action de l'élève : boutons +15 min, +1 h, +1 jour (en haut, et dans l'encart « Dans ce TP, le temps compte » des TP concernés : 6, 7, 10, 22, 28, 41 à 44 et 46). Les TP 42 et 43 font arriver des tickets et une panne à des heures précises ; le TP 41 se joue un lundi à 7 h après un week-end ; le TP 46 se termine par l'échéance d'une délégation.
 

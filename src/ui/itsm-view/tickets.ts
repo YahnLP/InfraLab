@@ -1,5 +1,5 @@
 import { can, rolesOf, type Level, type State, type Ticket, type TicketKind } from '../../core';
-import { SLA_CALENDAR_LABEL, SLA_LABEL, fmtDuration, slaOf, type SlaClock, KIND_LABEL, LEVEL_LABEL, PRIORITY_LABEL, STATUS_LABEL, TAXONOMY, blocker, byQueueOrder, isOpen, ticketPriority, transitionsFrom } from '../../itsm';
+import { ESCALATION_KIND_LABEL, SUPPORT_LEVEL_LABEL, canEscalateStatus, escalationAdvice, hierarchicalJustification, supportLevel, SLA_CALENDAR_LABEL, SLA_LABEL, fmtDuration, slaOf, type SlaClock, KIND_LABEL, LEVEL_LABEL, PRIORITY_LABEL, STATUS_LABEL, TAXONOMY, blocker, byQueueOrder, isOpen, ticketPriority, transitionsFrom } from '../../itsm';
 import { h } from '../kit/dom';
 import { EVENT_LABEL, ago, fmtTime } from '../shell/labels';
 import type { ItsmHost, Route } from './view';
@@ -30,10 +30,10 @@ export function ticketList(c: Ctx, f: TicketFilter): HTMLElement {
   return h('section', null, h('h1', null, title), mineOnly ? h('p', { class: 'muted' }, 'Vous ne voyez que vos propres tickets : le droit « Voir les tickets de tout le monde » manque à ce rôle.') : null,
     h('div', { class: 'chips' }, chip('open', 'À traiter'), chip('all', 'Tous (y compris résolus et clos)'), h('span', { class: 'grow' }),
       h('button', { class: 'primary', onclick: () => c.go({ page: 'newticket' }) }, 'Nouveau ticket')),
-    list.length ? h('table', { class: 'grid' }, h('thead', null, h('tr', null, ...['Réf.', 'Titre', 'Demandeur', 'Statut', 'Priorité', 'Assigné à', 'SLA résolution', 'Actifs', 'Mis à jour'].map(x => h('th', null, x)))),
+    list.length ? h('table', { class: 'grid' }, h('thead', null, h('tr', null, ...['Réf.', 'Titre', 'Demandeur', 'Statut', 'Priorité', 'Assigné à', 'Niveau', 'SLA résolution', 'Actifs', 'Mis à jour'].map(x => h('th', null, x)))),
       h('tbody', null, ...list.map(t => h('tr', { class: 'row', tabindex: 0, onclick: () => c.go({ page: 'ticket', id: t.id }), onkeydown: (e: KeyboardEvent) => { if (e.key === 'Enter') c.go({ page: 'ticket', id: t.id }); } },
         h('td', null, h('code', null, t.ref)), h('td', null, h('b', null, t.title)), h('td', null, userName(st, t.requester)), h('td', null, statusPill(t)), h('td', null, prioPill(t)),
-        h('td', null, userName(st, t.assignee)), h('td', null, (() => { const sl = slaOf(t, c.host.now(), st.management.settings.slaCalendar); return sl ? slaPill(sl.resolve) : h('span', { class: 'muted' }, '—'); })()), h('td', null, t.assetIds.map(a => assetName(st, a)).join(', ') || h('span', { class: 'muted' }, '—')), h('td', null, ago(c.host.now(), t.updatedAt)))))
+        h('td', null, userName(st, t.assignee)), h('td', null, `N${supportLevel(t)}`, t.managerAlerted ? h('span', { title: 'Responsable alerté', 'aria-label': 'responsable alerté' }, ' ⚑') : null), h('td', null, (() => { const sl = slaOf(t, c.host.now(), st.management.settings.slaCalendar); return sl ? slaPill(sl.resolve) : h('span', { class: 'muted' }, '—'); })()), h('td', null, t.assetIds.map(a => assetName(st, a)).join(', ') || h('span', { class: 'muted' }, '—')), h('td', null, ago(c.host.now(), t.updatedAt)))))
     ) : h('p', { class: 'empty' }, scope === 'open' ? 'Aucun ticket à traiter. Les utilisateurs signalent un incident ou font une demande : créez un ticket pour jouer ce rôle.' : 'Aucun ticket.'),
     h('aside', { class: 'realworld' }, h('strong', null, 'Dans les outils réels'), ' incident = ticket de type Incident ; demande = Service Request. La file est triée par priorité : P1 d\'abord (ServiceNow, GLPI, Jira Service Management…).'));
 }
@@ -77,11 +77,11 @@ export function ticketPage(c: Ctx, id: string): HTMLElement {
   const trs = transitionsFrom(t.status).map(tr => { const b = blocker(t, tr, st, c.host.now());
     return h('div', { class: 'tr' }, h('button', { class: b ? 'blocked' : 'primary', 'aria-disabled': b ? 'true' : null, title: b ?? '', onclick: () => c.host.dispatch({ type: 'itsm.transitionTicket', payload: { id: t.id, to: tr.to } }) }, `${tr.label} → ${STATUS_LABEL[tr.to]}`), b ? h('span', { class: 'muted' }, b) : null); });
   const hist = c.host.store.getLog().filter(e => e.subject.kind === 'ticket' && e.subject.id === t.id);
-  const timeline = [...hist.map(e => ({ t: e.t, text: EVENT_LABEL[e.type] ?? e.type, detail: e.type === 'TicketStatusChanged' ? `${STATUS_LABEL[e.payload['from'] as Ticket['status']]} → ${STATUS_LABEL[e.payload['to'] as Ticket['status']]}` : e.type === 'TicketUpdated' ? (e.payload['fields'] as string[]).map(f => FIELD_LABEL[f] ?? f).join(', ') : e.type === 'TicketAssetLinked' || e.type === 'TicketAssetUnlinked' ? assetName(st, String(e.payload['asset'])) : e.type === 'TicketCommented' ? String(e.payload['text']) : '' }))].reverse();
+  const timeline = [...hist.map(e => ({ t: e.t, text: EVENT_LABEL[e.type] ?? e.type, detail: e.type === 'TicketStatusChanged' ? `${STATUS_LABEL[e.payload['from'] as Ticket['status']]} → ${STATUS_LABEL[e.payload['to'] as Ticket['status']]}` : e.type === 'TicketUpdated' ? (e.payload['fields'] as string[]).map(f => FIELD_LABEL[f] ?? f).join(', ') : e.type === 'TicketAssetLinked' || e.type === 'TicketAssetUnlinked' ? assetName(st, String(e.payload['asset'])) : e.type === 'TicketCommented' ? String(e.payload['text']) : e.type === 'TicketEscalated' ? `${e.payload['kind'] === 'functional' ? `N${e.payload['fromLevel']} → N${e.payload['toLevel']}` : 'responsable alerté'} · ${String(e.payload['reason'])}` : '' }))].reverse();
 
   return h('section', null,
     h('p', null, h('button', { class: 'link', onclick: () => c.go({ page: 'tickets' }) }, '← Tickets')),
-    h('header', { class: 'asset-head' }, h('code', { class: 'ref' }, t.ref), h('h1', null, t.title), statusPill(t), prioPill(t)),
+    h('header', { class: 'asset-head' }, h('code', { class: 'ref' }, t.ref), h('h1', null, t.title), statusPill(t), prioPill(t), h('span', { class: `pill ${supportLevel(t) > 1 ? 'warn' : 'off'}`, title: SUPPORT_LEVEL_LABEL[supportLevel(t)] }, `N${supportLevel(t)}`), t.managerAlerted ? h('span', { class: 'pill down', title: 'Le responsable a été alerté' }, 'Responsable alerté') : null),
     h('p', { class: 'muted' }, `${KIND_LABEL[t.kind]} · demandé par ${userName(st, t.requester)} · créé ${fmtTime(t.createdAt)} (${ago(c.host.now(), t.createdAt)})`),
     t.description ? h('p', { class: 'desc' }, t.description) : null,
     h('div', { class: 'cols' },
@@ -108,6 +108,23 @@ export function ticketPage(c: Ctx, id: string): HTMLElement {
         locked ? null : h('div', { class: 'actions' }, h('button', { onclick: () => upd({ solution: sol.value }) }, 'Enregistrer la solution'))),
       h('div', null,
         h('h2', null, 'Étape suivante'), trs.length ? h('div', { class: 'trs' }, ...trs) : h('p', { class: 'muted' }, 'Ticket clos : il reste consultable, mais plus modifiable (sauf commentaires).'),
+        h('h2', null, 'Escalade'),
+        (() => {
+          const now = c.host.now(); const cal = st.management.settings.slaCalendar; const advice = escalationAdvice(t, now, cal);
+          const reason = h('textarea', { rows: 2, 'aria-label': 'Motif de l\'escalade', placeholder: 'Motif : ce qui a été essayé, ce qui bloque, ce que le niveau suivant doit savoir.' });
+          const grp = h('select', { 'aria-label': 'Groupe destinataire' }, h('option', { value: '' }, '(même file d\'attente)'), ...Object.values(st.management.groups).map(g => h('option', { value: g.id }, g.name)));
+          const lvl = supportLevel(t); const can = canEscalateStatus(t); const why = hierarchicalJustification(t, now, cal);
+          const go = (kind: 'functional' | 'hierarchical') => { if (c.host.dispatch({ type: 'itsm.escalate', payload: { id: t.id, kind, reason: reason.value, ...(kind === 'functional' && grp.value ? { group: grp.value } : {}) } })) reason.value = ''; };
+          return h('div', null,
+            h('p', null, h('b', null, 'Niveau de support : '), SUPPORT_LEVEL_LABEL[lvl], t.managerAlerted ? ' · responsable alerté' : ''),
+            advice ? h('p', { class: 'warn-note', role: 'note' }, advice) : null,
+            (t.escalations ?? []).length ? h('ul', { class: 'tkl' }, ...(t.escalations ?? []).map(e => h('li', null, h('time', null, fmtTime(e.t)), ' ', h('b', null, ESCALATION_KIND_LABEL[e.kind]), e.kind === 'functional' ? ` N${e.fromLevel} → N${e.toLevel}` : '', e.by ? ` par ${userName(st, e.by)}` : '', h('span', { class: 'muted' }, ` — ${e.reason}`)))) : h('p', { class: 'muted' }, 'Aucune escalade pour l\'instant.'),
+            can ? h('div', null, reason, lvl < 3 ? grp : null,
+              h('div', { class: 'actions' },
+                lvl < 3 ? h('button', { onclick: () => go('functional') }, `Escalader au niveau ${lvl + 1} (fonctionnelle)`) : h('span', { class: 'muted' }, 'Niveau 3 : plus de niveau supérieur.'),
+                t.managerAlerted ? null : h('button', { class: why ? 'primary' : 'blocked', 'aria-disabled': why ? null : 'true', title: why ? `Justifiée : ${why}` : 'Pas d\'enjeu : priorité 1 ou 2, ou SLA à risque ou dépassé, requis.', onclick: () => go('hierarchical') }, 'Alerter le responsable (hiérarchique)')))
+              : h('p', { class: 'muted' }, t.status === 'new' ? 'Qualifiez d\'abord le ticket pour pouvoir l\'escalader.' : 'Un ticket résolu ou clos ne s\'escalade plus.'));
+        })(),
         h('h2', null, 'Problème'),
         t.problemId ? h('p', null, 'Rattaché à ', h('button', { class: 'link', onclick: () => c.go({ page: 'problem', id: t.problemId! }) }, st.management.problems[t.problemId]?.ref ?? t.problemId))
           : h('div', { class: 'actions' }, h('button', { onclick: () => { if (c.host.dispatch({ type: 'itsm.createProblem', payload: { title: t.title, tickets: [t.id] } })) { const all = Object.values(c.host.store.getState().management.problems); c.go({ page: 'problem', id: all[all.length - 1]!.id }); } } }, 'Ouvrir un problème depuis ce ticket')),

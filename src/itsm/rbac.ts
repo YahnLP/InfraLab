@@ -9,7 +9,7 @@ const TICKET_TO: Record<string, string> = { qualified: 'ticket.qualify', assigne
 const NEEDS: Record<string, Need> = {
   'itsm.createTicket': 'ticket.create', 'itsm.addComment': 'ticket.create',
   'itsm.updateTicket': p => { const f = fieldsOf(p); return f['assignee'] !== undefined || f['group'] !== undefined ? 'ticket.assign' : f['solution'] !== undefined ? 'ticket.work' : 'ticket.qualify'; },
-  'itsm.linkAsset': 'ticket.qualify', 'itsm.unlinkAsset': 'ticket.qualify',
+  'itsm.escalate': 'ticket.escalate', 'itsm.linkAsset': 'ticket.qualify', 'itsm.unlinkAsset': 'ticket.qualify',
   'itsm.transitionTicket': p => TICKET_TO[String(p['to'])] ?? 'ticket.work',
   'itsm.createProblem': 'problem.manage', 'itsm.updateProblem': 'problem.manage', 'itsm.linkTicketToProblem': 'problem.manage', 'itsm.unlinkTicketFromProblem': 'problem.manage', 'itsm.transitionProblem': 'problem.manage',
   'itsm.createChange': 'change.create', 'itsm.updateChange': 'change.create',

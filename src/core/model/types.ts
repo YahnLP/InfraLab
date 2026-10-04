@@ -94,6 +94,8 @@ export type TicketKind = 'incident' | 'request';
 export type Level = 'low' | 'medium' | 'high';
 export type TicketStatus = 'new' | 'qualified' | 'assigned' | 'in_progress' | 'pending' | 'resolved' | 'closed';
 export interface TicketComment { t: number; author: string; text: string }
+/** Escalade : fonctionnelle (vers un niveau de support supérieur) ou hiérarchique (le responsable est alerté). */
+export interface Escalation { t: number; kind: 'functional' | 'hierarchical'; by?: string; reason: string; fromLevel?: number; toLevel?: number; group?: string }
 export interface Ticket {
   id: string; ref: string; kind: TicketKind; title: string; description: string;
   /** Identifiant de l'utilisateur qui demande. */
@@ -109,6 +111,9 @@ export interface Ticket {
   /** Temps passé « en attente » : l'horloge du SLA est suspendue. */
   pausedMs?: number; pausedSince?: number; /** Part ouvrée des pauses (calendrier « heures ouvrées »). */ pausedBizMs?: number;
   problemId?: string; articleIds?: string[];
+  /** Niveau de support qui traite le ticket : 1 (service desk) par défaut, 2 (technicien confirmé), 3 (expert). */
+  level?: 1 | 2 | 3;
+  escalations?: Escalation[]; /** Le responsable a été alerté (escalade hiérarchique). */ managerAlerted?: boolean;
 }
 
 /* ---- ITIL (M5) ---- */
@@ -146,7 +151,7 @@ export interface Session {
 }
 
 /** Paramètres de l'outil de gestion. */
-export interface Settings { slaCalendar: 'continuous' | 'business' }
+export interface Settings { slaCalendar: 'continuous' | 'business'; /** Marqueur de version : les sauvegardes antérieures à l'escalade n'en ont pas. */ escalation?: true }
 
 /* ---------------- État global ---------------- */
 export interface State {
@@ -167,7 +172,7 @@ export function emptyState(): State {
   return {
     schemaVersion: 1, counters: {},
     reality: { devices: {}, links: {}, itsmServerId: null },
-    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {}, suppliers: {}, contracts: {}, licenses: {}, softwarePolicy: {}, cis: {}, relations: {}, roles: defaultRoles(), groups: {}, delegations: {}, settings: { slaCalendar: 'continuous' } },
+    management: { assets: {}, users: {}, tickets: {}, problems: {}, changes: {}, articles: {}, suppliers: {}, contracts: {}, licenses: {}, softwarePolicy: {}, cis: {}, relations: {}, roles: defaultRoles(), groups: {}, delegations: {}, settings: { slaCalendar: 'continuous', escalation: true } },
     focus: null, actingAs: null, session: null,
   };
 }

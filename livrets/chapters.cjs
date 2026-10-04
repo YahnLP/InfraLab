@@ -44,7 +44,7 @@ module.exports = [
   ],
   keypoints: ["Découverte = peu d'informations mais vite ; agent = détail ; saisie = dernier recours.", "Clé réseau : MAC ; clé de gestion : numéro de série / d'inventaire.", "Affecté (décision) ≠ connecté (constat).", "Un agent en erreur se diagnostique avant de se réparer."] },
 
-{ n: 3, title: "Le Service Desk : prendre un appel, qualifier, résoudre", tps: "TP 11 à 15, 42",
+{ n: 3, title: "Le Service Desk : prendre un appel, qualifier, résoudre", tps: "TP 11 à 15, 42, 47, 48",
   intro: "Le service desk est le point d'entrée unique des utilisateurs. Sa qualité se mesure à ce que le ticket permet de faire ensuite.",
   sections: [
   { h: "3.1 Un bon ticket", p: [
@@ -59,8 +59,11 @@ module.exports = [
     p2: ["Une imprimante en panne pour tout un service avec une échéance aujourd'hui : impact élevé, urgence élevée, **P1**. La même imprimante pour une personne qui peut imprimer ailleurs : impact faible, urgence faible, **P4**."] },
   { h: "3.4 Résoudre, vérifier, clore", p: [
     "La **solution** se documente en quatre éléments : symptôme, cause, action, vérification. Sans cela, personne ne pourra la réutiliser. **Résolu** signifie « nous pensons avoir corrigé » ; **Clos** signifie « l'utilisateur a confirmé » ou le délai de confirmation est passé."] },
+  { h: "3.5 Escalader : passer la main ou prévenir", p: [
+    "Un support s'organise en **niveaux** : **N1** (service desk, cas courants), **N2** (techniciens confirmés), **N3** (experts, éditeurs, fournisseurs). L'**escalade fonctionnelle** transfère le ticket au niveau supérieur quand on n'a pas la compétence, les droits ou le temps. L'**escalade hiérarchique** *prévient un responsable* pour qu'il décide ou arbitre : le ticket ne change pas de niveau.",
+    "Une bonne escalade est **motivée** (ce qui a été essayé, ce qui bloque), **tracée** (qui, quand, vers qui) et **opportune** : on escalade quand le SLA devient « à risque », pas après le dépassement. Une escalade hiérarchique se justifie par un enjeu (priorité 1 ou 2, SLA menacé) : alerter pour tout, c'est perdre la confiance du responsable."] },
   ],
-  keypoints: ["Qui, quoi, où, quand.", "Priorité = f(impact, urgence).", "Documenter : symptôme, cause, action, vérification.", "Résolu ≠ Clos."] },
+  keypoints: ["Qui, quoi, où, quand.", "Priorité = f(impact, urgence).", "Documenter : symptôme, cause, action, vérification.", "Résolu ≠ Clos.", "Escalader tôt, avec un motif ; alerter le responsable seulement si l'enjeu le justifie."] },
 
 { n: 4, title: "Diagnostiquer un incident technique", tps: "TP 16 à 20, 43",
   intro: "Face à une panne, le réflexe n'est pas de cliquer partout : c'est de raisonner du plus simple au plus complexe, et de chercher ce qui est commun.",

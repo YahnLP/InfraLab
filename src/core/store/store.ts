@@ -115,7 +115,7 @@ export class Store {
   restore(s: { state: State; log: DomainEvent[] }): void {
     const c = structuredClone(s); c.state.management.tickets ??= {}; c.state.session ??= null; c.state.actingAs ??= null; (c.state.management as { roles?: unknown }).roles ??= defaultRoles(); c.state.management.problems ??= {}; c.state.management.changes ??= {}; c.state.management.articles ??= {};
     { const m = c.state.management as { groups?: unknown; roles: Record<string, { permissions: string[] }> }; if (!m.groups) for (const p of ['admin.settings', 'admin.groups']) { const ad = m.roles['admin']; if (ad && !ad.permissions.includes(p)) ad.permissions.push(p); } } // sauvegardes antérieures : le rôle administrateur reçoit les nouveaux droits d'administration
-    for (const k of ['suppliers', 'contracts', 'licenses', 'softwarePolicy', 'cis', 'relations', 'groups', 'delegations'] as const) (c.state.management as unknown as Record<string, unknown>)[k] ??= {}; (c.state.management as { settings?: unknown }).settings ??= { slaCalendar: 'continuous' }; this.state = c.state; this.log = c.log;
+    for (const k of ['suppliers', 'contracts', 'licenses', 'softwarePolicy', 'cis', 'relations', 'groups', 'delegations'] as const) (c.state.management as unknown as Record<string, unknown>)[k] ??= {}; (c.state.management as { settings?: unknown }).settings ??= { slaCalendar: 'continuous' }; { const set = c.state.management.settings; if (!set.escalation) { set.escalation = true; const tc = c.state.management.roles['technician']; if (tc && !tc.permissions.includes('ticket.escalate')) tc.permissions.push('ticket.escalate'); } } this.state = c.state; this.log = c.log;
     this.listeners.forEach(l => l([], this.state));
   }
 }

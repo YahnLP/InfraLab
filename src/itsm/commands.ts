@@ -4,6 +4,7 @@ import { TEV } from './events';
 import { registerItilCommands } from './itil-commands';
 import { registerItamCommands } from './itam-commands';
 import { businessMs } from './calendar';
+import { canEscalateStatus, hierarchicalJustification, supportLevel } from './escalation';
 import { accessGuard } from './rbac';
 import { registerRbacCommands } from './rbac-commands';
 import { TAXONOMY } from './taxonomy';
@@ -99,6 +100,31 @@ export function registerItsmCommands(store: Store): void {
     const t = ticketOf(ctx, p); const text = String(p['text'] ?? '').trim(); if (!text) throw new CommandError('empty_comment', 'Le commentaire est vide');
     t.comments.push({ t: ctx.now, author: ctx.actorId ?? String(p['author'] ?? ''), text }); touch(t, ctx.now);
     ctx.emit(TEV.TicketCommented, { kind: 'ticket', id: t.id }, { text });
+  });
+
+  /** Escalade : fonctionnelle (niveau de support supérieur, éventuellement vers un autre groupe) ou hiérarchique (alerte du responsable). Toujours motivée. */
+  store.registerCommand('itsm.escalate', (ctx, p) => {
+    const t = ticketOf(ctx, p); const kind = String(p['kind']); const reason = String(p['reason'] ?? '').trim();
+    if (kind !== 'functional' && kind !== 'hierarchical') throw new CommandError('bad_kind', 'Type d\'escalade inconnu');
+    if (!canEscalateStatus(t)) throw new CommandError('not_escalable', t.status === 'new' ? 'Qualifiez d\'abord le ticket : on ne peut pas escalader ce qu\'on n\'a pas compris.' : 'Seul un ticket en cours de traitement s\'escalade.');
+    if (reason.length < 10) throw new CommandError('reason_required', 'Motivez l\'escalade (au moins une phrase) : ce que vous avez déjà essayé, ce qui bloque. Le niveau suivant ne doit pas repartir de zéro.');
+    const esc = { t: ctx.now, kind, reason, ...(ctx.actorId ? { by: ctx.actorId } : {}) } as import('../core').Escalation;
+    if (kind === 'functional') {
+      const from = supportLevel(t); if (from >= 3) throw new CommandError('max_level', 'Le ticket est déjà au niveau 3 : il n\'y a pas de niveau supérieur dans l\'organisation. Pensez à l\'escalade hiérarchique ou à un fournisseur.');
+      const g = p['group'] ? String(p['group']) : ''; if (g && !ctx.state.management.groups[g]) throw new CommandError('group_not_found', 'Groupe inconnu');
+      const to = (from + 1) as 2 | 3; t.level = to; esc.fromLevel = from; esc.toLevel = to;
+      if (g) { t.groupId = g; esc.group = g; }
+      delete t.assignee;
+      if (t.status === 'pending' && t.pausedSince !== undefined) { t.pausedMs = (t.pausedMs ?? 0) + (ctx.now - t.pausedSince); t.pausedBizMs = (t.pausedBizMs ?? 0) + businessMs(t.pausedSince, ctx.now); delete t.pausedSince; }
+      t.status = 'qualified';
+    } else {
+      if (t.managerAlerted) throw new CommandError('already_alerted', 'Le responsable a déjà été alerté pour ce ticket.');
+      const why = hierarchicalJustification(t, ctx.now, ctx.state.management.settings.slaCalendar);
+      if (!why) throw new CommandError('not_justified', 'Une escalade hiérarchique se justifie par un enjeu : priorité 1 ou 2, ou SLA à risque ou dépassé. Ici, rien de tel : continuez le traitement ou escaladez fonctionnellement.');
+      t.managerAlerted = true;
+    }
+    (t.escalations ??= []).push(esc); touch(t, ctx.now);
+    ctx.emit(TEV.TicketEscalated, { kind: 'ticket', id: t.id }, { kind, reason, ...(esc.fromLevel ? { fromLevel: esc.fromLevel, toLevel: esc.toLevel } : {}), ...(esc.group ? { group: esc.group } : {}) });
   });
 
   store.registerCommand('itsm.transitionTicket', (ctx, p) => {

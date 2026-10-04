@@ -56,11 +56,11 @@ function student() {
     'Nom : ……………………………………………………   Classe : ……………………', 'Date de début : ……………………']));
   c.push(...toc([['Comment utiliser ce livret'], ['Partie 1 — Cours'], ...CH.map(x => [`Chapitre ${x.n} — ${x.title}`, 1]), ['Partie 2 — Travaux dirigés'], ...TD.map(t => [`TD ${t.n} — ${t.title}`, 1]), ['Partie 3 — Fiches TP (TP 1 à 46)'], ['Annexes et glossaire']]));
   c.push(H1('Comment utiliser ce livret', false));
-  c.push(P("Ce livret accompagne le simulateur **InfraLab**. Le simulateur contient 46 TP guidés ; ce livret ajoute **du cours** (pour comprendre), des **TD** (pour s'entraîner sans machine) et, pour chaque TP, une **question pour aller plus loin**."));
+  c.push(P("Ce livret accompagne le simulateur **InfraLab**. Le simulateur contient 48 TP guidés ; ce livret ajoute **du cours** (pour comprendre), des **TD** (pour s'entraîner sans machine) et, pour chaque TP, une **question pour aller plus loin**."));
   c.push(table({ head: ['Où', 'Quoi', 'Quand'], rows: [
     ['Partie 1', 'Cours : 8 chapitres', 'Avant, pendant ou après les TP du chapitre'],
     ['Partie 2', '18 TD à faire sur papier', 'En séance, seul ou en groupe'],
-    ['Partie 3', 'Une fiche par TP (46) : objectifs, question de transfert, journal', 'Après chaque TP'],
+    ['Partie 3', 'une fiche par TP (48) : objectifs, question de transfert, journal', 'Après chaque TP'],
     ['Annexes', 'Aide-mémoire : priorités, SLA, tickets, glossaire', 'Toujours à portée de main']], widths: [1500, 4326, 3200] }));
   c.push(space());
   c.push(box('Ce que l\'on attend de vous', [B('**Comprendre plutôt que cliquer** : avant chaque action, dites ce que vous attendez qu\'il se passe.'), B('Utiliser les indices **en dernier recours** : chaque indice réduit la part « autonomie » de votre score.'), B('Répondre aux questions de réflexion **par écrit**, avec vos mots.'), B('Dans les TP où le **temps compte** (encart « Horloge »), c\'est vous qui faites avancer l\'horloge simulée : +15 min, +1 h ou +1 jour.'), B('**Enregistrer** votre travail avec le bouton « Enregistrer » (Ctrl+S) dans le dossier de votre choix, et le rouvrir plus tard avec « Ouvrir » (Ctrl+O) : le TP reprend où vous l\'avez laissé. Le bouton « ? Aide » résume tout cela.'), B('Garder vos comptes rendus exportables (TP terminés) pour votre portfolio.')]));
@@ -121,7 +121,7 @@ function teacher() {
     'Compagnon du simulateur InfraLab (yahnlp.github.io/InfraLab)', 'Complète le livret de l\'élève', 'Ne pas diffuser aux élèves', '', 'Version : octobre 2026']));
   c.push(...toc([['Utiliser ce livret : progression, évaluation, accompagnement'], ['Partie A — Corrigés des TD'], ...TD.map(t => [`TD ${t.n} — ${t.title}`, 1]), ['Partie B — Guides par TP (TP 1 à 46)'], ['Glossaire']]));
   c.push(H1('Utiliser ce livret', false));
-  c.push(P("Ce livret contient les **corrigés des 18 TD**, un **guide par TP** (46) avec les réponses aux questions du simulateur, le parcours attendu, les indices et les pièges, et des repères pour conduire les séances et évaluer."));
+  c.push(P("Ce livret contient les **corrigés des 18 TD**, un **guide par TP** (48) avec les réponses aux questions du simulateur, le parcours attendu, les indices et les pièges, et des repères pour conduire les séances et évaluer."));
   c.push(box('Parti pris pédagogique', [P("Le simulateur ne donne pas la solution : il guide. Les *réponses guidées* de ce livret sont destinées à **vous** pour accompagner. Évitez de les donner d'emblée : posez d'abord la question « qu'attendez-vous qu'il se passe ? »."), P("« Comprendre plutôt que cliquer » : un élève qui réussit un TP sans pouvoir expliquer pourquoi n'a pas compris.")]));
   c.push(space());
   c.push(box('Compétences : formulation à respecter', [NOTE], L.WARM, 'B26B00'));
