@@ -14,7 +14,7 @@ import { TpPanel } from '../tp/panel';
 import { fmtTime } from './labels';
 import { EXT, labelOf, parseProject, serialize, suggestedName } from './files';
 import { openHelp } from './help';
-import { APP_AUTHOR, APP_NAME, APP_TAGLINE } from '../../version';
+import { APP_AUTHOR, APP_NAME, APP_TAGLINE, AUTHOR_URL } from '../../version';
 
 const KEY = 'infralab.project.v0';
 
@@ -161,7 +161,7 @@ export function mountApp(root: HTMLElement): void {
 
   /* ---- en-tête ---- */
   const header = h('header', { class: 'top' },
-    h('div', { class: 'brand', title: `${APP_NAME} — ${APP_TAGLINE}` }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('span', { class: 'brand-box' }, h('span', null, APP_NAME), h('span', { class: 'credit' }, `Créé par ${APP_AUTHOR}`))),
+    h('div', { class: 'brand', title: `${APP_NAME} — ${APP_TAGLINE}` }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('span', { class: 'brand-box' }, h('span', null, APP_NAME), h('a', { class: 'credit', href: AUTHOR_URL, target: '_blank', rel: 'noopener noreferrer', title: 'Formaxion Landes (nouvel onglet)' }, `Créé par ${APP_AUTHOR}`))),
     h('div', { class: 'views', role: 'tablist', 'aria-label': 'Vues' }, tabInfra, tabItsm, tabTp),
     h('div', { class: 'filebox', role: 'group', 'aria-label': 'Fichier' },
       h('button', { title: 'Ouvrir un projet ou un TP enregistré (Ctrl+O)', onclick: () => void openFile() }, 'Ouvrir'),
