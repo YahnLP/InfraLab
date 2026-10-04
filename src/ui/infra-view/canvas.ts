@@ -1,5 +1,6 @@
 import type { Device, DeviceKind, Store } from '../../core';
 import { CATALOG, computeReachability, linkIsUp, portInUse } from '../../infra';
+import { agentHealth } from '../../inventory';
 import { clear, h, s, svgFromString } from '../kit/dom';
 import { glyph } from './icons';
 
@@ -89,6 +90,7 @@ export class InfraCanvas {
         s('circle', { class: 'dot', cx: NODE / 2 - 4, cy: -NODE / 2 + 4, r: 7 }),
         status === 'down' ? s('path', { class: 'dotmark', d: `M${NODE / 2 - 7} ${-NODE / 2 + 1}l6 6M${NODE / 2 - 1} ${-NODE / 2 + 1}l-6 6` }) : null,
         status === 'on' ? s('path', { class: 'dotmark', d: `M${NODE / 2 - 7} ${-NODE / 2 + 4}l2 3 4-5` }) : null,
+        d.agent.state !== 'none' ? s('g', { class: `agent ${agentHealth(st, d)}` }, s('title', null, `Agent : ${agentHealth(st, d)}`), s('circle', { cx: -NODE / 2 + 11, cy: NODE / 2 - 11, r: 9 }), s('text', { x: -NODE / 2 + 11, y: NODE / 2 - 7.5, 'text-anchor': 'middle' }, 'A')) : null,
         isServer ? s('g', null, s('rect', { class: 'badge', x: -NODE / 2, y: -NODE / 2 - 8, width: 34, height: 16, rx: 8 }), s('text', { class: 'badgetxt', x: -NODE / 2 + 17, y: -NODE / 2 + 3, 'text-anchor': 'middle' }, 'ITSM')) : null,
       );
       g.querySelector('.glyph')!.append(svgFromString(glyph(d.kind)));

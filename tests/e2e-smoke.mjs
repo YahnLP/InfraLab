@@ -32,8 +32,37 @@ await page.locator('.node[aria-label^="SW02"]').click();
 await page.getByRole('button', { name: 'Allumer' }).click();
 ok(await page.locator('.node.down').count() === 0, 'tout revient en ligne');
 
+// ---- M2 : découverte, agent, inventaire, écart ----
+await page.getByRole('tab', { name: 'ITSM' }).click();
+ok((await page.locator('.tile').filter({ hasText: 'inconnus de l\'outil' }).locator('b').textContent()) === '9', 'tableau de bord : 9 équipements inconnus de l\'outil');
+await page.getByRole('button', { name: 'Découverte réseau' }).click();
+await page.getByRole('button', { name: 'Scanner' }).click();
+ok(await page.locator('.itsm-page tbody tr.row').count() === 6, 'découverte : 6 équipements répondent (les switches sans IP restent invisibles)');
+ok(await page.locator('.itsm-page .pill.warn').count() === 6, 'tous « découverts seulement »');
+await page.screenshot({ path: `${shots}/m2-1-decouverte.png` });
+await page.getByRole('tab', { name: 'Infrastructure' }).click();
+await page.locator('.node[aria-label^="PC-COMPTA-01"]').click();
+await page.getByRole('button', { name: "Installer l'agent" }).click();
+await page.getByRole('button', { name: "Forcer l'inventaire" }).click();
+await page.getByRole('tab', { name: 'ITSM' }).click(); await page.getByRole('button', { name: 'Parc', exact: true }).click();
+ok(await page.locator('.itsm-page .pill.on').count() === 1, 'parc : 1 actif inventorié par l\'agent');
+await page.locator('tr.row', { hasText: 'PC-COMPTA-01' }).click();
+ok((await page.locator('.itsm-page').textContent()).includes('Windows 11'), 'fiche d\'actif : système remonté par l\'agent');
+await page.getByRole('tab', { name: 'Infrastructure' }).click();
+await page.locator('.node[aria-label^="PC-COMPTA-01"]').click();
+await page.getByRole('button', { name: 'Ajouter 8 Go de RAM' }).click();
+await page.getByRole('tab', { name: 'ITSM' }).click(); await page.getByRole('button', { name: 'Parc', exact: true }).click(); await page.locator('tr.row', { hasText: 'PC-COMPTA-01' }).click();
+ok(await page.locator('.diff').count() === 1, 'écart réalité / observé visible après ajout de RAM');
+await page.screenshot({ path: `${shots}/m2-2-fiche.png` });
+await page.getByRole('button', { name: "Voir dans l'infrastructure" }).click();
+ok(await page.locator('.node.sel').count() === 1, '« Voir dans l\'infrastructure » sélectionne l\'équipement');
+await page.getByRole('button', { name: '+1 jour' }).click();
+await page.getByRole('tab', { name: 'ITSM' }).click(); await page.getByRole('button', { name: 'Parc', exact: true }).click(); await page.locator('tr.row', { hasText: 'PC-COMPTA-01' }).click();
+ok(await page.locator('.diff').count() === 0, 'après +1 jour, la remontée planifiée a résorbé l\'écart');
+await page.getByRole('tab', { name: 'Infrastructure' }).click();
+
 // pose par glisser-déposer + câblage
-await page.getByRole('button', { name: 'Nouveau' }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
+await page.getByRole('button', { name: 'Nouveau', exact: true }).click(); await page.getByRole('button', { name: 'Confirmer' }).click();
 const box = await page.locator('.canvas').boundingBox();
 const dnd = async (label, x, y) => {
   const dt = await page.evaluateHandle(() => new DataTransfer());

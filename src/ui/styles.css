@@ -126,3 +126,36 @@ dialog.confirm .actions { justify-content: flex-end; }
   .ev button { grid-template-columns: 80px 1fr; } .ev .who, .ev .muted { grid-column: 2; }
 }
 @media (prefers-reduced-motion: no-preference) { .node .card { transition: stroke .15s; } }
+
+/* agent, étiquettes */
+.node .agent circle { fill: var(--off); stroke: var(--card); stroke-width: 2; } .node .agent text { fill: #fff; font: 700 11px var(--sans); }
+.node .agent.ok circle { fill: var(--on); } .node .agent.unreachable circle, .node .agent.misconfigured circle { fill: var(--down); } .node .agent.stopped circle, .node .agent.outdated circle { fill: var(--warn); }
+.pill.warn { color: var(--warn); }
+.errs { margin: 6px 0; padding-left: 18px; color: var(--down); } .urlform { display: grid; gap: 6px; margin: 8px 0; }
+.agentlog { list-style: none; padding: 0; margin: 6px 0; font-size: 12.5px; } .agentlog li { padding: 2px 0; } .agentlog li.error { color: var(--down); } .agentlog li.warn { color: var(--warn); } .agentlog time { font-family: var(--mono); color: var(--muted); }
+.inline { display: flex; gap: 6px; } select { font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+.ports li.sw { grid-template-columns: 1fr auto auto; }
+
+/* vue ITSM */
+.itsm { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 0; }
+.itsm[hidden], .work[hidden] { display: none; }
+.itsm-nav { background: var(--panel); border-right: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 2px; overflow: auto; }
+.itsm-nav h3 { margin: 14px 0 4px 8px; }
+.itsm-nav button { text-align: left; border-color: transparent; background: none; } .itsm-nav button.on { background: var(--card); border-color: var(--line); font-weight: 600; }
+.itsm-page { overflow: auto; padding: 18px 26px 40px; max-width: 1200px; }
+.itsm-page h1 { font-size: 21px; margin: 0 0 14px; } .itsm-page h2 { font-size: 14px; margin: 18px 0 6px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.tile { display: grid; gap: 2px; text-align: left; padding: 12px 14px; } .tile b { font-size: 26px; font-variant-numeric: tabular-nums; } .tile span { color: var(--muted); }
+.tile.warn { border-left: 4px solid var(--warn); }
+.callout { margin: 14px 0; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; }
+.realworld { margin: 22px 0 0; padding: 10px 12px; font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); }
+.chips { display: flex; gap: 6px; margin-bottom: 10px; } .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.grid { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 6px; }
+.grid th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+.grid td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.grid tr.row { cursor: pointer; } .grid tr.row:hover { background: var(--bg); } .grid .stale { color: var(--warn); font-weight: 600; } .grid .diff { color: var(--down); font-weight: 600; } .grid.small td, .grid.small th { padding: 4px 8px; }
+.empty { padding: 18px; background: var(--card); border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); }
+.asset-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; } .asset-head h1 { margin: 0; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+.declared, .scan { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; margin-bottom: 12px; } .declared button { grid-column: 1 / -1; } .scan { grid-template-columns: minmax(180px, 320px) auto; justify-content: start; margin-bottom: 8px; }
+@media (max-width: 960px) { .itsm { grid-template-columns: 1fr; } .itsm-nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); } .itsm-nav h3 { display: none; } .cols { grid-template-columns: 1fr; } .itsm-page { padding: 14px; } }

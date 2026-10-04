@@ -4,10 +4,13 @@ import { clear, h } from '../kit/dom';
 import { REASON_TEXT } from '../shell/labels';
 import { glyphSvg } from './icons';
 import type { Selection } from './canvas';
+import { agentSection, softwareSection, toolSection, userSection } from './inspector-extra';
 
 export interface InspectorHost {
   dispatch(cmd: { type: string; payload?: Record<string, unknown> }): boolean;
   confirm(msg: string, run: () => void): void;
+  now(): number;
+  goAsset(assetId: string): void;
 }
 
 const field = (label: string, input: HTMLElement) => h('label', { class: 'fld' }, h('span', null, label), input);
@@ -59,7 +62,7 @@ function renderDevice(root: HTMLElement, st: Readonly<State>, d: Device, host: I
     h('button', { onclick: () => host.dispatch({ type: d.powered ? 'infra.powerOff' : 'infra.powerOn', payload: { id: d.id } }) }, d.powered ? 'Éteindre' : 'Allumer')));
 
   // réseau (équipements terminaux)
-  if (spec.role === 'endpoint' && d.nics.length) {
+  if (d.nics.length) {
     const nic = d.nics.find(n => n.ip) ?? d.nics[0]!;
     const ip = h('input', { type: 'text', value: nic.ip ?? '', placeholder: '192.168.10.21', inputmode: 'decimal', autocomplete: 'off', spellcheck: 'false' });
     const mask = h('input', { type: 'number', min: 0, max: 32, value: nic.mask ?? 24, 'aria-label': 'Préfixe' });
@@ -69,6 +72,10 @@ function renderDevice(root: HTMLElement, st: Readonly<State>, d: Device, host: I
         field('Adresse IP', ip), field('Masque (/n)', mask), field('Passerelle', gw), h('button', { type: 'submit' }, 'Appliquer')),
       h('dl', null, ...d.nics.map(n => kv(`MAC ${n.id}`, h('code', null, n.mac))))));
   }
+
+  root.append(toolSection(st, d, host), agentSection(st, d, host));
+  const us = userSection(st, d, host); if (us) root.append(us);
+  const sws = softwareSection(st, d, host); if (sws) root.append(sws);
 
   // matériel / logiciel
   const hwRows: HTMLElement[] = [];

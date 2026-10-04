@@ -1,5 +1,8 @@
-import { Scheduler, Store, emptyState, HOUR, type DeviceKind } from '../../core';
+import { Scheduler, Store, emptyState, HOUR, DAY, type DeviceKind } from '../../core';
 import { CATALOG, CATEGORY_ORDER, registerInfraCommands } from '../../infra';
+import { advance, registerInventoryCommands } from '../../inventory';
+import { registerItsmCommands } from '../../itsm';
+import { ItsmView } from '../itsm-view/view';
 import { clear, h } from '../kit/dom';
 import { InfraCanvas, type Selection } from '../infra-view/canvas';
 import { Dock } from '../infra-view/dock';
@@ -13,7 +16,7 @@ const KEY = 'infralab.project.v0';
 export function mountApp(root: HTMLElement): void {
   const sch = new Scheduler();
   const store = new Store({ clock: () => sch.now });
-  registerInfraCommands(store);
+  registerInfraCommands(store); registerInventoryCommands(store); registerItsmCommands(store);
 
   /* ---- persistance locale (provisoire : IndexedDB et projets nommés arrivent avec le moteur de TP) ---- */
   try {
@@ -34,6 +37,8 @@ export function mountApp(root: HTMLElement): void {
   const dockEl = h('section', { class: 'dock', 'aria-label': 'Journal des événements' });
   const palette = h('nav', { class: 'palette', 'aria-label': 'Équipements' });
   const dialog = h('dialog', { class: 'confirm' });
+  const itsmEl = h('div', { class: 'itsm', hidden: true });
+  const workEl = h('main', { class: 'work' });
 
   const toast = (msg: string, kind: 'info' | 'err' = 'info') => {
     const t = h('div', { class: `toast ${kind}`, role: kind === 'err' ? 'alert' : 'status' }, msg); toastBox.append(t);
@@ -49,13 +54,14 @@ export function mountApp(root: HTMLElement): void {
     dialog.showModal();
   };
 
+  const ihost = { dispatch, confirm, now: () => sch.now, goAsset: (id: string) => showItsm({ page: 'asset', id }) };
   const canvas = new InfraCanvas({
     store, dispatch, hint: m => { hint.textContent = m; },
-    onSelect: (sel: Selection) => renderInspector(inspector, store.getState(), sel, { dispatch, confirm }),
+    onSelect: (sel: Selection) => renderInspector(inspector, store.getState(), sel, ihost),
   }, stage);
   new Dock(dockEl, store, id => canvas.focusDevice(id));
 
-  const refresh = () => { renderInspector(inspector, store.getState(), canvas.getSelection(), { dispatch, confirm }); clock.textContent = fmtTime(sch.now); autosave(); };
+  const refresh = () => { renderInspector(inspector, store.getState(), canvas.getSelection(), ihost); clock.textContent = fmtTime(sch.now); autosave(); };
   store.subscribe(refresh);
 
   /* ---- palette ---- */
@@ -76,24 +82,27 @@ export function mountApp(root: HTMLElement): void {
   }, t === 'select' ? 'Sélection' : 'Câble'));
   palette.append(h('div', { class: 'tools', role: 'toolbar', 'aria-label': 'Outils' }, ...toolBtns), ...sections);
 
+  /* ---- vues ---- */
+  const tabInfra = h('button', { role: 'tab', 'aria-selected': 'true', class: 'on', onclick: () => showInfra() }, 'Infrastructure');
+  const tabItsm = h('button', { role: 'tab', 'aria-selected': 'false', onclick: () => showItsm() }, 'ITSM');
+  const itsm = new ItsmView(itsmEl, { store, now: () => sch.now, dispatch, goInfra: id => { showInfra(); canvas.focusDevice(id); } });
+  function showInfra(): void { workEl.hidden = false; itsmEl.hidden = true; tabInfra.classList.add('on'); tabItsm.classList.remove('on'); tabInfra.setAttribute('aria-selected', 'true'); tabItsm.setAttribute('aria-selected', 'false'); }
+  function showItsm(r?: Parameters<ItsmView['go']>[0]): void { workEl.hidden = true; itsmEl.hidden = false; tabItsm.classList.add('on'); tabInfra.classList.remove('on'); tabItsm.setAttribute('aria-selected', 'true'); tabInfra.setAttribute('aria-selected', 'false'); itsm.go(r ?? itsm.route); }
+
   /* ---- en-tête ---- */
   const header = h('header', { class: 'top' },
     h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('span', null, 'InfraLab')),
-    h('div', { class: 'views', role: 'tablist', 'aria-label': 'Vues' },
-      h('button', { role: 'tab', 'aria-selected': 'true', class: 'on' }, 'Infrastructure'),
-      h('button', { role: 'tab', 'aria-selected': 'false', disabled: true, title: 'La vue ITSM arrive avec le jalon M3' }, 'ITSM')),
+    h('div', { class: 'views', role: 'tablist', 'aria-label': 'Vues' }, tabInfra, tabItsm),
     h('div', { class: 'grow' }),
     h('div', { class: 'simtime' }, h('span', { class: 'muted' }, 'Heure simulée'), clock,
-      h('button', { title: 'Avancer le temps simulé d\'une heure (remontées d\'agent et SLA, bientôt)', onclick: () => { sch.runFor(HOUR); refresh(); } }, '+1 h')),
-    h('button', { onclick: () => canvas.fit() }, 'Recentrer'),
+      h('button', { title: 'Avancer le temps simulé d\'une heure (remontées d\'agent planifiées)', onclick: () => { advance(store, sch, HOUR); refresh(); } }, '+1 h'),
+      h('button', { title: 'Avancer le temps simulé d\'un jour', onclick: () => { advance(store, sch, DAY); refresh(); } }, '+1 jour')),
+    h('button', { onclick: () => { showInfra(); canvas.fit(); } }, 'Recentrer'),
     h('button', { onclick: () => { const go = () => { seedExample(store, dispatch); sch.now = 0; canvas.fit(); refresh(); }; if (Object.keys(store.getState().reality.devices).length) confirm('Remplacer le schéma actuel par le SI d\'exemple ?', () => { store.restore({ state: emptyState(), log: [] }); go(); }); else go(); } }, 'SI d\'exemple'),
     h('button', { onclick: () => confirm('Effacer tout le schéma ?', () => { store.restore({ state: emptyState(), log: [] }); sch.now = 0; canvas.select(null); refresh(); }) }, 'Nouveau'));
 
-  root.append(header,
-    h('main', { class: 'work' }, palette,
-      h('div', { class: 'center' }, stage, hint, dockEl),
-      inspector),
-    toastBox, dialog);
+  workEl.append(palette, h('div', { class: 'center' }, stage, hint, dockEl), inspector);
+  root.append(header, workEl, itsmEl, toastBox, dialog);
 
   window.addEventListener('keydown', e => {
     const t = e.target as HTMLElement; if (t.closest('input, textarea, select, dialog')) return;

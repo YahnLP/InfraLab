@@ -6,6 +6,11 @@ export const EVENT_LABEL: Record<string, string> = {
   DevicePoweredOn: 'Équipement allumé', DevicePoweredOff: 'Équipement éteint',
   DeviceOnline: 'Passe en ligne', DeviceOffline: 'Passe hors ligne',
   IPAddressChanged: 'Adresse IP modifiée', HardwareChanged: 'Matériel modifié', ItsmServerSet: 'Serveur ITSM désigné',
+  SoftwareInstalled: 'Logiciel installé', SoftwareRemoved: 'Logiciel désinstallé', UserSessionChanged: 'Session utilisateur modifiée',
+  AgentInstalled: 'Agent installé', AgentStarted: 'Agent démarré', AgentStopped: 'Agent arrêté', AgentUninstalled: 'Agent désinstallé', AgentConfigured: 'Agent configuré',
+  AgentOffline: 'Agent injoignable', AgentOnline: 'Agent de nouveau joignable', AgentInventoryCompleted: 'Inventaire remonté', AgentInventoryFailed: 'Inventaire en échec',
+  ChangeDetected: 'Changement détecté', NetworkDiscoveryCompleted: 'Découverte réseau terminée', AssetCreated: 'Actif créé', AssetMatched: 'Actif rapproché',
+  AssetUpdated: 'Actif modifié', UserAdded: 'Utilisateur ajouté', AssetAssigned: 'Actif affecté',
 };
 
 export const REASON_TEXT: Record<OfflineReason, string> = {
@@ -28,3 +33,10 @@ export const REASON_SHORT: Record<OfflineReason, string> = {
   powered_off: 'éteint', no_link: 'aucun lien actif', no_ip: 'pas d\'adresse IP',
   wrong_subnet: 'sous-réseau injoignable', no_path: 'plus de chemin vers le serveur',
 };
+
+/** Temps relatif en heure simulée. */
+export function ago(now: number, t: number): string {
+  const m = Math.max(0, Math.floor((now - t) / 60000));
+  if (m < 1) return 'à l\'instant'; if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60); return h < 48 ? `il y a ${h} h` : `il y a ${Math.floor(h / 24)} j`;
+}

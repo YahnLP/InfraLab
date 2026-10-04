@@ -10,7 +10,7 @@ export class Dock {
   constructor(private root: HTMLElement, private store: Store, private onFocus: (deviceId: string) => void) {
     store.subscribe(() => this.render()); this.render();
   }
-  private name(id: string): string { return this.store.getState().reality.devices[id]?.name ?? this.names.get(id) ?? id; }
+  private name(id: string): string { const st = this.store.getState(); return st.reality.devices[id]?.name ?? st.management.assets[id]?.name ?? st.management.users[id]?.name ?? this.names.get(id) ?? id; }
   private describe(e: DomainEvent): string {
     const p = e.payload as Record<string, any>;
     switch (e.type) {
@@ -19,6 +19,11 @@ export class Dock {
       case 'HardwareChanged': return `${p['component']} : ${p['before']} → ${p['after']}`;
       case 'DeviceOffline': return REASON_SHORT[p['reason'] as OfflineReason] ?? '';
       case 'DeviceReplaced': return `${this.name(String(p['oldId']))} → nouvel équipement`;
+      case 'ChangeDetected': return `${p['field']} : ${JSON.stringify(p['before'])} → ${JSON.stringify(p['after'])}`;
+      case 'AgentInventoryFailed': return String(p['detail'] ?? '');
+      case 'NetworkDiscoveryCompleted': return `${p['cidr']} : ${p['found']} trouvé(s), ${p['created']} nouveau(x)`;
+      case 'AssetMatched': return `par ${p['by']}`;
+      case 'SoftwareInstalled': case 'SoftwareRemoved': return String(p['softwareId']);
       default: return '';
     }
   }
@@ -28,7 +33,7 @@ export class Dock {
     clear(this.root);
     const rows = [...log].reverse().slice(0, 200);
     const list = h('ol', { class: 'events', 'aria-label': 'Événements, du plus récent au plus ancien' },
-      ...rows.map(e => h('li', { class: `ev ${e.type === 'DeviceOffline' ? 'bad' : e.type === 'DeviceOnline' ? 'good' : ''}${this.picked === e.id ? ' picked' : ''}` },
+      ...rows.map(e => h('li', { class: `ev ${['DeviceOffline', 'AgentOffline', 'AgentInventoryFailed'].includes(e.type) ? 'bad' : ['DeviceOnline', 'AgentOnline', 'AgentInventoryCompleted'].includes(e.type) ? 'good' : ''}${this.picked === e.id ? ' picked' : ''}` },
         h('button', { onclick: () => { this.picked = e.id; this.render(); if (e.subject.kind === 'device' && this.store.getState().reality.devices[e.subject.id]) this.onFocus(e.subject.id); } },
           h('time', null, fmtTime(e.t)), h('b', null, EVENT_LABEL[e.type] ?? e.type), h('span', { class: 'who' }, this.name(e.subject.id)), h('span', { class: 'muted' }, this.describe(e))))));
     const chain = this.picked ? this.store.trace(this.picked) : [];
