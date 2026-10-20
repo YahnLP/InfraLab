@@ -535,6 +535,7 @@ La page d'aide ajoute à chaque fois : *« pourquoi cette information existe, co
 | 8 | Découverte réseau | Lancer une découverte → Ce que la découverte ne voit pas | Gérer le patrimoine informatique (T) · Administrer une infrastructure (T) |
 | 9 | Équipement sans agent | Pourquoi pas d'agent ? → Compléter à la main, en connaissance de cause | Gérer le patrimoine informatique (T) |
 | 10 | Agent en erreur | Lire l'état d'un agent → Remettre les trois agents en service | Exploiter et dépanner (T) · Assurer la traçabilité (P) |
+| 49 | Audit d'inventaire : peut-on se fier aux chiffres ? | Mesurer la couverture réelle → Réparer les agents défaillants → Ce que l'outil ne voit pas | Gérer le patrimoine informatique (T) · Exploiter et dépanner (T) |
 
 ### Niveau 3 — Service Desk
 | # | TP | Étapes | Compétences |
@@ -547,6 +548,7 @@ La page d'aide ajoute à chaque fois : *« pourquoi cette information existe, co
 | 42 | Une matinée au service desk | Premier appel, premier tri → Un appel urgent arrive → Finir la matinée | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
 | 47 | Passer la main : l'escalade fonctionnelle | Escalader : de quoi parle-t-on ? → Traiter au niveau 1 → Le temps passe → Escalader et conclure | Répondre aux incidents et aux demandes (T) · Exploiter et dépanner (T) |
 | 48 | Prévenir le responsable : l'escalade hiérarchique | Informer, ce n'est pas transférer → Qualifier pour mesurer l'enjeu → Alerter à bon escient → La réponse du responsable | Répondre aux incidents et aux demandes (T) · Gérer les habilitations (P) |
+| 50 | Un incident de bout en bout | Qualifier, lier, attribuer → Diagnostiquer et remédier → Documenter, résoudre, clore | Répondre aux incidents et aux demandes (T) · Assurer la traçabilité (P) |
 
 ### Niveau 4 — Incidents techniques
 | # | TP | Étapes | Compétences |
