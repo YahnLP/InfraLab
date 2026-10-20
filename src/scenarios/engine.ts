@@ -1,6 +1,6 @@
 import { emptyState, type Scheduler, type State, type Store } from '../core';
 import { advance } from '../inventory';
-import { getScenario } from './catalog';
+import { getScenario, registerExternalScenario } from './catalog';
 import { runCheck } from './checks';
 import { seedNovatech } from './novatech';
 import { resolveRefs } from './resolve';
@@ -46,6 +46,7 @@ export function advanceTime(store: Store, sch: Scheduler, ms: number): string[] 
 
 /** Repart d'un SI vierge : NovaTech + décor du scénario, puis ouvre la session. Déterministe : deux démarrages donnent le même état. */
 export function startScenario(store: Store, sch: Scheduler, sc: Scenario, mode: 'tp' | 'exam' = 'tp'): void {
+  if (!getScenario(sc.id)) registerExternalScenario(sc);
   store.restore({ state: emptyState(), log: [] }); sch.now = 0;
   seedNovatech(store, c => { const r = store.dispatch(c); if (!r.ok) throw r.error; return true; });
   sch.now = 0;

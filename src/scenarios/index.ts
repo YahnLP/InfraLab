@@ -7,3 +7,5 @@ export { runCheck } from './checks';
 export { resolveRefs } from './resolve';
 export * from './report';
 export * from './novatech-full';
+export * from './tpfile';
+export { COURSE_TPS } from './course-tps';

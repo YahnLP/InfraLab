@@ -2,7 +2,7 @@ import { Scheduler, Store } from '../../src/core';
 import { registerInfraCommands } from '../../src/infra';
 import { registerInventoryCommands } from '../../src/inventory';
 import { registerItsmCommands } from '../../src/itsm';
-import { SCENARIOS, evaluate, registerScenarioCommands, runSteps, startScenario } from '../../src/scenarios';
+import { COURSE_TPS, SCENARIOS, evaluate, registerScenarioCommands, runSteps, startScenario } from '../../src/scenarios';
 
 function lab() {
   const sch = new Scheduler(); const store = new Store({ clock: () => sch.now });
@@ -14,7 +14,7 @@ describe('Qualité des TP (auto-test de chaque scénario)', () => {
   it('numéros et identifiants uniques', () => {
     expect(new Set(SCENARIOS.map(s => s.id)).size).toBe(SCENARIOS.length); expect(new Set(SCENARIOS.map(s => s.number)).size).toBe(SCENARIOS.length);
   });
-  for (const sc of SCENARIOS) {
+  for (const sc of [...SCENARIOS, ...COURSE_TPS]) {
     describe(`TP ${sc.number} — ${sc.title}`, () => {
       it('structure cohérente : indices et dépendances pointent vers des objectifs existants', () => {
         const ids = new Set(sc.objectives.map(o => o.id));
@@ -105,8 +105,8 @@ describe('Session de TP', () => {
 });
 
 describe('Catalogue complet', () => {
-  it('contient les 50 TP numérotés de 1 à 50, dans l\'ordre', () => {
-    expect(SCENARIOS.map(s => s.number)).toEqual(Array.from({ length: 50 }, (_, i) => i + 1));
+  it('contient les 48 TP du catalogue numérotés de 1 à 48, dans l\'ordre', () => {
+    expect(SCENARIOS.map(s => s.number)).toEqual(Array.from({ length: 48 }, (_, i) => i + 1));
   });
   it('TP 38 : l\'impact d\'un arrêt de SRV-ITSM remonte jusqu\'au service (propriété sur laquelle repose la question)', async () => {
     const { impactOf } = await import('../../src/itsm');

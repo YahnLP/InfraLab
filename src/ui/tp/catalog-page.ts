@@ -18,7 +18,7 @@ export function renderTpCatalog(root: HTMLElement, host: TpHost): void {
   const levels = [...new Set(SCENARIOS.map(s => s.level))].sort();
   root.append(h('div', { class: 'tp-page' },
     h('h1', null, 'Travaux pratiques'),
-    h('p', { class: 'muted lead' }, 'Chaque TP prépare un état précis du SI NovaTech, fixe des objectifs vérifiés automatiquement et garde la trace de ce que vous faites. Démarrer un TP remplace le projet en cours.'),
+    h('p', { class: 'muted lead' }, 'Chaque TP prépare un état précis du SI NovaTech, fixe des objectifs vérifiés automatiquement et garde la trace de ce que vous faites. Démarrer un TP remplace le projet en cours. Votre formateur peut aussi vous remettre un TP sous forme de fichier (.infralab-tp.json) : ouvrez-le avec le bouton « Ouvrir ».'),
     ...levels.map(l => h('section', null, h('h2', null, `Niveau ${l} — ${SCENARIOS.find(s => s.level === l)!.levelLabel}`),
       h('div', { class: 'tp-grid' }, ...SCENARIOS.filter(s => s.level === l).map(sc => h('article', { class: `tp-card${host.current() === sc.id ? ' current' : ''}` },
         h('header', null, h('span', { class: 'tp-num' }, `TP ${sc.number}`), h('span', { class: 'muted', title: 'Difficulté' }, stars(sc.difficulty)), h('span', { class: 'muted' }, sc.duration)),
