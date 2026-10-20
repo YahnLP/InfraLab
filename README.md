@@ -4,7 +4,7 @@ Laboratoire pédagogique **ITSM / ITAM** : un même système d'information vu à
 
 Créé par Yahn LE PRETTRE — Formaxion Landes. Application indépendante du simulateur réseau, dont elle réutilise certaines idées (planificateur à temps simulé, canvas SVG, moteur de TP auto-testés).
 
-> **État : M8 — finitions, version 1.0.** Après les tickets (M3), les TP guidés (M4), l'ITIL (M5), l'ITAM + CMDB (M6) et l'administration RBAC (M7) : **catalogue complet de 50 TP** (étapes cours → pratique → bilan, 74 questions de compréhension, auto-testés), mode examen, **compte rendu de TP exportable** (HTML imprimable ou JSON, avec empreinte), jeu de données **NovaTech complet** (4 sites, une quarantaine d'équipements, 45 utilisateurs), vue formateur (couverture des compétences), accessibilité auditée automatiquement (axe-core, 0 violation WCAG 2.1 AA, thèmes clair et sombre). Documents : `docs/ARCHITECTURE.md` (conception et état réel), `docs/GUIDE-FORMATEUR.md`, `docs/couverture-competences.md`. Reste à faire : essai en classe, audit manuel avec lecteur d'écran, export/import de projet.
+> **État : M8 — finitions, version 1.0.** Après les tickets (M3), les TP guidés (M4), l'ITIL (M5), l'ITAM + CMDB (M6) et l'administration RBAC (M7) : **catalogue complet de 48 TP** (étapes cours → pratique → bilan, 74 questions de compréhension, auto-testés), mode examen, **compte rendu de TP exportable** (HTML imprimable ou JSON, avec empreinte), jeu de données **NovaTech complet** (4 sites, une quarantaine d'équipements, 45 utilisateurs), vue formateur (couverture des compétences), accessibilité auditée automatiquement (axe-core, 0 violation WCAG 2.1 AA, thèmes clair et sombre). Documents : `docs/ARCHITECTURE.md` (conception et état réel), `docs/GUIDE-FORMATEUR.md`, `docs/couverture-competences.md`. Reste à faire : essai en classe, audit manuel avec lecteur d'écran, export/import de projet.
 
 Historique : **M2 — inventaire.** Vues Infrastructure et ITSM (parc, agents, découverte, fiche d'actif, utilisateurs, journaux), agent d'inventaire, découverte réseau, rapprochement, écart réalité/observé. Rappel M1 : Noyau typé et testé, catalogue de 15 équipements, commandes physiques, joignabilité avec événements en cascade, canvas SVG, palette, inspecteur et journal « Pourquoi ? ». Prochain jalon : ITAM et CMDB (logiciels, licences, contrats, CI et relations).
 
@@ -47,3 +47,7 @@ Règles du noyau : données pures (JSON), mutation uniquement par commandes, auc
 ## Licence
 
 © 2026 Yahn LE PRETTRE - Formaxion Landes. Distribué sous licence **EUPL 1.2** (fichier `LICENSE`). Le nom et l'identité visuelle ne sont pas couverts par cette licence. Contributions : voir `CONTRIBUTING.md`.
+
+## TP de cours à télécharger
+
+En plus du catalogue, des TP spécifiques à un cours sont distribués sous forme de **fichiers `.infralab-tp.json`** (téléchargés depuis la fiche de TP du cours, puis ouverts avec **Ouvrir**). Ils ne figurent pas dans l'application ; ils sont définis dans `src/scenarios/course-tps.ts`, auto-testés comme les autres, et produits par `npx vite-node tools/gen-tp-files.ts <dossier>`. Un projet enregistré en cours de TP embarque le TP : il se rouvre seul.

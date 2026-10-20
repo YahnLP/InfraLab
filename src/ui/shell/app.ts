@@ -8,7 +8,7 @@ import { InfraCanvas, type Selection } from '../infra-view/canvas';
 import { Dock } from '../infra-view/dock';
 import { renderInspector } from '../infra-view/inspector';
 import { glyphSvg } from '../infra-view/icons';
-import { advanceTime, getScenario as SCENARIOS_BY_ID, registerScenarioCommands, seedNovatech as seedExample, seedNovatechFull, startScenario, type Scenario } from '../../scenarios';
+import { SCENARIOS, checkScenario, isTpFile, parseTp, registerExternalScenario, advanceTime, getScenario as SCENARIOS_BY_ID, registerScenarioCommands, seedNovatech as seedExample, seedNovatechFull, startScenario, type Scenario } from '../../scenarios';
 import { renderTpCatalog } from '../tp/catalog-page';
 import { TpPanel } from '../tp/panel';
 import { fmtTime } from './labels';
@@ -26,10 +26,12 @@ export function mountApp(root: HTMLElement): void {
   /* ---- persistance locale (provisoire : IndexedDB et projets nommés arrivent avec le moteur de TP) ---- */
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const p = JSON.parse(raw); if (p?.snapshot?.state?.schemaVersion === 1) { store.restore(p.snapshot); sch.now = Number(p.now) || 0; } }
+    if (raw) { const p = JSON.parse(raw); if (p?.snapshot?.state?.schemaVersion === 1) { if (p.scenario) registerExternalScenario(checkScenario(p.scenario)); store.restore(p.snapshot); sch.now = Number(p.now) || 0; } }
   } catch { /* stockage indisponible ou corrompu : on repart d'un projet vide */ }
+  /** TP hors catalogue en cours (à embarquer dans la sauvegarde), sinon rien. */
+  const external = () => { const id = store.getState().session?.scenarioId; return id && !SCENARIOS.some(s => s.id === id) ? SCENARIOS_BY_ID(id) : undefined; };
   let saveTimer: number | undefined;
-  const saveNow = () => { try { localStorage.setItem(KEY, JSON.stringify({ snapshot: store.snapshot(), now: sch.now })); } catch { /* ignoré */ } };
+  const saveNow = () => { try { localStorage.setItem(KEY, JSON.stringify({ snapshot: store.snapshot(), now: sch.now, scenario: external() })); } catch { /* ignoré */ } };
   const autosave = () => { window.clearTimeout(saveTimer); saveTimer = window.setTimeout(saveNow, 250); };
   window.addEventListener('pagehide', saveNow);
 
@@ -86,7 +88,7 @@ export function mountApp(root: HTMLElement): void {
   const renderFname = () => { fnameEl.textContent = fileName || 'Non enregistré'; fnameEl.classList.toggle('dirty', dirty && !!fileName); fnameEl.title = dirty && fileName ? 'Modifications non enregistrées' : ''; };
   const resetFile = () => { handle = null; fileName = ''; dirty = false; renderFname(); };
   const curScenario = () => { const id = store.getState().session?.scenarioId; return id ? SCENARIOS_BY_ID(id) : undefined; };
-  const filePayload = () => { const sc = curScenario(); const st = store.getState(); return { text: serialize(store.snapshot(), sch.now, labelOf(st, sc?.title)), name: suggestedName(st, sc?.number) }; };
+  const filePayload = () => { const sc = curScenario(); const st = store.getState(); return { text: serialize(store.snapshot(), sch.now, labelOf(st, sc?.title), new Date(), external()), name: suggestedName(st, sc?.number) }; };
   const isAbort = (e: unknown) => (e as { name?: string })?.name === 'AbortError';
   const saveFile = async (as: boolean): Promise<void> => {
     const { text, name } = filePayload();
@@ -103,9 +105,15 @@ export function mountApp(root: HTMLElement): void {
     } catch (e) { if (!isAbort(e)) toast('Enregistrement impossible : ' + ((e as Error).message || 'erreur inconnue'), 'err'); }
   };
   const loadText = (text: string, name: string, h2: FsHandle | null) => {
+    if (isTpFile(text)) {
+      let sc: Scenario; try { sc = parseTp(text); } catch (e) { toast((e as Error).message, 'err'); return; }
+      registerExternalScenario(sc);
+      confirm(`Démarrer « TP ${sc.number} — ${sc.title} » ? Le projet actuel sera remplacé.`, () => { startScenario(store, sch, sc, 'tp'); resetFile(); canvas.select(null); showInfra(); canvas.fit(); refresh(); toast(`TP ouvert : ${sc.title}`); });
+      return;
+    }
     let r; try { r = parseProject(text); } catch (e) { toast((e as Error).message, 'err'); return; }
     const go = () => {
-      loading = true; store.restore(r.snapshot); sch.now = r.now; canvas.select(null); showInfra(); canvas.fit(); loading = false; refresh();
+      loading = true; if (r.scenario) registerExternalScenario(r.scenario); store.restore(r.snapshot); sch.now = r.now; canvas.select(null); showInfra(); canvas.fit(); loading = false; refresh();
       handle = h2; fileName = name; dirty = false; renderFname(); toast(`Projet ouvert : ${name}`);
     };
     if (dirty) confirm('Le projet actuel contient des modifications non enregistrées. Ouvrir ce fichier quand même ?', go); else go();

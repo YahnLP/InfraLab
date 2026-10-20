@@ -31,8 +31,8 @@ La chaîne centrale : équipement → réseau → agent ou découverte → inven
 | Séance | Objectif | TP |
 |---|---|---|
 | 1 — Comprendre le SI | réalité et connaissance de gestion | 1, 2, 3, 4, 5 |
-| 2 — L'inventaire | agent, découverte, rapprochement | 6, 7, 8, 9, 10, 49 |
-| 3 — Le service desk | cycle de vie d'un ticket | 11, 12, 13, 14, 15, 42, 47, 48, 50 |
+| 2 — L'inventaire | agent, découverte, rapprochement | 6, 7, 8, 9, 10 |
+| 3 — Le service desk | cycle de vie d'un ticket | 11, 12, 13, 14, 15, 42, 47, 48 |
 | 4 — Dépanner | du symptôme à la cause | 16, 17, 18, 19, 20, 43 |
 | 5 — ITIL | SLA, problème, changement, connaissance | 21, 22, 23, 24, 25, 41, 44 |
 | 6 — Gérer le parc | logiciels, licences, contrats, cycle de vie | 26, 27, 28, 29, 30 |
@@ -40,7 +40,7 @@ La chaîne centrale : équipement → réseau → agent ou découverte → inven
 | 8 — Administrer | rôles, droits, groupes, délégations, audit | 33, 34, 35, 36, 37, 39, 45, 46 |
 | Bilan | tout assembler | 40 |
 
-Les TP 41 à 48 prolongent les séances 3, 4, 5 et 8 ; les TP 49 (audit d'inventaire) et 50 (un incident de bout en bout) accompagnent les séances S05 et S06 du BTS SIO SISR. Six d'entre eux (41, 42, 43, 47, 48, 49) se jouent dans le temps simulé. Les TP d'un même niveau sont indépendants : l'ordre à l'intérieur d'une séance se choisit librement. Les niveaux se suivent en difficulté croissante.
+Les TP 41 à 48 prolongent les séances 3, 4, 5 et 8. Cinq d'entre eux (41, 42, 43, 47 et 48) se jouent dans le temps simulé. Les TP d'un même niveau sont indépendants : l'ordre à l'intérieur d'une séance se choisit librement. Les niveaux se suivent en difficulté croissante.
 
 ## 4. Évaluer, sans surpromettre
 
@@ -70,6 +70,8 @@ Réseau d'entreprise simplifié (tous les sites sur le même réseau) ; SLA en c
 **Comment fonctionne l'escalade ?** Sur la fiche du ticket, section « Escalade », un technicien peut escalader *fonctionnellement* (niveau N1 → N2 → N3, vers un groupe : le ticket repasse à « Qualifié », sans assigné, avec un motif obligatoire) ou *hiérarchiquement* (alerte du responsable, sans changer de niveau ; justifiée seulement par une priorité 1-2 ou un SLA à risque ou dépassé). L'outil conseille mais n'escalade jamais seul. Voir les TP 47 et 48.
 
 **Le temps est-il réglé dans les TP ?** Oui, quand il compte. L'heure simulée n'avance que sur action de l'élève : boutons +15 min, +1 h, +1 jour (en haut, et dans l'encart « Dans ce TP, le temps compte » des TP concernés : 6, 7, 10, 22, 28, 41 à 44, 46 et 49). Les TP 42 et 43 font arriver des tickets et une panne à des heures précises ; le TP 41 se joue un lundi à 7 h après un week-end ; le TP 46 se termine par l'échéance d'une délégation.
+
+**Qu'est-ce qu'un TP de cours ?** Un TP écrit pour une séance précise, distribué en fichier `.infralab-tp.json` depuis la fiche de TP du cours (il n'apparaît pas dans l'onglet TP). L'élève le télécharge, clique sur **Ouvrir** et le choisit : le TP démarre comme un TP du catalogue (objectifs vérifiés, indices, compte rendu). Un projet enregistré en cours de TP embarque le TP et se rouvre seul. Les deux TP de cours actuels accompagnent les séances S05 (audit d'inventaire) et S06 (un incident de bout en bout) du BTS SIO SISR.
 
 **Peut-on modifier un TP ?** Les TP sont des données TypeScript dans `src/scenarios/catalog.ts` ; chaque modification est contrôlée par des auto-tests (état initial sans objectif atteint, solution à 100 / 100, démarrage déterministe).
 
